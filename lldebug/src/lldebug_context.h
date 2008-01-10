@@ -30,6 +30,7 @@ public:
 		STATE_NORMAL,
 		STATE_STEPOVER,
 		STATE_STEPINTO,
+		STATE_STEPRETURN,
 		STATE_BREAK,
 		STATE_QUIT,
 	};
@@ -164,7 +165,7 @@ private:
 	};
 	typedef std::vector<CoroutineInfo> CoroutineList;
 	CoroutineList m_coroutines;
-	CoroutineInfo m_stepover;
+	CoroutineInfo m_stepinfo;
 
 	CommandQueue m_cmdQueue;
 	SourceManager m_sourceManager;

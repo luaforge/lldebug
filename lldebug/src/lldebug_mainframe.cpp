@@ -22,6 +22,7 @@ enum {
 	ID_MENU_RESTART,
 	ID_MENU_STEPOVER,
 	ID_MENU_STEPINTO,
+	ID_MENU_STEPRETURN,
 	ID_MENU_TOGGLE_BREAKPOINT,
 
 	ID_MENU_SHOW_LOCALWATCH,
@@ -43,6 +44,7 @@ BEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	EVT_MENU(ID_MENU_RESTART, MainFrame::OnMenu)
 	EVT_MENU(ID_MENU_STEPOVER, MainFrame::OnMenu)
 	EVT_MENU(ID_MENU_STEPINTO, MainFrame::OnMenu)
+	EVT_MENU(ID_MENU_STEPRETURN, MainFrame::OnMenu)
 	EVT_MENU(ID_MENU_TOGGLE_BREAKPOINT, MainFrame::OnMenu)
 
 	EVT_MENU(ID_MENU_SHOW_LOCALWATCH, MainFrame::OnMenu)
@@ -120,6 +122,7 @@ void MainFrame::CreateGUIControls() {
 	debugMenu->AppendSeparator();
 	debugMenu->Append(ID_MENU_STEPINTO, _("Step &Into\tF7"));
 	debugMenu->Append(ID_MENU_STEPOVER, _("Step &Over\tF6"));
+	debugMenu->Append(ID_MENU_STEPRETURN, _("Step Return\tF8"));
 	debugMenu->AppendSeparator();
 	debugMenu->Append(ID_MENU_TOGGLE_BREAKPOINT, _("&Toggle BreakPoint\tF9"));
 
@@ -302,9 +305,13 @@ void MainFrame::OnMenu(wxCommandEvent &event) {
 	case ID_MENU_STEPINTO:
 		m_ctx->PushCommand(Command::TYPE_STEPINTO);
 		break;
+	case ID_MENU_STEPRETURN:
+		m_ctx->PushCommand(Command::TYPE_STEPRETURN);
+		break;
 	case ID_MENU_TOGGLE_BREAKPOINT:
 		m_sourceView->ToggleBreakPoint();
 		break;
+
 	case ID_MENU_SHOW_LOCALWATCH:
 		ShowView(ID_LOCALWATCHVIEW);
 		break;

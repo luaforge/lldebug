@@ -160,7 +160,7 @@ int Context::Initialize() {
 
 	SetHook(L, true);
 	m_lua = L;
-	m_state = STATE_BREAK; //NORMAL;
+	m_state = STATE_STEPINTO; //NORMAL;
 	m_coroutines.push_back(CoroutineInfo(L));
 
 on_end:;
@@ -354,8 +354,8 @@ void Context::EndCoroutine(lua_State *L) {
 
 	// ステップオーバーが設定されたコルーチンを抜けるときは
 	// 強制的にブレイクします。
-	if (m_state == STATE_STEPOVER) {
-		if (m_stepover.L == L) {
+	if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
+		if (m_stepinfo.L == L) {
 			SetState(STATE_BREAK);
 		}
 	}
@@ -408,6 +408,7 @@ void Context::SetState(State state) {
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
+		case STATE_STEPRETURN:
 			/* ignore */
 			break;
 		default:
@@ -424,9 +425,10 @@ void Context::SetState(State state) {
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
+		case STATE_STEPRETURN:
 			m_state = state;
-			if (state == STATE_STEPOVER) {
-				//m_frame->ChangedState(false);
+			if (state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
+				m_frame->ChangedState(false);
 			}
 			break;
 		default:
@@ -437,15 +439,17 @@ void Context::SetState(State state) {
 		break;
 	case STATE_STEPOVER:
 	case STATE_STEPINTO:
+	case STATE_STEPRETURN:
 		switch (state) {
 		case STATE_NORMAL:
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
+		case STATE_STEPRETURN:
 			/* ignore */
 			break;
 		case STATE_BREAK:
-			if (m_state == STATE_STEPOVER) {
-				//m_frame->ChangedState(true);
+			if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
+				m_frame->ChangedState(true);
 			}
 			m_state = state;
 			break;
@@ -465,8 +469,8 @@ void Context::SetState(State state) {
 	}
 
 	// ステップオーバーなら情報を設定します。
-	if (m_state == STATE_STEPOVER) {
-		m_stepover = m_coroutines.back();
+	if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
+		m_stepinfo = m_coroutines.back();
 	}
 }
 
@@ -497,6 +501,13 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		return;
 	}
 	else if (ar->event == LUA_HOOKRET || ar->event == LUA_HOOKTAILRET) {
+		if (m_state == STATE_STEPRETURN) {
+			const CoroutineInfo &info = m_coroutines.back();
+			if (m_stepinfo.L == info.L  && info.call <= m_stepinfo.call) {
+				SetState(STATE_BREAK);
+			}
+		}
+
 		--m_coroutines.back().call;
 		return;
 	}
@@ -507,7 +518,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		return;
 	case STATE_STEPOVER: {
 		const CoroutineInfo &info = m_coroutines.back();
-		if (m_stepover.L == info.L  && info.call <= m_stepover.call) {
+		if (m_stepinfo.L == info.L  && info.call <= m_stepinfo.call) {
 			SetState(STATE_BREAK);
 		}
 		}
@@ -515,9 +526,13 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	case STATE_STEPINTO:
 		SetState(STATE_BREAK);
 		break;
-	default:
+	case STATE_NORMAL:
+	case STATE_STEPRETURN:
+	case STATE_BREAK:
+		break;
+	case STATE_INITIAL:
 		/* error */
-		//assert(false && "Value of 'state' is illegal.");
+		assert(false && "Value of 'state' is illegal.");
 		break;
 	}
 
@@ -560,6 +575,9 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 				break;
 			case Command::TYPE_STEPINTO:
 				SetState(STATE_STEPINTO);
+				break;
+			case Command::TYPE_STEPRETURN:
+				SetState(STATE_STEPRETURN);
 				break;
 			case Command::TYPE_QUIT:
 				SetState(STATE_QUIT);
