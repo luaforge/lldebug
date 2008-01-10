@@ -1,14 +1,1 @@
-AliceML --- About the license
 
-The sample and test programs use
-below wonderful libraries.
-Thanks very much.
-
-SDL (Simple Directmedia Layer)
-http://www.libsdl.org/
-
-SDL_ttf
-http://www.libsdl.org/projects/SDL_ttf/
-
-FreeType
-http://www.freetype.org/

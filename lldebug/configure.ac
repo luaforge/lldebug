@@ -1,10 +1,10 @@
 dnl 
-dnl $Id: configure.ac,v 1.1 2008-01-09 04:34:31 cielacanth Exp $
+dnl $Id: configure.ac,v 1.2 2008-01-10 09:39:41 cielacanth Exp $
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
 AC_INIT([lldebug], [0.1.0])
-AC_CONFIG_AUX_DIR([build-scripts])
+AC_CONFIG_AUX_DIR([build/build-scripts])
 AC_CONFIG_SRCDIR([src/lldebug.cpp])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -13,8 +13,8 @@ AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
 AC_PROG_INSTALL
-AC_PROG_RANLIB
 AC_PROG_LIBTOOL
+AM_PROG_CC_C_O
 AC_PATH_PROG(WXCONFIG, wx-config, :, /usr/local/bin:/usr/bin:/bin)
 
 # Checks for header files.
@@ -67,6 +67,5 @@ AC_CONFIG_FILES([
 	build/test/Makefile
 	])
 
-# src/Makefile test/Makefile 
 AC_OUTPUT
 

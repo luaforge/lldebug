@@ -127,8 +127,8 @@ LuaVarList WatchView::GetLuaVarList(lua_State *L, int level) {
 		std::reverse(vars.begin(), vars.end());
 		return vars;
 		}
-	//case TYPE_WATCH:
-	//	return LuaVarList();
+	case TYPE_WATCH:
+		return LuaVarList();
 	}
 
 	return LuaVarList();

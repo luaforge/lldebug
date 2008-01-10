@@ -142,7 +142,7 @@ am_libwxscintilla_a_OBJECTS = libwxscintilla_a-PlatWX.$(OBJEXT) \
 	libwxscintilla_a-XPM.$(OBJEXT)
 libwxscintilla_a_OBJECTS = $(am_libwxscintilla_a_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
-depcomp = $(SHELL) $(top_srcdir)/build-scripts/depcomp
+depcomp = $(SHELL) $(top_srcdir)/build/build-scripts/depcomp
 am__depfiles_maybe = depfiles
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)

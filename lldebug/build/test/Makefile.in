@@ -43,14 +43,14 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
-am_test1_OBJECTS = test1.$(OBJEXT)
+am_test1_OBJECTS = test1-test1.$(OBJEXT)
 test1_OBJECTS = $(am_test1_OBJECTS)
-test1_DEPENDENCIES = liblldebug.a
+test1_DEPENDENCIES = ../lldebug/liblldebug.la
 test1_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
 	$(test1_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
-depcomp = $(SHELL) $(top_srcdir)/build-scripts/depcomp
+depcomp = $(SHELL) $(top_srcdir)/build/build-scripts/depcomp
 am__depfiles_maybe = depfiles
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -179,19 +179,9 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I../../include -I../../src/lua/src
 test1_SOURCES = ../../test/test1.cpp
-test1_LDFLAGS = -L$(libdir) \
-				-L../lldebug \
-				-L../babel \
-				-L../treelistctrl \
-				-L../wxscintilla
-
-test1_LDADD = $(libadd) \
-				liblldebug.a -lbabel -ltreelistctrl -lwxscintilla \
-				-lboost_thread-mt \
-				-lboost_filesystem-mt \
-				-lboost_serialization-mt \
-				@WXLIBS@
-
+test1_CPPFLAGS = -Wall
+test1_LDFLAGS = -L$(libdir)
+test1_LDADD = ../lldebug/liblldebug.la $(libadd)
 all: all-am
 
 .SUFFIXES:
@@ -242,7 +232,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test1.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test1-test1.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -265,19 +255,19 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
 
-test1.o: ../../test/test1.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT test1.o -MD -MP -MF $(DEPDIR)/test1.Tpo -c -o test1.o `test -f '../../test/test1.cpp' || echo '$(srcdir)/'`../../test/test1.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/test1.Tpo $(DEPDIR)/test1.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../test/test1.cpp' object='test1.o' libtool=no @AMDEPBACKSLASH@
+test1-test1.o: ../../test/test1.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test1_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT test1-test1.o -MD -MP -MF $(DEPDIR)/test1-test1.Tpo -c -o test1-test1.o `test -f '../../test/test1.cpp' || echo '$(srcdir)/'`../../test/test1.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/test1-test1.Tpo $(DEPDIR)/test1-test1.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../test/test1.cpp' object='test1-test1.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o test1.o `test -f '../../test/test1.cpp' || echo '$(srcdir)/'`../../test/test1.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test1_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o test1-test1.o `test -f '../../test/test1.cpp' || echo '$(srcdir)/'`../../test/test1.cpp
 
-test1.obj: ../../test/test1.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT test1.obj -MD -MP -MF $(DEPDIR)/test1.Tpo -c -o test1.obj `if test -f '../../test/test1.cpp'; then $(CYGPATH_W) '../../test/test1.cpp'; else $(CYGPATH_W) '$(srcdir)/../../test/test1.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/test1.Tpo $(DEPDIR)/test1.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../test/test1.cpp' object='test1.obj' libtool=no @AMDEPBACKSLASH@
+test1-test1.obj: ../../test/test1.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test1_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT test1-test1.obj -MD -MP -MF $(DEPDIR)/test1-test1.Tpo -c -o test1-test1.obj `if test -f '../../test/test1.cpp'; then $(CYGPATH_W) '../../test/test1.cpp'; else $(CYGPATH_W) '$(srcdir)/../../test/test1.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/test1-test1.Tpo $(DEPDIR)/test1-test1.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../test/test1.cpp' object='test1-test1.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o test1.obj `if test -f '../../test/test1.cpp'; then $(CYGPATH_W) '../../test/test1.cpp'; else $(CYGPATH_W) '$(srcdir)/../../test/test1.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test1_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o test1-test1.obj `if test -f '../../test/test1.cpp'; then $(CYGPATH_W) '../../test/test1.cpp'; else $(CYGPATH_W) '$(srcdir)/../../test/test1.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

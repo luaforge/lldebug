@@ -6,28 +6,26 @@ INCLUDES =	-I../../include \
 			-I../../extralib/treelistctrl/include \
 			-I../../extralib/wxscintilla/include
 
-#lib_LTLIBRARIES = liblldebug.la
-noinst_LIBRARIES = liblldebug.a
+lib_LTLIBRARIES = liblldebug.la
 
-#MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
-#
-#AM_LDFLAGS = @LDFLAGS@
-
-liblldebug_a_CPPFLAGS = -DLUA_USE_LINUX \
+liblldebug_la_CPPFLAGS = -DLUA_USE_LINUX \
 						-DLLDEBUG_BUILD_DLL \
-						 @WXCPPFLAGS@
+						-DLUA_USE_APICHECK \
+						-Wall -ldl $(WXCPPFLAGS)
 
-#liblldebug_la_LIBADD = $(libadd) \
-#					   -L../babel \
-#					   -L../treelistctrl \
-#					   -L../wxscintilla \
-#					   -lbabel -ltreelistctrl -lwxscintilla \
-#					   -lboost_thread-mt \
-#					   -lboost_filesystem-mt \
-#					   -lboost_serialization-mt \
-#					   @WXLIBS@
+liblldebug_la_LDFLAGS = $(LDFLAGS)
 
-liblldebug_a_SOURCES = \
+liblldebug_la_LIBADD = $(libadd) \
+						../babel/libbabel.a \
+						../treelistctrl/libtreelistctrl.a \
+						../wxscintilla/libwxscintilla.a \
+						-lboost_thread-mt \
+						-lboost_filesystem-mt \
+						-lboost_serialization-mt \
+						-lreadline -lhistory -lncurses \
+						$(WXLIBS)
+
+liblldebug_la_SOURCES = \
 	../../src/lua/src/lapi.c \
 	../../src/lua/src/lauxlib.c \
 	../../src/lua/src/lbaselib.c \
@@ -66,7 +64,6 @@ liblldebug_a_SOURCES = \
 	../../src/lldebug_interactview.cpp \
 	../../src/lldebug_luainfo.cpp \
 	../../src/lldebug_mainframe.cpp \
-	../../src/lldebug_prec.cpp \
 	../../src/lldebug_sourceview.cpp \
 	../../src/lldebug_sysinfo.cpp \
 	../../src/lldebug_watchview.cpp \

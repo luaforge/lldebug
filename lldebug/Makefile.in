@@ -35,9 +35,10 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
-	build-scripts/config.guess build-scripts/config.sub \
-	build-scripts/depcomp build-scripts/install-sh \
-	build-scripts/ltmain.sh build-scripts/missing
+	build/build-scripts/compile build/build-scripts/config.guess \
+	build/build-scripts/config.sub build/build-scripts/depcomp \
+	build/build-scripts/install-sh build/build-scripts/ltmain.sh \
+	build/build-scripts/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -184,13 +185,6 @@ target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = build
-EXTRA_DIST = \
-	build-scripts/config.guess \
-	build-scripts/config.sub \
-	build-scripts/install-sh \
-	build-scripts/depcomp \
-	build-scripts/missing
-
 LIBTOOL_DEPS = @LIBTOOL_DEPS@
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive

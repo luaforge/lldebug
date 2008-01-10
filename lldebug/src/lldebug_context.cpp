@@ -1,4 +1,4 @@
-z//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 //
 // Name:        Project1App.cpp
 // Author:      雅博
@@ -8,9 +8,9 @@ z//---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 
 #include "lldebug_prec.h"
-#include "lldebug_context.h"
 #include "lldebug_codeconv.h"
 #include "lldebug_mainframe.h"
+#include "lldebug_context.h"
 #include "lldebug.h"
 
 #include <boost/archive/xml_oarchive.hpp>
@@ -122,9 +122,10 @@ Context *Context::Create() {
 }
 
 Context::Context()
-	: m_id(0), m_frame(NULL), m_lua(NULL)
+	: m_id(0), m_lua(NULL)
 	, m_state(STATE_INITIAL)
-	, m_currentSourceKey(NULL), m_currentLine(-1) {
+	, m_currentSourceKey(NULL), m_currentLine(-1)
+	, m_frame(NULL) {
 
 	scoped_lock lock(m_mutex);
 	m_id = ms_idCounter++;
@@ -229,7 +230,7 @@ private:
 	std::locale m_prev;
 };
 
-/// Transform key string that may contain all characters like "!"#$%&'()"
+/// Transform key string that may contain all characters such as "!"#$%&'()"
 /// to string that can use a filename.
 static std::string TransformKey(const std::string &key) {
 	const char * s_lookupTable = 
@@ -409,6 +410,10 @@ void Context::SetState(State state) {
 		case STATE_STEPINTO:
 			/* ignore */
 			break;
+		default:
+			/* error */
+			assert(false && "Value of 'state' is illegal.");
+			return;
 		}
 		break;
 	case STATE_BREAK:
@@ -424,6 +429,10 @@ void Context::SetState(State state) {
 				//m_frame->ChangedState(false);
 			}
 			break;
+		default:
+			/* error */
+			assert(false && "Value of 'state' is illegal.");
+			return;
 		}
 		break;
 	case STATE_STEPOVER:
@@ -440,11 +449,19 @@ void Context::SetState(State state) {
 			}
 			m_state = state;
 			break;
+		default:
+			/* error */
+			assert(false && "Value of 'state' is illegal.");
+			return;
 		}
 		break;
 	case STATE_QUIT:
 		/* ignore */
 		break;
+	default:
+		/* error */
+		assert(false && "Value of 'm_state' is illegal.");
+		return;
 	}
 
 	// ステップオーバーなら情報を設定します。
@@ -498,6 +515,10 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	case STATE_STEPINTO:
 		SetState(STATE_BREAK);
 		break;
+	default:
+		/* error */
+		//assert(false && "Value of 'state' is illegal.");
+		break;
 	}
 
 	lua_getinfo(L, "nSl", ar);
@@ -522,6 +543,9 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 			m_cmdQueue.Pop();
 
 			switch (cmd.GetType()) {
+			case Command::TYPE_NONE:
+				/* ignore */
+				break;
 			case Command::TYPE_PAUSE:
 				SetState(STATE_BREAK);
 				break;
@@ -1032,3 +1056,4 @@ LuaBackTrace Context::LuaGetBackTrace() {
 }
 
 }
+

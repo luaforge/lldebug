@@ -41,42 +41,52 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-LIBRARIES = $(noinst_LIBRARIES)
-ARFLAGS = cru
-liblldebug_a_AR = $(AR) $(ARFLAGS)
-liblldebug_a_LIBADD =
-am_liblldebug_a_OBJECTS = liblldebug_a-lapi.$(OBJEXT) \
-	liblldebug_a-lauxlib.$(OBJEXT) liblldebug_a-lbaselib.$(OBJEXT) \
-	liblldebug_a-lcode.$(OBJEXT) liblldebug_a-ldblib.$(OBJEXT) \
-	liblldebug_a-ldebug.$(OBJEXT) liblldebug_a-ldo.$(OBJEXT) \
-	liblldebug_a-ldump.$(OBJEXT) liblldebug_a-lfunc.$(OBJEXT) \
-	liblldebug_a-lgc.$(OBJEXT) liblldebug_a-linit.$(OBJEXT) \
-	liblldebug_a-liolib.$(OBJEXT) liblldebug_a-llex.$(OBJEXT) \
-	liblldebug_a-lmathlib.$(OBJEXT) liblldebug_a-lmem.$(OBJEXT) \
-	liblldebug_a-loadlib.$(OBJEXT) liblldebug_a-lobject.$(OBJEXT) \
-	liblldebug_a-lopcodes.$(OBJEXT) liblldebug_a-loslib.$(OBJEXT) \
-	liblldebug_a-lparser.$(OBJEXT) liblldebug_a-lstate.$(OBJEXT) \
-	liblldebug_a-lstring.$(OBJEXT) liblldebug_a-lstrlib.$(OBJEXT) \
-	liblldebug_a-ltable.$(OBJEXT) liblldebug_a-ltablib.$(OBJEXT) \
-	liblldebug_a-ltm.$(OBJEXT) liblldebug_a-lundump.$(OBJEXT) \
-	liblldebug_a-lvm.$(OBJEXT) liblldebug_a-lzio.$(OBJEXT) \
-	liblldebug_a-lldebug.$(OBJEXT) \
-	liblldebug_a-lldebug_application.$(OBJEXT) \
-	liblldebug_a-lldebug_backtraceview.$(OBJEXT) \
-	liblldebug_a-lldebug_bootstrap.$(OBJEXT) \
-	liblldebug_a-lldebug_codeconv.$(OBJEXT) \
-	liblldebug_a-lldebug_event.$(OBJEXT) \
-	liblldebug_a-lldebug_interactview.$(OBJEXT) \
-	liblldebug_a-lldebug_luainfo.$(OBJEXT) \
-	liblldebug_a-lldebug_mainframe.$(OBJEXT) \
-	liblldebug_a-lldebug_prec.$(OBJEXT) \
-	liblldebug_a-lldebug_sourceview.$(OBJEXT) \
-	liblldebug_a-lldebug_sysinfo.$(OBJEXT) \
-	liblldebug_a-lldebug_watchview.$(OBJEXT) \
-	liblldebug_a-lldebug_context.$(OBJEXT)
-liblldebug_a_OBJECTS = $(am_liblldebug_a_OBJECTS)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+am__installdirs = "$(DESTDIR)$(libdir)"
+libLTLIBRARIES_INSTALL = $(INSTALL)
+LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
+liblldebug_la_DEPENDENCIES = ../babel/libbabel.a \
+	../treelistctrl/libtreelistctrl.a \
+	../wxscintilla/libwxscintilla.a $(am__DEPENDENCIES_1)
+am_liblldebug_la_OBJECTS = liblldebug_la-lapi.lo \
+	liblldebug_la-lauxlib.lo liblldebug_la-lbaselib.lo \
+	liblldebug_la-lcode.lo liblldebug_la-ldblib.lo \
+	liblldebug_la-ldebug.lo liblldebug_la-ldo.lo \
+	liblldebug_la-ldump.lo liblldebug_la-lfunc.lo \
+	liblldebug_la-lgc.lo liblldebug_la-linit.lo \
+	liblldebug_la-liolib.lo liblldebug_la-llex.lo \
+	liblldebug_la-lmathlib.lo liblldebug_la-lmem.lo \
+	liblldebug_la-loadlib.lo liblldebug_la-lobject.lo \
+	liblldebug_la-lopcodes.lo liblldebug_la-loslib.lo \
+	liblldebug_la-lparser.lo liblldebug_la-lstate.lo \
+	liblldebug_la-lstring.lo liblldebug_la-lstrlib.lo \
+	liblldebug_la-ltable.lo liblldebug_la-ltablib.lo \
+	liblldebug_la-ltm.lo liblldebug_la-lundump.lo \
+	liblldebug_la-lvm.lo liblldebug_la-lzio.lo \
+	liblldebug_la-lldebug.lo liblldebug_la-lldebug_application.lo \
+	liblldebug_la-lldebug_backtraceview.lo \
+	liblldebug_la-lldebug_bootstrap.lo \
+	liblldebug_la-lldebug_codeconv.lo \
+	liblldebug_la-lldebug_event.lo \
+	liblldebug_la-lldebug_interactview.lo \
+	liblldebug_la-lldebug_luainfo.lo \
+	liblldebug_la-lldebug_mainframe.lo \
+	liblldebug_la-lldebug_sourceview.lo \
+	liblldebug_la-lldebug_sysinfo.lo \
+	liblldebug_la-lldebug_watchview.lo \
+	liblldebug_la-lldebug_context.lo
+liblldebug_la_OBJECTS = $(am_liblldebug_la_OBJECTS)
+liblldebug_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(liblldebug_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
-depcomp = $(SHELL) $(top_srcdir)/build-scripts/depcomp
+depcomp = $(SHELL) $(top_srcdir)/build/build-scripts/depcomp
 am__depfiles_maybe = depfiles
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -96,8 +106,8 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(liblldebug_a_SOURCES)
-DIST_SOURCES = $(liblldebug_a_SOURCES)
+SOURCES = $(liblldebug_la_SOURCES)
+DIST_SOURCES = $(liblldebug_la_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -219,28 +229,24 @@ INCLUDES = -I../../include \
 			-I../../extralib/treelistctrl/include \
 			-I../../extralib/wxscintilla/include
 
-
-#lib_LTLIBRARIES = liblldebug.la
-noinst_LIBRARIES = liblldebug.a
-
-#MYLIBS="-Wl,-E -ldl -lreadline -lhistory -lncurses"
-#
-#AM_LDFLAGS = @LDFLAGS@
-liblldebug_a_CPPFLAGS = -DLUA_USE_LINUX \
+lib_LTLIBRARIES = liblldebug.la
+liblldebug_la_CPPFLAGS = -DLUA_USE_LINUX \
 						-DLLDEBUG_BUILD_DLL \
-						 @WXCPPFLAGS@
+						-DLUA_USE_APICHECK \
+						-Wall -ldl $(WXCPPFLAGS)
 
+liblldebug_la_LDFLAGS = $(LDFLAGS)
+liblldebug_la_LIBADD = $(libadd) \
+						../babel/libbabel.a \
+						../treelistctrl/libtreelistctrl.a \
+						../wxscintilla/libwxscintilla.a \
+						-lboost_thread-mt \
+						-lboost_filesystem-mt \
+						-lboost_serialization-mt \
+						-lreadline -lhistory -lncurses \
+						$(WXLIBS)
 
-#liblldebug_la_LIBADD = $(libadd) \
-#					   -L../babel \
-#					   -L../treelistctrl \
-#					   -L../wxscintilla \
-#					   -lbabel -ltreelistctrl -lwxscintilla \
-#					   -lboost_thread-mt \
-#					   -lboost_filesystem-mt \
-#					   -lboost_serialization-mt \
-#					   @WXLIBS@
-liblldebug_a_SOURCES = \
+liblldebug_la_SOURCES = \
 	../../src/lua/src/lapi.c \
 	../../src/lua/src/lauxlib.c \
 	../../src/lua/src/lbaselib.c \
@@ -279,7 +285,6 @@ liblldebug_a_SOURCES = \
 	../../src/lldebug_interactview.cpp \
 	../../src/lldebug_luainfo.cpp \
 	../../src/lldebug_mainframe.cpp \
-	../../src/lldebug_prec.cpp \
 	../../src/lldebug_sourceview.cpp \
 	../../src/lldebug_sysinfo.cpp \
 	../../src/lldebug_watchview.cpp \
@@ -318,13 +323,35 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	test -z "$(libdir)" || $(MKDIR_P) "$(DESTDIR)$(libdir)"
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    f=$(am__strip_dir) \
+	    echo " $(LIBTOOL) --mode=install $(libLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) '$$p' '$(DESTDIR)$(libdir)/$$f'"; \
+	    $(LIBTOOL) --mode=install $(libLTLIBRARIES_INSTALL) $(INSTALL_STRIP_FLAG) "$$p" "$(DESTDIR)$(libdir)/$$f"; \
+	  else :; fi; \
+	done
 
-clean-noinstLIBRARIES:
-	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
-liblldebug.a: $(liblldebug_a_OBJECTS) $(liblldebug_a_DEPENDENCIES) 
-	-rm -f liblldebug.a
-	$(liblldebug_a_AR) liblldebug.a $(liblldebug_a_OBJECTS) $(liblldebug_a_LIBADD)
-	$(RANLIB) liblldebug.a
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  p=$(am__strip_dir) \
+	  echo " $(LIBTOOL) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$p'"; \
+	  $(LIBTOOL) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$p"; \
+	done
+
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
+	  test "$$dir" != "$$p" || dir=.; \
+	  echo "rm -f \"$${dir}/so_locations\""; \
+	  rm -f "$${dir}/so_locations"; \
+	done
+liblldebug.la: $(liblldebug_la_OBJECTS) $(liblldebug_la_DEPENDENCIES) 
+	$(liblldebug_la_LINK) -rpath $(libdir) $(liblldebug_la_OBJECTS) $(liblldebug_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -332,49 +359,48 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lapi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lauxlib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lbaselib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lcode.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-ldblib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-ldebug.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-ldo.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-ldump.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lfunc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lgc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-linit.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-liolib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_application.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_backtraceview.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_bootstrap.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_codeconv.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_context.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_event.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_interactview.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_luainfo.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_mainframe.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_prec.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_sourceview.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_sysinfo.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug_watchview.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-llex.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lmathlib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lmem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-loadlib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lobject.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lopcodes.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-loslib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lparser.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lstate.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lstring.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lstrlib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-ltable.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-ltablib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-ltm.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lundump.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lvm.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lzio.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lapi.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lauxlib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lbaselib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lcode.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-ldblib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-ldebug.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-ldo.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-ldump.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lfunc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lgc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-linit.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-liolib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_application.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_backtraceview.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_bootstrap.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_codeconv.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_context.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_event.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_interactview.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_luainfo.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_mainframe.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_sourceview.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_sysinfo.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_watchview.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-llex.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lmathlib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lmem.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-loadlib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lobject.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lopcodes.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-loslib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lparser.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lstate.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lstring.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lstrlib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-ltable.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-ltablib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-ltm.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lundump.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lvm.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lzio.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -397,411 +423,208 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-liblldebug_a-lapi.o: ../../src/lua/src/lapi.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lapi.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lapi.Tpo -c -o liblldebug_a-lapi.o `test -f '../../src/lua/src/lapi.c' || echo '$(srcdir)/'`../../src/lua/src/lapi.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lapi.Tpo $(DEPDIR)/liblldebug_a-lapi.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lapi.c' object='liblldebug_a-lapi.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lapi.lo: ../../src/lua/src/lapi.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lapi.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lapi.Tpo -c -o liblldebug_la-lapi.lo `test -f '../../src/lua/src/lapi.c' || echo '$(srcdir)/'`../../src/lua/src/lapi.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lapi.Tpo $(DEPDIR)/liblldebug_la-lapi.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lapi.c' object='liblldebug_la-lapi.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lapi.o `test -f '../../src/lua/src/lapi.c' || echo '$(srcdir)/'`../../src/lua/src/lapi.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lapi.lo `test -f '../../src/lua/src/lapi.c' || echo '$(srcdir)/'`../../src/lua/src/lapi.c
 
-liblldebug_a-lapi.obj: ../../src/lua/src/lapi.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lapi.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lapi.Tpo -c -o liblldebug_a-lapi.obj `if test -f '../../src/lua/src/lapi.c'; then $(CYGPATH_W) '../../src/lua/src/lapi.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lapi.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lapi.Tpo $(DEPDIR)/liblldebug_a-lapi.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lapi.c' object='liblldebug_a-lapi.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lauxlib.lo: ../../src/lua/src/lauxlib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lauxlib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lauxlib.Tpo -c -o liblldebug_la-lauxlib.lo `test -f '../../src/lua/src/lauxlib.c' || echo '$(srcdir)/'`../../src/lua/src/lauxlib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lauxlib.Tpo $(DEPDIR)/liblldebug_la-lauxlib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lauxlib.c' object='liblldebug_la-lauxlib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lapi.obj `if test -f '../../src/lua/src/lapi.c'; then $(CYGPATH_W) '../../src/lua/src/lapi.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lapi.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lauxlib.lo `test -f '../../src/lua/src/lauxlib.c' || echo '$(srcdir)/'`../../src/lua/src/lauxlib.c
 
-liblldebug_a-lauxlib.o: ../../src/lua/src/lauxlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lauxlib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lauxlib.Tpo -c -o liblldebug_a-lauxlib.o `test -f '../../src/lua/src/lauxlib.c' || echo '$(srcdir)/'`../../src/lua/src/lauxlib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lauxlib.Tpo $(DEPDIR)/liblldebug_a-lauxlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lauxlib.c' object='liblldebug_a-lauxlib.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lbaselib.lo: ../../src/lua/src/lbaselib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lbaselib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lbaselib.Tpo -c -o liblldebug_la-lbaselib.lo `test -f '../../src/lua/src/lbaselib.c' || echo '$(srcdir)/'`../../src/lua/src/lbaselib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lbaselib.Tpo $(DEPDIR)/liblldebug_la-lbaselib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lbaselib.c' object='liblldebug_la-lbaselib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lauxlib.o `test -f '../../src/lua/src/lauxlib.c' || echo '$(srcdir)/'`../../src/lua/src/lauxlib.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lbaselib.lo `test -f '../../src/lua/src/lbaselib.c' || echo '$(srcdir)/'`../../src/lua/src/lbaselib.c
 
-liblldebug_a-lauxlib.obj: ../../src/lua/src/lauxlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lauxlib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lauxlib.Tpo -c -o liblldebug_a-lauxlib.obj `if test -f '../../src/lua/src/lauxlib.c'; then $(CYGPATH_W) '../../src/lua/src/lauxlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lauxlib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lauxlib.Tpo $(DEPDIR)/liblldebug_a-lauxlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lauxlib.c' object='liblldebug_a-lauxlib.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lcode.lo: ../../src/lua/src/lcode.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lcode.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lcode.Tpo -c -o liblldebug_la-lcode.lo `test -f '../../src/lua/src/lcode.c' || echo '$(srcdir)/'`../../src/lua/src/lcode.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lcode.Tpo $(DEPDIR)/liblldebug_la-lcode.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lcode.c' object='liblldebug_la-lcode.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lauxlib.obj `if test -f '../../src/lua/src/lauxlib.c'; then $(CYGPATH_W) '../../src/lua/src/lauxlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lauxlib.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lcode.lo `test -f '../../src/lua/src/lcode.c' || echo '$(srcdir)/'`../../src/lua/src/lcode.c
 
-liblldebug_a-lbaselib.o: ../../src/lua/src/lbaselib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lbaselib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lbaselib.Tpo -c -o liblldebug_a-lbaselib.o `test -f '../../src/lua/src/lbaselib.c' || echo '$(srcdir)/'`../../src/lua/src/lbaselib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lbaselib.Tpo $(DEPDIR)/liblldebug_a-lbaselib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lbaselib.c' object='liblldebug_a-lbaselib.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-ldblib.lo: ../../src/lua/src/ldblib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-ldblib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-ldblib.Tpo -c -o liblldebug_la-ldblib.lo `test -f '../../src/lua/src/ldblib.c' || echo '$(srcdir)/'`../../src/lua/src/ldblib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-ldblib.Tpo $(DEPDIR)/liblldebug_la-ldblib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldblib.c' object='liblldebug_la-ldblib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lbaselib.o `test -f '../../src/lua/src/lbaselib.c' || echo '$(srcdir)/'`../../src/lua/src/lbaselib.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-ldblib.lo `test -f '../../src/lua/src/ldblib.c' || echo '$(srcdir)/'`../../src/lua/src/ldblib.c
 
-liblldebug_a-lbaselib.obj: ../../src/lua/src/lbaselib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lbaselib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lbaselib.Tpo -c -o liblldebug_a-lbaselib.obj `if test -f '../../src/lua/src/lbaselib.c'; then $(CYGPATH_W) '../../src/lua/src/lbaselib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lbaselib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lbaselib.Tpo $(DEPDIR)/liblldebug_a-lbaselib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lbaselib.c' object='liblldebug_a-lbaselib.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-ldebug.lo: ../../src/lua/src/ldebug.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-ldebug.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-ldebug.Tpo -c -o liblldebug_la-ldebug.lo `test -f '../../src/lua/src/ldebug.c' || echo '$(srcdir)/'`../../src/lua/src/ldebug.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-ldebug.Tpo $(DEPDIR)/liblldebug_la-ldebug.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldebug.c' object='liblldebug_la-ldebug.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lbaselib.obj `if test -f '../../src/lua/src/lbaselib.c'; then $(CYGPATH_W) '../../src/lua/src/lbaselib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lbaselib.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-ldebug.lo `test -f '../../src/lua/src/ldebug.c' || echo '$(srcdir)/'`../../src/lua/src/ldebug.c
 
-liblldebug_a-lcode.o: ../../src/lua/src/lcode.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lcode.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lcode.Tpo -c -o liblldebug_a-lcode.o `test -f '../../src/lua/src/lcode.c' || echo '$(srcdir)/'`../../src/lua/src/lcode.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lcode.Tpo $(DEPDIR)/liblldebug_a-lcode.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lcode.c' object='liblldebug_a-lcode.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-ldo.lo: ../../src/lua/src/ldo.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-ldo.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-ldo.Tpo -c -o liblldebug_la-ldo.lo `test -f '../../src/lua/src/ldo.c' || echo '$(srcdir)/'`../../src/lua/src/ldo.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-ldo.Tpo $(DEPDIR)/liblldebug_la-ldo.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldo.c' object='liblldebug_la-ldo.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lcode.o `test -f '../../src/lua/src/lcode.c' || echo '$(srcdir)/'`../../src/lua/src/lcode.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-ldo.lo `test -f '../../src/lua/src/ldo.c' || echo '$(srcdir)/'`../../src/lua/src/ldo.c
 
-liblldebug_a-lcode.obj: ../../src/lua/src/lcode.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lcode.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lcode.Tpo -c -o liblldebug_a-lcode.obj `if test -f '../../src/lua/src/lcode.c'; then $(CYGPATH_W) '../../src/lua/src/lcode.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lcode.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lcode.Tpo $(DEPDIR)/liblldebug_a-lcode.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lcode.c' object='liblldebug_a-lcode.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-ldump.lo: ../../src/lua/src/ldump.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-ldump.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-ldump.Tpo -c -o liblldebug_la-ldump.lo `test -f '../../src/lua/src/ldump.c' || echo '$(srcdir)/'`../../src/lua/src/ldump.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-ldump.Tpo $(DEPDIR)/liblldebug_la-ldump.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldump.c' object='liblldebug_la-ldump.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lcode.obj `if test -f '../../src/lua/src/lcode.c'; then $(CYGPATH_W) '../../src/lua/src/lcode.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lcode.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-ldump.lo `test -f '../../src/lua/src/ldump.c' || echo '$(srcdir)/'`../../src/lua/src/ldump.c
 
-liblldebug_a-ldblib.o: ../../src/lua/src/ldblib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldblib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-ldblib.Tpo -c -o liblldebug_a-ldblib.o `test -f '../../src/lua/src/ldblib.c' || echo '$(srcdir)/'`../../src/lua/src/ldblib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldblib.Tpo $(DEPDIR)/liblldebug_a-ldblib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldblib.c' object='liblldebug_a-ldblib.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lfunc.lo: ../../src/lua/src/lfunc.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lfunc.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lfunc.Tpo -c -o liblldebug_la-lfunc.lo `test -f '../../src/lua/src/lfunc.c' || echo '$(srcdir)/'`../../src/lua/src/lfunc.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lfunc.Tpo $(DEPDIR)/liblldebug_la-lfunc.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lfunc.c' object='liblldebug_la-lfunc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldblib.o `test -f '../../src/lua/src/ldblib.c' || echo '$(srcdir)/'`../../src/lua/src/ldblib.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lfunc.lo `test -f '../../src/lua/src/lfunc.c' || echo '$(srcdir)/'`../../src/lua/src/lfunc.c
 
-liblldebug_a-ldblib.obj: ../../src/lua/src/ldblib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldblib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-ldblib.Tpo -c -o liblldebug_a-ldblib.obj `if test -f '../../src/lua/src/ldblib.c'; then $(CYGPATH_W) '../../src/lua/src/ldblib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldblib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldblib.Tpo $(DEPDIR)/liblldebug_a-ldblib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldblib.c' object='liblldebug_a-ldblib.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lgc.lo: ../../src/lua/src/lgc.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lgc.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lgc.Tpo -c -o liblldebug_la-lgc.lo `test -f '../../src/lua/src/lgc.c' || echo '$(srcdir)/'`../../src/lua/src/lgc.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lgc.Tpo $(DEPDIR)/liblldebug_la-lgc.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lgc.c' object='liblldebug_la-lgc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldblib.obj `if test -f '../../src/lua/src/ldblib.c'; then $(CYGPATH_W) '../../src/lua/src/ldblib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldblib.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lgc.lo `test -f '../../src/lua/src/lgc.c' || echo '$(srcdir)/'`../../src/lua/src/lgc.c
 
-liblldebug_a-ldebug.o: ../../src/lua/src/ldebug.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldebug.o -MD -MP -MF $(DEPDIR)/liblldebug_a-ldebug.Tpo -c -o liblldebug_a-ldebug.o `test -f '../../src/lua/src/ldebug.c' || echo '$(srcdir)/'`../../src/lua/src/ldebug.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldebug.Tpo $(DEPDIR)/liblldebug_a-ldebug.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldebug.c' object='liblldebug_a-ldebug.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-linit.lo: ../../src/lua/src/linit.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-linit.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-linit.Tpo -c -o liblldebug_la-linit.lo `test -f '../../src/lua/src/linit.c' || echo '$(srcdir)/'`../../src/lua/src/linit.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-linit.Tpo $(DEPDIR)/liblldebug_la-linit.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/linit.c' object='liblldebug_la-linit.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldebug.o `test -f '../../src/lua/src/ldebug.c' || echo '$(srcdir)/'`../../src/lua/src/ldebug.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-linit.lo `test -f '../../src/lua/src/linit.c' || echo '$(srcdir)/'`../../src/lua/src/linit.c
 
-liblldebug_a-ldebug.obj: ../../src/lua/src/ldebug.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldebug.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-ldebug.Tpo -c -o liblldebug_a-ldebug.obj `if test -f '../../src/lua/src/ldebug.c'; then $(CYGPATH_W) '../../src/lua/src/ldebug.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldebug.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldebug.Tpo $(DEPDIR)/liblldebug_a-ldebug.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldebug.c' object='liblldebug_a-ldebug.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-liolib.lo: ../../src/lua/src/liolib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-liolib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-liolib.Tpo -c -o liblldebug_la-liolib.lo `test -f '../../src/lua/src/liolib.c' || echo '$(srcdir)/'`../../src/lua/src/liolib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-liolib.Tpo $(DEPDIR)/liblldebug_la-liolib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/liolib.c' object='liblldebug_la-liolib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldebug.obj `if test -f '../../src/lua/src/ldebug.c'; then $(CYGPATH_W) '../../src/lua/src/ldebug.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldebug.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-liolib.lo `test -f '../../src/lua/src/liolib.c' || echo '$(srcdir)/'`../../src/lua/src/liolib.c
 
-liblldebug_a-ldo.o: ../../src/lua/src/ldo.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldo.o -MD -MP -MF $(DEPDIR)/liblldebug_a-ldo.Tpo -c -o liblldebug_a-ldo.o `test -f '../../src/lua/src/ldo.c' || echo '$(srcdir)/'`../../src/lua/src/ldo.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldo.Tpo $(DEPDIR)/liblldebug_a-ldo.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldo.c' object='liblldebug_a-ldo.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-llex.lo: ../../src/lua/src/llex.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-llex.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-llex.Tpo -c -o liblldebug_la-llex.lo `test -f '../../src/lua/src/llex.c' || echo '$(srcdir)/'`../../src/lua/src/llex.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-llex.Tpo $(DEPDIR)/liblldebug_la-llex.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/llex.c' object='liblldebug_la-llex.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldo.o `test -f '../../src/lua/src/ldo.c' || echo '$(srcdir)/'`../../src/lua/src/ldo.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-llex.lo `test -f '../../src/lua/src/llex.c' || echo '$(srcdir)/'`../../src/lua/src/llex.c
 
-liblldebug_a-ldo.obj: ../../src/lua/src/ldo.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldo.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-ldo.Tpo -c -o liblldebug_a-ldo.obj `if test -f '../../src/lua/src/ldo.c'; then $(CYGPATH_W) '../../src/lua/src/ldo.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldo.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldo.Tpo $(DEPDIR)/liblldebug_a-ldo.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldo.c' object='liblldebug_a-ldo.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lmathlib.lo: ../../src/lua/src/lmathlib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lmathlib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lmathlib.Tpo -c -o liblldebug_la-lmathlib.lo `test -f '../../src/lua/src/lmathlib.c' || echo '$(srcdir)/'`../../src/lua/src/lmathlib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lmathlib.Tpo $(DEPDIR)/liblldebug_la-lmathlib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lmathlib.c' object='liblldebug_la-lmathlib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldo.obj `if test -f '../../src/lua/src/ldo.c'; then $(CYGPATH_W) '../../src/lua/src/ldo.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldo.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lmathlib.lo `test -f '../../src/lua/src/lmathlib.c' || echo '$(srcdir)/'`../../src/lua/src/lmathlib.c
 
-liblldebug_a-ldump.o: ../../src/lua/src/ldump.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldump.o -MD -MP -MF $(DEPDIR)/liblldebug_a-ldump.Tpo -c -o liblldebug_a-ldump.o `test -f '../../src/lua/src/ldump.c' || echo '$(srcdir)/'`../../src/lua/src/ldump.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldump.Tpo $(DEPDIR)/liblldebug_a-ldump.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldump.c' object='liblldebug_a-ldump.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lmem.lo: ../../src/lua/src/lmem.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lmem.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lmem.Tpo -c -o liblldebug_la-lmem.lo `test -f '../../src/lua/src/lmem.c' || echo '$(srcdir)/'`../../src/lua/src/lmem.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lmem.Tpo $(DEPDIR)/liblldebug_la-lmem.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lmem.c' object='liblldebug_la-lmem.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldump.o `test -f '../../src/lua/src/ldump.c' || echo '$(srcdir)/'`../../src/lua/src/ldump.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lmem.lo `test -f '../../src/lua/src/lmem.c' || echo '$(srcdir)/'`../../src/lua/src/lmem.c
 
-liblldebug_a-ldump.obj: ../../src/lua/src/ldump.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ldump.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-ldump.Tpo -c -o liblldebug_a-ldump.obj `if test -f '../../src/lua/src/ldump.c'; then $(CYGPATH_W) '../../src/lua/src/ldump.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldump.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ldump.Tpo $(DEPDIR)/liblldebug_a-ldump.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ldump.c' object='liblldebug_a-ldump.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-loadlib.lo: ../../src/lua/src/loadlib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-loadlib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-loadlib.Tpo -c -o liblldebug_la-loadlib.lo `test -f '../../src/lua/src/loadlib.c' || echo '$(srcdir)/'`../../src/lua/src/loadlib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-loadlib.Tpo $(DEPDIR)/liblldebug_la-loadlib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/loadlib.c' object='liblldebug_la-loadlib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ldump.obj `if test -f '../../src/lua/src/ldump.c'; then $(CYGPATH_W) '../../src/lua/src/ldump.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ldump.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-loadlib.lo `test -f '../../src/lua/src/loadlib.c' || echo '$(srcdir)/'`../../src/lua/src/loadlib.c
 
-liblldebug_a-lfunc.o: ../../src/lua/src/lfunc.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lfunc.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lfunc.Tpo -c -o liblldebug_a-lfunc.o `test -f '../../src/lua/src/lfunc.c' || echo '$(srcdir)/'`../../src/lua/src/lfunc.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lfunc.Tpo $(DEPDIR)/liblldebug_a-lfunc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lfunc.c' object='liblldebug_a-lfunc.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lobject.lo: ../../src/lua/src/lobject.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lobject.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lobject.Tpo -c -o liblldebug_la-lobject.lo `test -f '../../src/lua/src/lobject.c' || echo '$(srcdir)/'`../../src/lua/src/lobject.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lobject.Tpo $(DEPDIR)/liblldebug_la-lobject.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lobject.c' object='liblldebug_la-lobject.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lfunc.o `test -f '../../src/lua/src/lfunc.c' || echo '$(srcdir)/'`../../src/lua/src/lfunc.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lobject.lo `test -f '../../src/lua/src/lobject.c' || echo '$(srcdir)/'`../../src/lua/src/lobject.c
 
-liblldebug_a-lfunc.obj: ../../src/lua/src/lfunc.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lfunc.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lfunc.Tpo -c -o liblldebug_a-lfunc.obj `if test -f '../../src/lua/src/lfunc.c'; then $(CYGPATH_W) '../../src/lua/src/lfunc.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lfunc.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lfunc.Tpo $(DEPDIR)/liblldebug_a-lfunc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lfunc.c' object='liblldebug_a-lfunc.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lopcodes.lo: ../../src/lua/src/lopcodes.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lopcodes.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lopcodes.Tpo -c -o liblldebug_la-lopcodes.lo `test -f '../../src/lua/src/lopcodes.c' || echo '$(srcdir)/'`../../src/lua/src/lopcodes.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lopcodes.Tpo $(DEPDIR)/liblldebug_la-lopcodes.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lopcodes.c' object='liblldebug_la-lopcodes.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lfunc.obj `if test -f '../../src/lua/src/lfunc.c'; then $(CYGPATH_W) '../../src/lua/src/lfunc.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lfunc.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lopcodes.lo `test -f '../../src/lua/src/lopcodes.c' || echo '$(srcdir)/'`../../src/lua/src/lopcodes.c
 
-liblldebug_a-lgc.o: ../../src/lua/src/lgc.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lgc.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lgc.Tpo -c -o liblldebug_a-lgc.o `test -f '../../src/lua/src/lgc.c' || echo '$(srcdir)/'`../../src/lua/src/lgc.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lgc.Tpo $(DEPDIR)/liblldebug_a-lgc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lgc.c' object='liblldebug_a-lgc.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-loslib.lo: ../../src/lua/src/loslib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-loslib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-loslib.Tpo -c -o liblldebug_la-loslib.lo `test -f '../../src/lua/src/loslib.c' || echo '$(srcdir)/'`../../src/lua/src/loslib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-loslib.Tpo $(DEPDIR)/liblldebug_la-loslib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/loslib.c' object='liblldebug_la-loslib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lgc.o `test -f '../../src/lua/src/lgc.c' || echo '$(srcdir)/'`../../src/lua/src/lgc.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-loslib.lo `test -f '../../src/lua/src/loslib.c' || echo '$(srcdir)/'`../../src/lua/src/loslib.c
 
-liblldebug_a-lgc.obj: ../../src/lua/src/lgc.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lgc.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lgc.Tpo -c -o liblldebug_a-lgc.obj `if test -f '../../src/lua/src/lgc.c'; then $(CYGPATH_W) '../../src/lua/src/lgc.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lgc.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lgc.Tpo $(DEPDIR)/liblldebug_a-lgc.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lgc.c' object='liblldebug_a-lgc.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lparser.lo: ../../src/lua/src/lparser.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lparser.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lparser.Tpo -c -o liblldebug_la-lparser.lo `test -f '../../src/lua/src/lparser.c' || echo '$(srcdir)/'`../../src/lua/src/lparser.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lparser.Tpo $(DEPDIR)/liblldebug_la-lparser.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lparser.c' object='liblldebug_la-lparser.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lgc.obj `if test -f '../../src/lua/src/lgc.c'; then $(CYGPATH_W) '../../src/lua/src/lgc.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lgc.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lparser.lo `test -f '../../src/lua/src/lparser.c' || echo '$(srcdir)/'`../../src/lua/src/lparser.c
 
-liblldebug_a-linit.o: ../../src/lua/src/linit.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-linit.o -MD -MP -MF $(DEPDIR)/liblldebug_a-linit.Tpo -c -o liblldebug_a-linit.o `test -f '../../src/lua/src/linit.c' || echo '$(srcdir)/'`../../src/lua/src/linit.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-linit.Tpo $(DEPDIR)/liblldebug_a-linit.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/linit.c' object='liblldebug_a-linit.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lstate.lo: ../../src/lua/src/lstate.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lstate.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lstate.Tpo -c -o liblldebug_la-lstate.lo `test -f '../../src/lua/src/lstate.c' || echo '$(srcdir)/'`../../src/lua/src/lstate.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lstate.Tpo $(DEPDIR)/liblldebug_la-lstate.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstate.c' object='liblldebug_la-lstate.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-linit.o `test -f '../../src/lua/src/linit.c' || echo '$(srcdir)/'`../../src/lua/src/linit.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lstate.lo `test -f '../../src/lua/src/lstate.c' || echo '$(srcdir)/'`../../src/lua/src/lstate.c
 
-liblldebug_a-linit.obj: ../../src/lua/src/linit.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-linit.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-linit.Tpo -c -o liblldebug_a-linit.obj `if test -f '../../src/lua/src/linit.c'; then $(CYGPATH_W) '../../src/lua/src/linit.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/linit.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-linit.Tpo $(DEPDIR)/liblldebug_a-linit.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/linit.c' object='liblldebug_a-linit.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lstring.lo: ../../src/lua/src/lstring.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lstring.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lstring.Tpo -c -o liblldebug_la-lstring.lo `test -f '../../src/lua/src/lstring.c' || echo '$(srcdir)/'`../../src/lua/src/lstring.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lstring.Tpo $(DEPDIR)/liblldebug_la-lstring.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstring.c' object='liblldebug_la-lstring.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-linit.obj `if test -f '../../src/lua/src/linit.c'; then $(CYGPATH_W) '../../src/lua/src/linit.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/linit.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lstring.lo `test -f '../../src/lua/src/lstring.c' || echo '$(srcdir)/'`../../src/lua/src/lstring.c
 
-liblldebug_a-liolib.o: ../../src/lua/src/liolib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-liolib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-liolib.Tpo -c -o liblldebug_a-liolib.o `test -f '../../src/lua/src/liolib.c' || echo '$(srcdir)/'`../../src/lua/src/liolib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-liolib.Tpo $(DEPDIR)/liblldebug_a-liolib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/liolib.c' object='liblldebug_a-liolib.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lstrlib.lo: ../../src/lua/src/lstrlib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lstrlib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lstrlib.Tpo -c -o liblldebug_la-lstrlib.lo `test -f '../../src/lua/src/lstrlib.c' || echo '$(srcdir)/'`../../src/lua/src/lstrlib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lstrlib.Tpo $(DEPDIR)/liblldebug_la-lstrlib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstrlib.c' object='liblldebug_la-lstrlib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-liolib.o `test -f '../../src/lua/src/liolib.c' || echo '$(srcdir)/'`../../src/lua/src/liolib.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lstrlib.lo `test -f '../../src/lua/src/lstrlib.c' || echo '$(srcdir)/'`../../src/lua/src/lstrlib.c
 
-liblldebug_a-liolib.obj: ../../src/lua/src/liolib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-liolib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-liolib.Tpo -c -o liblldebug_a-liolib.obj `if test -f '../../src/lua/src/liolib.c'; then $(CYGPATH_W) '../../src/lua/src/liolib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/liolib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-liolib.Tpo $(DEPDIR)/liblldebug_a-liolib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/liolib.c' object='liblldebug_a-liolib.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-ltable.lo: ../../src/lua/src/ltable.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-ltable.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-ltable.Tpo -c -o liblldebug_la-ltable.lo `test -f '../../src/lua/src/ltable.c' || echo '$(srcdir)/'`../../src/lua/src/ltable.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-ltable.Tpo $(DEPDIR)/liblldebug_la-ltable.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltable.c' object='liblldebug_la-ltable.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-liolib.obj `if test -f '../../src/lua/src/liolib.c'; then $(CYGPATH_W) '../../src/lua/src/liolib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/liolib.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-ltable.lo `test -f '../../src/lua/src/ltable.c' || echo '$(srcdir)/'`../../src/lua/src/ltable.c
 
-liblldebug_a-llex.o: ../../src/lua/src/llex.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-llex.o -MD -MP -MF $(DEPDIR)/liblldebug_a-llex.Tpo -c -o liblldebug_a-llex.o `test -f '../../src/lua/src/llex.c' || echo '$(srcdir)/'`../../src/lua/src/llex.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-llex.Tpo $(DEPDIR)/liblldebug_a-llex.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/llex.c' object='liblldebug_a-llex.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-ltablib.lo: ../../src/lua/src/ltablib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-ltablib.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-ltablib.Tpo -c -o liblldebug_la-ltablib.lo `test -f '../../src/lua/src/ltablib.c' || echo '$(srcdir)/'`../../src/lua/src/ltablib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-ltablib.Tpo $(DEPDIR)/liblldebug_la-ltablib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltablib.c' object='liblldebug_la-ltablib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-llex.o `test -f '../../src/lua/src/llex.c' || echo '$(srcdir)/'`../../src/lua/src/llex.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-ltablib.lo `test -f '../../src/lua/src/ltablib.c' || echo '$(srcdir)/'`../../src/lua/src/ltablib.c
 
-liblldebug_a-llex.obj: ../../src/lua/src/llex.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-llex.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-llex.Tpo -c -o liblldebug_a-llex.obj `if test -f '../../src/lua/src/llex.c'; then $(CYGPATH_W) '../../src/lua/src/llex.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/llex.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-llex.Tpo $(DEPDIR)/liblldebug_a-llex.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/llex.c' object='liblldebug_a-llex.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-ltm.lo: ../../src/lua/src/ltm.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-ltm.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-ltm.Tpo -c -o liblldebug_la-ltm.lo `test -f '../../src/lua/src/ltm.c' || echo '$(srcdir)/'`../../src/lua/src/ltm.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-ltm.Tpo $(DEPDIR)/liblldebug_la-ltm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltm.c' object='liblldebug_la-ltm.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-llex.obj `if test -f '../../src/lua/src/llex.c'; then $(CYGPATH_W) '../../src/lua/src/llex.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/llex.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-ltm.lo `test -f '../../src/lua/src/ltm.c' || echo '$(srcdir)/'`../../src/lua/src/ltm.c
 
-liblldebug_a-lmathlib.o: ../../src/lua/src/lmathlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lmathlib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lmathlib.Tpo -c -o liblldebug_a-lmathlib.o `test -f '../../src/lua/src/lmathlib.c' || echo '$(srcdir)/'`../../src/lua/src/lmathlib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lmathlib.Tpo $(DEPDIR)/liblldebug_a-lmathlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lmathlib.c' object='liblldebug_a-lmathlib.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lundump.lo: ../../src/lua/src/lundump.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lundump.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lundump.Tpo -c -o liblldebug_la-lundump.lo `test -f '../../src/lua/src/lundump.c' || echo '$(srcdir)/'`../../src/lua/src/lundump.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lundump.Tpo $(DEPDIR)/liblldebug_la-lundump.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lundump.c' object='liblldebug_la-lundump.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lmathlib.o `test -f '../../src/lua/src/lmathlib.c' || echo '$(srcdir)/'`../../src/lua/src/lmathlib.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lundump.lo `test -f '../../src/lua/src/lundump.c' || echo '$(srcdir)/'`../../src/lua/src/lundump.c
 
-liblldebug_a-lmathlib.obj: ../../src/lua/src/lmathlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lmathlib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lmathlib.Tpo -c -o liblldebug_a-lmathlib.obj `if test -f '../../src/lua/src/lmathlib.c'; then $(CYGPATH_W) '../../src/lua/src/lmathlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lmathlib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lmathlib.Tpo $(DEPDIR)/liblldebug_a-lmathlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lmathlib.c' object='liblldebug_a-lmathlib.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lvm.lo: ../../src/lua/src/lvm.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lvm.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lvm.Tpo -c -o liblldebug_la-lvm.lo `test -f '../../src/lua/src/lvm.c' || echo '$(srcdir)/'`../../src/lua/src/lvm.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lvm.Tpo $(DEPDIR)/liblldebug_la-lvm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lvm.c' object='liblldebug_la-lvm.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lmathlib.obj `if test -f '../../src/lua/src/lmathlib.c'; then $(CYGPATH_W) '../../src/lua/src/lmathlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lmathlib.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lvm.lo `test -f '../../src/lua/src/lvm.c' || echo '$(srcdir)/'`../../src/lua/src/lvm.c
 
-liblldebug_a-lmem.o: ../../src/lua/src/lmem.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lmem.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lmem.Tpo -c -o liblldebug_a-lmem.o `test -f '../../src/lua/src/lmem.c' || echo '$(srcdir)/'`../../src/lua/src/lmem.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lmem.Tpo $(DEPDIR)/liblldebug_a-lmem.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lmem.c' object='liblldebug_a-lmem.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lzio.lo: ../../src/lua/src/lzio.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_la-lzio.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lzio.Tpo -c -o liblldebug_la-lzio.lo `test -f '../../src/lua/src/lzio.c' || echo '$(srcdir)/'`../../src/lua/src/lzio.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lzio.Tpo $(DEPDIR)/liblldebug_la-lzio.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lzio.c' object='liblldebug_la-lzio.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lmem.o `test -f '../../src/lua/src/lmem.c' || echo '$(srcdir)/'`../../src/lua/src/lmem.c
-
-liblldebug_a-lmem.obj: ../../src/lua/src/lmem.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lmem.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lmem.Tpo -c -o liblldebug_a-lmem.obj `if test -f '../../src/lua/src/lmem.c'; then $(CYGPATH_W) '../../src/lua/src/lmem.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lmem.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lmem.Tpo $(DEPDIR)/liblldebug_a-lmem.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lmem.c' object='liblldebug_a-lmem.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lmem.obj `if test -f '../../src/lua/src/lmem.c'; then $(CYGPATH_W) '../../src/lua/src/lmem.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lmem.c'; fi`
-
-liblldebug_a-loadlib.o: ../../src/lua/src/loadlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-loadlib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-loadlib.Tpo -c -o liblldebug_a-loadlib.o `test -f '../../src/lua/src/loadlib.c' || echo '$(srcdir)/'`../../src/lua/src/loadlib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-loadlib.Tpo $(DEPDIR)/liblldebug_a-loadlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/loadlib.c' object='liblldebug_a-loadlib.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-loadlib.o `test -f '../../src/lua/src/loadlib.c' || echo '$(srcdir)/'`../../src/lua/src/loadlib.c
-
-liblldebug_a-loadlib.obj: ../../src/lua/src/loadlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-loadlib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-loadlib.Tpo -c -o liblldebug_a-loadlib.obj `if test -f '../../src/lua/src/loadlib.c'; then $(CYGPATH_W) '../../src/lua/src/loadlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/loadlib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-loadlib.Tpo $(DEPDIR)/liblldebug_a-loadlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/loadlib.c' object='liblldebug_a-loadlib.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-loadlib.obj `if test -f '../../src/lua/src/loadlib.c'; then $(CYGPATH_W) '../../src/lua/src/loadlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/loadlib.c'; fi`
-
-liblldebug_a-lobject.o: ../../src/lua/src/lobject.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lobject.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lobject.Tpo -c -o liblldebug_a-lobject.o `test -f '../../src/lua/src/lobject.c' || echo '$(srcdir)/'`../../src/lua/src/lobject.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lobject.Tpo $(DEPDIR)/liblldebug_a-lobject.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lobject.c' object='liblldebug_a-lobject.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lobject.o `test -f '../../src/lua/src/lobject.c' || echo '$(srcdir)/'`../../src/lua/src/lobject.c
-
-liblldebug_a-lobject.obj: ../../src/lua/src/lobject.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lobject.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lobject.Tpo -c -o liblldebug_a-lobject.obj `if test -f '../../src/lua/src/lobject.c'; then $(CYGPATH_W) '../../src/lua/src/lobject.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lobject.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lobject.Tpo $(DEPDIR)/liblldebug_a-lobject.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lobject.c' object='liblldebug_a-lobject.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lobject.obj `if test -f '../../src/lua/src/lobject.c'; then $(CYGPATH_W) '../../src/lua/src/lobject.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lobject.c'; fi`
-
-liblldebug_a-lopcodes.o: ../../src/lua/src/lopcodes.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lopcodes.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lopcodes.Tpo -c -o liblldebug_a-lopcodes.o `test -f '../../src/lua/src/lopcodes.c' || echo '$(srcdir)/'`../../src/lua/src/lopcodes.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lopcodes.Tpo $(DEPDIR)/liblldebug_a-lopcodes.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lopcodes.c' object='liblldebug_a-lopcodes.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lopcodes.o `test -f '../../src/lua/src/lopcodes.c' || echo '$(srcdir)/'`../../src/lua/src/lopcodes.c
-
-liblldebug_a-lopcodes.obj: ../../src/lua/src/lopcodes.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lopcodes.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lopcodes.Tpo -c -o liblldebug_a-lopcodes.obj `if test -f '../../src/lua/src/lopcodes.c'; then $(CYGPATH_W) '../../src/lua/src/lopcodes.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lopcodes.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lopcodes.Tpo $(DEPDIR)/liblldebug_a-lopcodes.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lopcodes.c' object='liblldebug_a-lopcodes.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lopcodes.obj `if test -f '../../src/lua/src/lopcodes.c'; then $(CYGPATH_W) '../../src/lua/src/lopcodes.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lopcodes.c'; fi`
-
-liblldebug_a-loslib.o: ../../src/lua/src/loslib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-loslib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-loslib.Tpo -c -o liblldebug_a-loslib.o `test -f '../../src/lua/src/loslib.c' || echo '$(srcdir)/'`../../src/lua/src/loslib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-loslib.Tpo $(DEPDIR)/liblldebug_a-loslib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/loslib.c' object='liblldebug_a-loslib.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-loslib.o `test -f '../../src/lua/src/loslib.c' || echo '$(srcdir)/'`../../src/lua/src/loslib.c
-
-liblldebug_a-loslib.obj: ../../src/lua/src/loslib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-loslib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-loslib.Tpo -c -o liblldebug_a-loslib.obj `if test -f '../../src/lua/src/loslib.c'; then $(CYGPATH_W) '../../src/lua/src/loslib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/loslib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-loslib.Tpo $(DEPDIR)/liblldebug_a-loslib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/loslib.c' object='liblldebug_a-loslib.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-loslib.obj `if test -f '../../src/lua/src/loslib.c'; then $(CYGPATH_W) '../../src/lua/src/loslib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/loslib.c'; fi`
-
-liblldebug_a-lparser.o: ../../src/lua/src/lparser.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lparser.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lparser.Tpo -c -o liblldebug_a-lparser.o `test -f '../../src/lua/src/lparser.c' || echo '$(srcdir)/'`../../src/lua/src/lparser.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lparser.Tpo $(DEPDIR)/liblldebug_a-lparser.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lparser.c' object='liblldebug_a-lparser.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lparser.o `test -f '../../src/lua/src/lparser.c' || echo '$(srcdir)/'`../../src/lua/src/lparser.c
-
-liblldebug_a-lparser.obj: ../../src/lua/src/lparser.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lparser.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lparser.Tpo -c -o liblldebug_a-lparser.obj `if test -f '../../src/lua/src/lparser.c'; then $(CYGPATH_W) '../../src/lua/src/lparser.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lparser.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lparser.Tpo $(DEPDIR)/liblldebug_a-lparser.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lparser.c' object='liblldebug_a-lparser.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lparser.obj `if test -f '../../src/lua/src/lparser.c'; then $(CYGPATH_W) '../../src/lua/src/lparser.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lparser.c'; fi`
-
-liblldebug_a-lstate.o: ../../src/lua/src/lstate.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lstate.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lstate.Tpo -c -o liblldebug_a-lstate.o `test -f '../../src/lua/src/lstate.c' || echo '$(srcdir)/'`../../src/lua/src/lstate.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lstate.Tpo $(DEPDIR)/liblldebug_a-lstate.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstate.c' object='liblldebug_a-lstate.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lstate.o `test -f '../../src/lua/src/lstate.c' || echo '$(srcdir)/'`../../src/lua/src/lstate.c
-
-liblldebug_a-lstate.obj: ../../src/lua/src/lstate.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lstate.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lstate.Tpo -c -o liblldebug_a-lstate.obj `if test -f '../../src/lua/src/lstate.c'; then $(CYGPATH_W) '../../src/lua/src/lstate.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lstate.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lstate.Tpo $(DEPDIR)/liblldebug_a-lstate.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstate.c' object='liblldebug_a-lstate.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lstate.obj `if test -f '../../src/lua/src/lstate.c'; then $(CYGPATH_W) '../../src/lua/src/lstate.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lstate.c'; fi`
-
-liblldebug_a-lstring.o: ../../src/lua/src/lstring.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lstring.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lstring.Tpo -c -o liblldebug_a-lstring.o `test -f '../../src/lua/src/lstring.c' || echo '$(srcdir)/'`../../src/lua/src/lstring.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lstring.Tpo $(DEPDIR)/liblldebug_a-lstring.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstring.c' object='liblldebug_a-lstring.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lstring.o `test -f '../../src/lua/src/lstring.c' || echo '$(srcdir)/'`../../src/lua/src/lstring.c
-
-liblldebug_a-lstring.obj: ../../src/lua/src/lstring.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lstring.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lstring.Tpo -c -o liblldebug_a-lstring.obj `if test -f '../../src/lua/src/lstring.c'; then $(CYGPATH_W) '../../src/lua/src/lstring.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lstring.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lstring.Tpo $(DEPDIR)/liblldebug_a-lstring.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstring.c' object='liblldebug_a-lstring.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lstring.obj `if test -f '../../src/lua/src/lstring.c'; then $(CYGPATH_W) '../../src/lua/src/lstring.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lstring.c'; fi`
-
-liblldebug_a-lstrlib.o: ../../src/lua/src/lstrlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lstrlib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lstrlib.Tpo -c -o liblldebug_a-lstrlib.o `test -f '../../src/lua/src/lstrlib.c' || echo '$(srcdir)/'`../../src/lua/src/lstrlib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lstrlib.Tpo $(DEPDIR)/liblldebug_a-lstrlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstrlib.c' object='liblldebug_a-lstrlib.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lstrlib.o `test -f '../../src/lua/src/lstrlib.c' || echo '$(srcdir)/'`../../src/lua/src/lstrlib.c
-
-liblldebug_a-lstrlib.obj: ../../src/lua/src/lstrlib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lstrlib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lstrlib.Tpo -c -o liblldebug_a-lstrlib.obj `if test -f '../../src/lua/src/lstrlib.c'; then $(CYGPATH_W) '../../src/lua/src/lstrlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lstrlib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lstrlib.Tpo $(DEPDIR)/liblldebug_a-lstrlib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lstrlib.c' object='liblldebug_a-lstrlib.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lstrlib.obj `if test -f '../../src/lua/src/lstrlib.c'; then $(CYGPATH_W) '../../src/lua/src/lstrlib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lstrlib.c'; fi`
-
-liblldebug_a-ltable.o: ../../src/lua/src/ltable.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ltable.o -MD -MP -MF $(DEPDIR)/liblldebug_a-ltable.Tpo -c -o liblldebug_a-ltable.o `test -f '../../src/lua/src/ltable.c' || echo '$(srcdir)/'`../../src/lua/src/ltable.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ltable.Tpo $(DEPDIR)/liblldebug_a-ltable.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltable.c' object='liblldebug_a-ltable.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ltable.o `test -f '../../src/lua/src/ltable.c' || echo '$(srcdir)/'`../../src/lua/src/ltable.c
-
-liblldebug_a-ltable.obj: ../../src/lua/src/ltable.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ltable.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-ltable.Tpo -c -o liblldebug_a-ltable.obj `if test -f '../../src/lua/src/ltable.c'; then $(CYGPATH_W) '../../src/lua/src/ltable.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ltable.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ltable.Tpo $(DEPDIR)/liblldebug_a-ltable.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltable.c' object='liblldebug_a-ltable.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ltable.obj `if test -f '../../src/lua/src/ltable.c'; then $(CYGPATH_W) '../../src/lua/src/ltable.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ltable.c'; fi`
-
-liblldebug_a-ltablib.o: ../../src/lua/src/ltablib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ltablib.o -MD -MP -MF $(DEPDIR)/liblldebug_a-ltablib.Tpo -c -o liblldebug_a-ltablib.o `test -f '../../src/lua/src/ltablib.c' || echo '$(srcdir)/'`../../src/lua/src/ltablib.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ltablib.Tpo $(DEPDIR)/liblldebug_a-ltablib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltablib.c' object='liblldebug_a-ltablib.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ltablib.o `test -f '../../src/lua/src/ltablib.c' || echo '$(srcdir)/'`../../src/lua/src/ltablib.c
-
-liblldebug_a-ltablib.obj: ../../src/lua/src/ltablib.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ltablib.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-ltablib.Tpo -c -o liblldebug_a-ltablib.obj `if test -f '../../src/lua/src/ltablib.c'; then $(CYGPATH_W) '../../src/lua/src/ltablib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ltablib.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ltablib.Tpo $(DEPDIR)/liblldebug_a-ltablib.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltablib.c' object='liblldebug_a-ltablib.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ltablib.obj `if test -f '../../src/lua/src/ltablib.c'; then $(CYGPATH_W) '../../src/lua/src/ltablib.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ltablib.c'; fi`
-
-liblldebug_a-ltm.o: ../../src/lua/src/ltm.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ltm.o -MD -MP -MF $(DEPDIR)/liblldebug_a-ltm.Tpo -c -o liblldebug_a-ltm.o `test -f '../../src/lua/src/ltm.c' || echo '$(srcdir)/'`../../src/lua/src/ltm.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ltm.Tpo $(DEPDIR)/liblldebug_a-ltm.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltm.c' object='liblldebug_a-ltm.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ltm.o `test -f '../../src/lua/src/ltm.c' || echo '$(srcdir)/'`../../src/lua/src/ltm.c
-
-liblldebug_a-ltm.obj: ../../src/lua/src/ltm.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-ltm.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-ltm.Tpo -c -o liblldebug_a-ltm.obj `if test -f '../../src/lua/src/ltm.c'; then $(CYGPATH_W) '../../src/lua/src/ltm.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ltm.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-ltm.Tpo $(DEPDIR)/liblldebug_a-ltm.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/ltm.c' object='liblldebug_a-ltm.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-ltm.obj `if test -f '../../src/lua/src/ltm.c'; then $(CYGPATH_W) '../../src/lua/src/ltm.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/ltm.c'; fi`
-
-liblldebug_a-lundump.o: ../../src/lua/src/lundump.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lundump.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lundump.Tpo -c -o liblldebug_a-lundump.o `test -f '../../src/lua/src/lundump.c' || echo '$(srcdir)/'`../../src/lua/src/lundump.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lundump.Tpo $(DEPDIR)/liblldebug_a-lundump.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lundump.c' object='liblldebug_a-lundump.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lundump.o `test -f '../../src/lua/src/lundump.c' || echo '$(srcdir)/'`../../src/lua/src/lundump.c
-
-liblldebug_a-lundump.obj: ../../src/lua/src/lundump.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lundump.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lundump.Tpo -c -o liblldebug_a-lundump.obj `if test -f '../../src/lua/src/lundump.c'; then $(CYGPATH_W) '../../src/lua/src/lundump.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lundump.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lundump.Tpo $(DEPDIR)/liblldebug_a-lundump.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lundump.c' object='liblldebug_a-lundump.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lundump.obj `if test -f '../../src/lua/src/lundump.c'; then $(CYGPATH_W) '../../src/lua/src/lundump.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lundump.c'; fi`
-
-liblldebug_a-lvm.o: ../../src/lua/src/lvm.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lvm.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lvm.Tpo -c -o liblldebug_a-lvm.o `test -f '../../src/lua/src/lvm.c' || echo '$(srcdir)/'`../../src/lua/src/lvm.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lvm.Tpo $(DEPDIR)/liblldebug_a-lvm.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lvm.c' object='liblldebug_a-lvm.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lvm.o `test -f '../../src/lua/src/lvm.c' || echo '$(srcdir)/'`../../src/lua/src/lvm.c
-
-liblldebug_a-lvm.obj: ../../src/lua/src/lvm.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lvm.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lvm.Tpo -c -o liblldebug_a-lvm.obj `if test -f '../../src/lua/src/lvm.c'; then $(CYGPATH_W) '../../src/lua/src/lvm.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lvm.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lvm.Tpo $(DEPDIR)/liblldebug_a-lvm.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lvm.c' object='liblldebug_a-lvm.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lvm.obj `if test -f '../../src/lua/src/lvm.c'; then $(CYGPATH_W) '../../src/lua/src/lvm.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lvm.c'; fi`
-
-liblldebug_a-lzio.o: ../../src/lua/src/lzio.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lzio.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lzio.Tpo -c -o liblldebug_a-lzio.o `test -f '../../src/lua/src/lzio.c' || echo '$(srcdir)/'`../../src/lua/src/lzio.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lzio.Tpo $(DEPDIR)/liblldebug_a-lzio.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lzio.c' object='liblldebug_a-lzio.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lzio.o `test -f '../../src/lua/src/lzio.c' || echo '$(srcdir)/'`../../src/lua/src/lzio.c
-
-liblldebug_a-lzio.obj: ../../src/lua/src/lzio.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT liblldebug_a-lzio.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lzio.Tpo -c -o liblldebug_a-lzio.obj `if test -f '../../src/lua/src/lzio.c'; then $(CYGPATH_W) '../../src/lua/src/lzio.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lzio.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lzio.Tpo $(DEPDIR)/liblldebug_a-lzio.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/lua/src/lzio.c' object='liblldebug_a-lzio.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_a-lzio.obj `if test -f '../../src/lua/src/lzio.c'; then $(CYGPATH_W) '../../src/lua/src/lzio.c'; else $(CYGPATH_W) '$(srcdir)/../../src/lua/src/lzio.c'; fi`
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o liblldebug_la-lzio.lo `test -f '../../src/lua/src/lzio.c' || echo '$(srcdir)/'`../../src/lua/src/lzio.c
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -824,201 +647,96 @@ liblldebug_a-lzio.obj: ../../src/lua/src/lzio.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
 
-liblldebug_a-lldebug.o: ../../src/lldebug.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug.Tpo -c -o liblldebug_a-lldebug.o `test -f '../../src/lldebug.cpp' || echo '$(srcdir)/'`../../src/lldebug.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug.Tpo $(DEPDIR)/liblldebug_a-lldebug.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug.cpp' object='liblldebug_a-lldebug.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug.lo: ../../src/lldebug.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug.Tpo -c -o liblldebug_la-lldebug.lo `test -f '../../src/lldebug.cpp' || echo '$(srcdir)/'`../../src/lldebug.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug.Tpo $(DEPDIR)/liblldebug_la-lldebug.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug.cpp' object='liblldebug_la-lldebug.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug.o `test -f '../../src/lldebug.cpp' || echo '$(srcdir)/'`../../src/lldebug.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug.lo `test -f '../../src/lldebug.cpp' || echo '$(srcdir)/'`../../src/lldebug.cpp
 
-liblldebug_a-lldebug.obj: ../../src/lldebug.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug.Tpo -c -o liblldebug_a-lldebug.obj `if test -f '../../src/lldebug.cpp'; then $(CYGPATH_W) '../../src/lldebug.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug.Tpo $(DEPDIR)/liblldebug_a-lldebug.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug.cpp' object='liblldebug_a-lldebug.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_application.lo: ../../src/lldebug_application.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_application.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_application.Tpo -c -o liblldebug_la-lldebug_application.lo `test -f '../../src/lldebug_application.cpp' || echo '$(srcdir)/'`../../src/lldebug_application.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_application.Tpo $(DEPDIR)/liblldebug_la-lldebug_application.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_application.cpp' object='liblldebug_la-lldebug_application.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug.obj `if test -f '../../src/lldebug.cpp'; then $(CYGPATH_W) '../../src/lldebug.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_application.lo `test -f '../../src/lldebug_application.cpp' || echo '$(srcdir)/'`../../src/lldebug_application.cpp
 
-liblldebug_a-lldebug_application.o: ../../src/lldebug_application.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_application.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_application.Tpo -c -o liblldebug_a-lldebug_application.o `test -f '../../src/lldebug_application.cpp' || echo '$(srcdir)/'`../../src/lldebug_application.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_application.Tpo $(DEPDIR)/liblldebug_a-lldebug_application.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_application.cpp' object='liblldebug_a-lldebug_application.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_backtraceview.lo: ../../src/lldebug_backtraceview.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_backtraceview.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_backtraceview.Tpo -c -o liblldebug_la-lldebug_backtraceview.lo `test -f '../../src/lldebug_backtraceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_backtraceview.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_backtraceview.Tpo $(DEPDIR)/liblldebug_la-lldebug_backtraceview.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_backtraceview.cpp' object='liblldebug_la-lldebug_backtraceview.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_application.o `test -f '../../src/lldebug_application.cpp' || echo '$(srcdir)/'`../../src/lldebug_application.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_backtraceview.lo `test -f '../../src/lldebug_backtraceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_backtraceview.cpp
 
-liblldebug_a-lldebug_application.obj: ../../src/lldebug_application.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_application.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_application.Tpo -c -o liblldebug_a-lldebug_application.obj `if test -f '../../src/lldebug_application.cpp'; then $(CYGPATH_W) '../../src/lldebug_application.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_application.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_application.Tpo $(DEPDIR)/liblldebug_a-lldebug_application.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_application.cpp' object='liblldebug_a-lldebug_application.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_bootstrap.lo: ../../src/lldebug_bootstrap.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_bootstrap.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_bootstrap.Tpo -c -o liblldebug_la-lldebug_bootstrap.lo `test -f '../../src/lldebug_bootstrap.cpp' || echo '$(srcdir)/'`../../src/lldebug_bootstrap.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_bootstrap.Tpo $(DEPDIR)/liblldebug_la-lldebug_bootstrap.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_bootstrap.cpp' object='liblldebug_la-lldebug_bootstrap.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_application.obj `if test -f '../../src/lldebug_application.cpp'; then $(CYGPATH_W) '../../src/lldebug_application.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_application.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_bootstrap.lo `test -f '../../src/lldebug_bootstrap.cpp' || echo '$(srcdir)/'`../../src/lldebug_bootstrap.cpp
 
-liblldebug_a-lldebug_backtraceview.o: ../../src/lldebug_backtraceview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_backtraceview.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_backtraceview.Tpo -c -o liblldebug_a-lldebug_backtraceview.o `test -f '../../src/lldebug_backtraceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_backtraceview.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_backtraceview.Tpo $(DEPDIR)/liblldebug_a-lldebug_backtraceview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_backtraceview.cpp' object='liblldebug_a-lldebug_backtraceview.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_codeconv.lo: ../../src/lldebug_codeconv.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_codeconv.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_codeconv.Tpo -c -o liblldebug_la-lldebug_codeconv.lo `test -f '../../src/lldebug_codeconv.cpp' || echo '$(srcdir)/'`../../src/lldebug_codeconv.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_codeconv.Tpo $(DEPDIR)/liblldebug_la-lldebug_codeconv.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_codeconv.cpp' object='liblldebug_la-lldebug_codeconv.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_backtraceview.o `test -f '../../src/lldebug_backtraceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_backtraceview.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_codeconv.lo `test -f '../../src/lldebug_codeconv.cpp' || echo '$(srcdir)/'`../../src/lldebug_codeconv.cpp
 
-liblldebug_a-lldebug_backtraceview.obj: ../../src/lldebug_backtraceview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_backtraceview.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_backtraceview.Tpo -c -o liblldebug_a-lldebug_backtraceview.obj `if test -f '../../src/lldebug_backtraceview.cpp'; then $(CYGPATH_W) '../../src/lldebug_backtraceview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_backtraceview.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_backtraceview.Tpo $(DEPDIR)/liblldebug_a-lldebug_backtraceview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_backtraceview.cpp' object='liblldebug_a-lldebug_backtraceview.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_event.lo: ../../src/lldebug_event.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_event.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_event.Tpo -c -o liblldebug_la-lldebug_event.lo `test -f '../../src/lldebug_event.cpp' || echo '$(srcdir)/'`../../src/lldebug_event.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_event.Tpo $(DEPDIR)/liblldebug_la-lldebug_event.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_event.cpp' object='liblldebug_la-lldebug_event.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_backtraceview.obj `if test -f '../../src/lldebug_backtraceview.cpp'; then $(CYGPATH_W) '../../src/lldebug_backtraceview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_backtraceview.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_event.lo `test -f '../../src/lldebug_event.cpp' || echo '$(srcdir)/'`../../src/lldebug_event.cpp
 
-liblldebug_a-lldebug_bootstrap.o: ../../src/lldebug_bootstrap.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_bootstrap.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_bootstrap.Tpo -c -o liblldebug_a-lldebug_bootstrap.o `test -f '../../src/lldebug_bootstrap.cpp' || echo '$(srcdir)/'`../../src/lldebug_bootstrap.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_bootstrap.Tpo $(DEPDIR)/liblldebug_a-lldebug_bootstrap.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_bootstrap.cpp' object='liblldebug_a-lldebug_bootstrap.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_interactview.lo: ../../src/lldebug_interactview.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_interactview.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_interactview.Tpo -c -o liblldebug_la-lldebug_interactview.lo `test -f '../../src/lldebug_interactview.cpp' || echo '$(srcdir)/'`../../src/lldebug_interactview.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_interactview.Tpo $(DEPDIR)/liblldebug_la-lldebug_interactview.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_interactview.cpp' object='liblldebug_la-lldebug_interactview.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_bootstrap.o `test -f '../../src/lldebug_bootstrap.cpp' || echo '$(srcdir)/'`../../src/lldebug_bootstrap.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_interactview.lo `test -f '../../src/lldebug_interactview.cpp' || echo '$(srcdir)/'`../../src/lldebug_interactview.cpp
 
-liblldebug_a-lldebug_bootstrap.obj: ../../src/lldebug_bootstrap.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_bootstrap.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_bootstrap.Tpo -c -o liblldebug_a-lldebug_bootstrap.obj `if test -f '../../src/lldebug_bootstrap.cpp'; then $(CYGPATH_W) '../../src/lldebug_bootstrap.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_bootstrap.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_bootstrap.Tpo $(DEPDIR)/liblldebug_a-lldebug_bootstrap.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_bootstrap.cpp' object='liblldebug_a-lldebug_bootstrap.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_luainfo.lo: ../../src/lldebug_luainfo.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_luainfo.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_luainfo.Tpo -c -o liblldebug_la-lldebug_luainfo.lo `test -f '../../src/lldebug_luainfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_luainfo.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_luainfo.Tpo $(DEPDIR)/liblldebug_la-lldebug_luainfo.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_luainfo.cpp' object='liblldebug_la-lldebug_luainfo.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_bootstrap.obj `if test -f '../../src/lldebug_bootstrap.cpp'; then $(CYGPATH_W) '../../src/lldebug_bootstrap.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_bootstrap.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_luainfo.lo `test -f '../../src/lldebug_luainfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_luainfo.cpp
 
-liblldebug_a-lldebug_codeconv.o: ../../src/lldebug_codeconv.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_codeconv.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_codeconv.Tpo -c -o liblldebug_a-lldebug_codeconv.o `test -f '../../src/lldebug_codeconv.cpp' || echo '$(srcdir)/'`../../src/lldebug_codeconv.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_codeconv.Tpo $(DEPDIR)/liblldebug_a-lldebug_codeconv.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_codeconv.cpp' object='liblldebug_a-lldebug_codeconv.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_mainframe.lo: ../../src/lldebug_mainframe.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_mainframe.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_mainframe.Tpo -c -o liblldebug_la-lldebug_mainframe.lo `test -f '../../src/lldebug_mainframe.cpp' || echo '$(srcdir)/'`../../src/lldebug_mainframe.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_mainframe.Tpo $(DEPDIR)/liblldebug_la-lldebug_mainframe.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_mainframe.cpp' object='liblldebug_la-lldebug_mainframe.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_codeconv.o `test -f '../../src/lldebug_codeconv.cpp' || echo '$(srcdir)/'`../../src/lldebug_codeconv.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_mainframe.lo `test -f '../../src/lldebug_mainframe.cpp' || echo '$(srcdir)/'`../../src/lldebug_mainframe.cpp
 
-liblldebug_a-lldebug_codeconv.obj: ../../src/lldebug_codeconv.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_codeconv.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_codeconv.Tpo -c -o liblldebug_a-lldebug_codeconv.obj `if test -f '../../src/lldebug_codeconv.cpp'; then $(CYGPATH_W) '../../src/lldebug_codeconv.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_codeconv.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_codeconv.Tpo $(DEPDIR)/liblldebug_a-lldebug_codeconv.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_codeconv.cpp' object='liblldebug_a-lldebug_codeconv.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_sourceview.lo: ../../src/lldebug_sourceview.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_sourceview.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_sourceview.Tpo -c -o liblldebug_la-lldebug_sourceview.lo `test -f '../../src/lldebug_sourceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_sourceview.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_sourceview.Tpo $(DEPDIR)/liblldebug_la-lldebug_sourceview.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_sourceview.cpp' object='liblldebug_la-lldebug_sourceview.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_codeconv.obj `if test -f '../../src/lldebug_codeconv.cpp'; then $(CYGPATH_W) '../../src/lldebug_codeconv.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_codeconv.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_sourceview.lo `test -f '../../src/lldebug_sourceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_sourceview.cpp
 
-liblldebug_a-lldebug_event.o: ../../src/lldebug_event.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_event.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_event.Tpo -c -o liblldebug_a-lldebug_event.o `test -f '../../src/lldebug_event.cpp' || echo '$(srcdir)/'`../../src/lldebug_event.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_event.Tpo $(DEPDIR)/liblldebug_a-lldebug_event.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_event.cpp' object='liblldebug_a-lldebug_event.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_sysinfo.lo: ../../src/lldebug_sysinfo.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_sysinfo.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_sysinfo.Tpo -c -o liblldebug_la-lldebug_sysinfo.lo `test -f '../../src/lldebug_sysinfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_sysinfo.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_sysinfo.Tpo $(DEPDIR)/liblldebug_la-lldebug_sysinfo.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_sysinfo.cpp' object='liblldebug_la-lldebug_sysinfo.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_event.o `test -f '../../src/lldebug_event.cpp' || echo '$(srcdir)/'`../../src/lldebug_event.cpp
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_sysinfo.lo `test -f '../../src/lldebug_sysinfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_sysinfo.cpp
 
-liblldebug_a-lldebug_event.obj: ../../src/lldebug_event.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_event.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_event.Tpo -c -o liblldebug_a-lldebug_event.obj `if test -f '../../src/lldebug_event.cpp'; then $(CYGPATH_W) '../../src/lldebug_event.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_event.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_event.Tpo $(DEPDIR)/liblldebug_a-lldebug_event.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_event.cpp' object='liblldebug_a-lldebug_event.obj' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_watchview.lo: ../../src/lldebug_watchview.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_watchview.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_watchview.Tpo -c -o liblldebug_la-lldebug_watchview.lo `test -f '../../src/lldebug_watchview.cpp' || echo '$(srcdir)/'`../../src/lldebug_watchview.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_watchview.Tpo $(DEPDIR)/liblldebug_la-lldebug_watchview.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_watchview.cpp' object='liblldebug_la-lldebug_watchview.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_event.obj `if test -f '../../src/lldebug_event.cpp'; then $(CYGPATH_W) '../../src/lldebug_event.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_event.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_watchview.lo `test -f '../../src/lldebug_watchview.cpp' || echo '$(srcdir)/'`../../src/lldebug_watchview.cpp
 
-liblldebug_a-lldebug_interactview.o: ../../src/lldebug_interactview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_interactview.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_interactview.Tpo -c -o liblldebug_a-lldebug_interactview.o `test -f '../../src/lldebug_interactview.cpp' || echo '$(srcdir)/'`../../src/lldebug_interactview.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_interactview.Tpo $(DEPDIR)/liblldebug_a-lldebug_interactview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_interactview.cpp' object='liblldebug_a-lldebug_interactview.o' libtool=no @AMDEPBACKSLASH@
+liblldebug_la-lldebug_context.lo: ../../src/lldebug_context.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_context.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_context.Tpo -c -o liblldebug_la-lldebug_context.lo `test -f '../../src/lldebug_context.cpp' || echo '$(srcdir)/'`../../src/lldebug_context.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_context.Tpo $(DEPDIR)/liblldebug_la-lldebug_context.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_context.cpp' object='liblldebug_la-lldebug_context.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_interactview.o `test -f '../../src/lldebug_interactview.cpp' || echo '$(srcdir)/'`../../src/lldebug_interactview.cpp
-
-liblldebug_a-lldebug_interactview.obj: ../../src/lldebug_interactview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_interactview.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_interactview.Tpo -c -o liblldebug_a-lldebug_interactview.obj `if test -f '../../src/lldebug_interactview.cpp'; then $(CYGPATH_W) '../../src/lldebug_interactview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_interactview.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_interactview.Tpo $(DEPDIR)/liblldebug_a-lldebug_interactview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_interactview.cpp' object='liblldebug_a-lldebug_interactview.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_interactview.obj `if test -f '../../src/lldebug_interactview.cpp'; then $(CYGPATH_W) '../../src/lldebug_interactview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_interactview.cpp'; fi`
-
-liblldebug_a-lldebug_luainfo.o: ../../src/lldebug_luainfo.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_luainfo.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_luainfo.Tpo -c -o liblldebug_a-lldebug_luainfo.o `test -f '../../src/lldebug_luainfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_luainfo.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_luainfo.Tpo $(DEPDIR)/liblldebug_a-lldebug_luainfo.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_luainfo.cpp' object='liblldebug_a-lldebug_luainfo.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_luainfo.o `test -f '../../src/lldebug_luainfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_luainfo.cpp
-
-liblldebug_a-lldebug_luainfo.obj: ../../src/lldebug_luainfo.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_luainfo.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_luainfo.Tpo -c -o liblldebug_a-lldebug_luainfo.obj `if test -f '../../src/lldebug_luainfo.cpp'; then $(CYGPATH_W) '../../src/lldebug_luainfo.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_luainfo.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_luainfo.Tpo $(DEPDIR)/liblldebug_a-lldebug_luainfo.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_luainfo.cpp' object='liblldebug_a-lldebug_luainfo.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_luainfo.obj `if test -f '../../src/lldebug_luainfo.cpp'; then $(CYGPATH_W) '../../src/lldebug_luainfo.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_luainfo.cpp'; fi`
-
-liblldebug_a-lldebug_mainframe.o: ../../src/lldebug_mainframe.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_mainframe.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_mainframe.Tpo -c -o liblldebug_a-lldebug_mainframe.o `test -f '../../src/lldebug_mainframe.cpp' || echo '$(srcdir)/'`../../src/lldebug_mainframe.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_mainframe.Tpo $(DEPDIR)/liblldebug_a-lldebug_mainframe.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_mainframe.cpp' object='liblldebug_a-lldebug_mainframe.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_mainframe.o `test -f '../../src/lldebug_mainframe.cpp' || echo '$(srcdir)/'`../../src/lldebug_mainframe.cpp
-
-liblldebug_a-lldebug_mainframe.obj: ../../src/lldebug_mainframe.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_mainframe.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_mainframe.Tpo -c -o liblldebug_a-lldebug_mainframe.obj `if test -f '../../src/lldebug_mainframe.cpp'; then $(CYGPATH_W) '../../src/lldebug_mainframe.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_mainframe.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_mainframe.Tpo $(DEPDIR)/liblldebug_a-lldebug_mainframe.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_mainframe.cpp' object='liblldebug_a-lldebug_mainframe.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_mainframe.obj `if test -f '../../src/lldebug_mainframe.cpp'; then $(CYGPATH_W) '../../src/lldebug_mainframe.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_mainframe.cpp'; fi`
-
-liblldebug_a-lldebug_prec.o: ../../src/lldebug_prec.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_prec.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_prec.Tpo -c -o liblldebug_a-lldebug_prec.o `test -f '../../src/lldebug_prec.cpp' || echo '$(srcdir)/'`../../src/lldebug_prec.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_prec.Tpo $(DEPDIR)/liblldebug_a-lldebug_prec.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_prec.cpp' object='liblldebug_a-lldebug_prec.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_prec.o `test -f '../../src/lldebug_prec.cpp' || echo '$(srcdir)/'`../../src/lldebug_prec.cpp
-
-liblldebug_a-lldebug_prec.obj: ../../src/lldebug_prec.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_prec.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_prec.Tpo -c -o liblldebug_a-lldebug_prec.obj `if test -f '../../src/lldebug_prec.cpp'; then $(CYGPATH_W) '../../src/lldebug_prec.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_prec.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_prec.Tpo $(DEPDIR)/liblldebug_a-lldebug_prec.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_prec.cpp' object='liblldebug_a-lldebug_prec.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_prec.obj `if test -f '../../src/lldebug_prec.cpp'; then $(CYGPATH_W) '../../src/lldebug_prec.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_prec.cpp'; fi`
-
-liblldebug_a-lldebug_sourceview.o: ../../src/lldebug_sourceview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_sourceview.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_sourceview.Tpo -c -o liblldebug_a-lldebug_sourceview.o `test -f '../../src/lldebug_sourceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_sourceview.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_sourceview.Tpo $(DEPDIR)/liblldebug_a-lldebug_sourceview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_sourceview.cpp' object='liblldebug_a-lldebug_sourceview.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_sourceview.o `test -f '../../src/lldebug_sourceview.cpp' || echo '$(srcdir)/'`../../src/lldebug_sourceview.cpp
-
-liblldebug_a-lldebug_sourceview.obj: ../../src/lldebug_sourceview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_sourceview.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_sourceview.Tpo -c -o liblldebug_a-lldebug_sourceview.obj `if test -f '../../src/lldebug_sourceview.cpp'; then $(CYGPATH_W) '../../src/lldebug_sourceview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_sourceview.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_sourceview.Tpo $(DEPDIR)/liblldebug_a-lldebug_sourceview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_sourceview.cpp' object='liblldebug_a-lldebug_sourceview.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_sourceview.obj `if test -f '../../src/lldebug_sourceview.cpp'; then $(CYGPATH_W) '../../src/lldebug_sourceview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_sourceview.cpp'; fi`
-
-liblldebug_a-lldebug_sysinfo.o: ../../src/lldebug_sysinfo.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_sysinfo.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_sysinfo.Tpo -c -o liblldebug_a-lldebug_sysinfo.o `test -f '../../src/lldebug_sysinfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_sysinfo.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_sysinfo.Tpo $(DEPDIR)/liblldebug_a-lldebug_sysinfo.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_sysinfo.cpp' object='liblldebug_a-lldebug_sysinfo.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_sysinfo.o `test -f '../../src/lldebug_sysinfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_sysinfo.cpp
-
-liblldebug_a-lldebug_sysinfo.obj: ../../src/lldebug_sysinfo.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_sysinfo.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_sysinfo.Tpo -c -o liblldebug_a-lldebug_sysinfo.obj `if test -f '../../src/lldebug_sysinfo.cpp'; then $(CYGPATH_W) '../../src/lldebug_sysinfo.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_sysinfo.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_sysinfo.Tpo $(DEPDIR)/liblldebug_a-lldebug_sysinfo.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_sysinfo.cpp' object='liblldebug_a-lldebug_sysinfo.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_sysinfo.obj `if test -f '../../src/lldebug_sysinfo.cpp'; then $(CYGPATH_W) '../../src/lldebug_sysinfo.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_sysinfo.cpp'; fi`
-
-liblldebug_a-lldebug_watchview.o: ../../src/lldebug_watchview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_watchview.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_watchview.Tpo -c -o liblldebug_a-lldebug_watchview.o `test -f '../../src/lldebug_watchview.cpp' || echo '$(srcdir)/'`../../src/lldebug_watchview.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_watchview.Tpo $(DEPDIR)/liblldebug_a-lldebug_watchview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_watchview.cpp' object='liblldebug_a-lldebug_watchview.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_watchview.o `test -f '../../src/lldebug_watchview.cpp' || echo '$(srcdir)/'`../../src/lldebug_watchview.cpp
-
-liblldebug_a-lldebug_watchview.obj: ../../src/lldebug_watchview.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_watchview.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_watchview.Tpo -c -o liblldebug_a-lldebug_watchview.obj `if test -f '../../src/lldebug_watchview.cpp'; then $(CYGPATH_W) '../../src/lldebug_watchview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_watchview.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_watchview.Tpo $(DEPDIR)/liblldebug_a-lldebug_watchview.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_watchview.cpp' object='liblldebug_a-lldebug_watchview.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_watchview.obj `if test -f '../../src/lldebug_watchview.cpp'; then $(CYGPATH_W) '../../src/lldebug_watchview.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_watchview.cpp'; fi`
-
-liblldebug_a-lldebug_context.o: ../../src/lldebug_context.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_context.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_context.Tpo -c -o liblldebug_a-lldebug_context.o `test -f '../../src/lldebug_context.cpp' || echo '$(srcdir)/'`../../src/lldebug_context.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_context.Tpo $(DEPDIR)/liblldebug_a-lldebug_context.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_context.cpp' object='liblldebug_a-lldebug_context.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_context.o `test -f '../../src/lldebug_context.cpp' || echo '$(srcdir)/'`../../src/lldebug_context.cpp
-
-liblldebug_a-lldebug_context.obj: ../../src/lldebug_context.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug_context.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug_context.Tpo -c -o liblldebug_a-lldebug_context.obj `if test -f '../../src/lldebug_context.cpp'; then $(CYGPATH_W) '../../src/lldebug_context.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_context.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-lldebug_context.Tpo $(DEPDIR)/liblldebug_a-lldebug_context.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_context.cpp' object='liblldebug_a-lldebug_context.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-lldebug_context.obj `if test -f '../../src/lldebug_context.cpp'; then $(CYGPATH_W) '../../src/lldebug_context.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/lldebug_context.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_context.lo `test -f '../../src/lldebug_context.cpp' || echo '$(srcdir)/'`../../src/lldebug_context.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1102,8 +820,11 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LIBRARIES)
+all-am: Makefile $(LTLIBRARIES)
 installdirs:
+	for dir in "$(DESTDIR)$(libdir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -1130,7 +851,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstLIBRARIES \
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -1153,7 +874,7 @@ install-data-am:
 
 install-dvi: install-dvi-am
 
-install-exec-am:
+install-exec-am: install-libLTLIBRARIES
 
 install-html: install-html-am
 
@@ -1185,22 +906,23 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-libLTLIBRARIES
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-noinstLIBRARIES ctags distclean \
+	clean-libLTLIBRARIES clean-libtool ctags distclean \
 	distclean-compile distclean-generic distclean-libtool \
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags uninstall uninstall-am
+	install-html-am install-info install-info-am \
+	install-libLTLIBRARIES install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags uninstall uninstall-am uninstall-libLTLIBRARIES
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
