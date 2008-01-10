@@ -10,101 +10,10 @@
 #include "lldebug_prec.h"
 #include "lldebug_sourceview.h"
 #include "lldebug_context.h"
+#include "lldebug_langsettings.h"
 #include "wx/wxscintilla.h"
 
 namespace lldebug {
-
-enum TokenStyle {
-	TOKEN_STYLE_BOLD = 1,
-	TOKEN_STYLE_ITALIC = 2,
-	TOKEN_STYLE_UNDERL = 4,
-	TOKEN_STYLE_HIDDEN = 8,
-};
-
-// keywordlists
-wxChar* Wordlist1 =
-    wxT("and break do else elseif \
-		end false for function if \
-		in local nil not or \
-		repeat return then true until while");
-wxChar* Wordlist2 =
-    wxT("require module"); //coroutine debug file io math os string");
-wxChar* Wordlist3 =
-    wxT("");
-
-//----------------------------------------------------------------------------
-//! languages
-struct StyleInfo {
-	int style;
-	wxChar *foreground;
-	wxChar *background;
-	int fontStyle;
-	int letterCase;
-	bool hotspot;
-	const wxChar *words;
-};
-
-//----------------------------------------------------------------------------
-//! style types
-const StyleInfo g_StylePrefs [] = {
-    {
-		wxSCI_LUA_DEFAULT,
-		wxT("BLACK"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_COMMENT,
-		wxT("FOREST GREEN"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_COMMENTLINE,
-		wxT("FOREST GREEN"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_COMMENTDOC,
-		wxT("FOREST GREEN"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_NUMBER,
-		wxT("BLACK"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_WORD,
-		wxT("BLUE"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, Wordlist1
-	}, {
-		wxSCI_LUA_STRING,
-		wxT("BROWN"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_CHARACTER,
-		wxT("BROWN"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_LITERALSTRING,
-		wxT("BROWN"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_PREPROCESSOR,
-		wxT("GRAY"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_OPERATOR,
-		wxT("VIOLET"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	}, {
-		wxSCI_LUA_IDENTIFIER,
-		wxT("BLACK"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, true, NULL
-	}, {
-		wxSCI_LUA_STRINGEOL,
-		wxT("BROWN"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, NULL
-	},   {
-		wxSCI_LUA_WORD2,
-		wxT("BLACK"), wxT("WHITE"),
-		0, wxSCI_CASE_MIXED, false, Wordlist2
-	},
-};
 
 #if 0
      wxT("FOREST GREEN"), wxT("WHITE"),
@@ -131,7 +40,7 @@ class SourceViewPage : public wxScintilla {
 
 		MARKNUM_BREAKPOINT = 1,
 		MARKNUM_RUNNING = 2,
-		MARKNUM_MARK = 3,
+		MARKNUM_BACKTRACE = 3,
 	};
 
 public:
@@ -139,14 +48,13 @@ public:
 							const Source *source)
 		: wxScintilla(parent, wxID_ANY)
 		, m_parent(parent), m_ctx(ctx)
-		, m_wasTitleChanged(false)
+		, m_initialized(false), m_wasTitleChanged(false)
 		, m_currentLine(-1), m_markedLine(-1) {
 		CreateGUIControls();
 		Initialize(source);
 	}
 
 	virtual ~SourceViewPage() {
-		SaveSource();
 	}
 
 private:
@@ -195,16 +103,16 @@ private:
 		MarkerSetBackground(wxSCI_MARKNUM_FOLDEREND, wxColour(wxT("WHITE")));
 
 		MarkerDefine(MARKNUM_BREAKPOINT, wxSCI_MARK_CIRCLE);
-		MarkerSetForeground(MARKNUM_BREAKPOINT, wxColour(_T("YELLOW")));
+		MarkerSetForeground(MARKNUM_BREAKPOINT, wxColour(_T("ORANGE")));
 		MarkerSetBackground(MARKNUM_BREAKPOINT, wxColour(_T("RED")));
 
 		MarkerDefine(MARKNUM_RUNNING, wxSCI_MARK_SHORTARROW);
 		MarkerSetForeground(MARKNUM_RUNNING, wxColour(_T("RED")));
 		MarkerSetBackground(MARKNUM_RUNNING, wxColour(_T("YELLOW")));
 
-		MarkerDefine(MARKNUM_MARK, wxSCI_MARK_BACKGROUND);
-		MarkerSetForeground(MARKNUM_MARK, wxColour(_T("YELLOW")));
-		MarkerSetBackground(MARKNUM_MARK, wxColour(_T("GREEN")));
+		MarkerDefine(MARKNUM_BACKTRACE, wxSCI_MARK_BACKGROUND);
+		MarkerSetForeground(MARKNUM_BACKTRACE, wxColour(_T("YELLOW")));
+		MarkerSetBackground(MARKNUM_BACKTRACE, wxColour(_T("GREEN")));
 
 		/*int INDIC_TEST = 1;
 		IndicatorSetStyle(INDIC_TEST, wxSCI_INDIC_DIAGONAL);
@@ -218,8 +126,8 @@ private:
 		wxFont font(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL,
 			false, wxT("MS Gothic"));
         int keywordnr = 0;
-		for (size_t i = 0; i < WXSIZEOF(g_StylePrefs); ++i) {
-			const StyleInfo &curType = g_StylePrefs[i];
+		for (size_t i = 0; s_stylePrefs[i].style != STYLE_END; ++i) {
+			const StyleInfo &curType = s_stylePrefs[i];
 			int style = curType.style;
 
             if (curType.foreground != NULL) {
@@ -229,10 +137,10 @@ private:
                 StyleSetBackground(style, wxColour(curType.background));
             }
 			StyleSetFont(style, font);
-            StyleSetBold(style, (curType.fontStyle & TOKEN_STYLE_BOLD) > 0);
-            StyleSetItalic(style, (curType.fontStyle & TOKEN_STYLE_ITALIC) > 0);
-            StyleSetUnderline(style, (curType.fontStyle & TOKEN_STYLE_UNDERL) > 0);
-            StyleSetVisible(style, (curType.fontStyle & TOKEN_STYLE_HIDDEN) == 0);
+            StyleSetBold(style, (curType.fontStyle & FONTSTYLE_BOLD) > 0);
+            StyleSetItalic(style, (curType.fontStyle & FONTSTYLE_ITALIC) > 0);
+            StyleSetUnderline(style, (curType.fontStyle & FONTSTYLE_UNDERL) > 0);
+            StyleSetVisible(style, (curType.fontStyle & FONTSTYLE_HIDDEN) == 0);
             StyleSetCase(style, curType.letterCase);
 			StyleSetHotSpot(style, curType.hotspot);
             if (curType.words != NULL) {
@@ -246,7 +154,7 @@ private:
 		SetMarginWidth(MARGIN_DEBUG, 16);
 		SetMarginSensitive(MARGIN_DEBUG, true);
 		SetMarginMask(MARGIN_DEBUG,
-			(1 << MARKNUM_BREAKPOINT) | (1 << MARKNUM_RUNNING) | (1 << MARKNUM_MARK));
+			(1 << MARKNUM_BREAKPOINT) | (1 << MARKNUM_RUNNING) | (1 << MARKNUM_BACKTRACE));
 
 		// set margin as unused
 		SetMarginType(MARGIN_DIVIDER, wxSCI_MARGIN_BACK);
@@ -295,21 +203,19 @@ private:
 		scoped_lock lock(m_mutex);
 		wxASSERT(source != NULL);
 
-		wxString str;
+		std::string str;
 		for (string_array::size_type i = 0; i < source->GetNumberOfLines(); ++i) {
-			wxString line = wxConvFromUTF8(source->GetSourceLine(i));
-
-			// ソース行を現在のユニコードに変換し追加します。
-			str.Append(line);
+			// The encoding is UTF8.
+			str += source->GetSourceLine(i);
 
 			// 原則的に、最後の行には改行を入れません。
-			// しかし最終行に余裕がないとスクロール処理に失敗します＞＜
-			if (i < source->GetNumberOfLines() || !line.IsEmpty()) {
-				str.Append(wxT("\n"));
+			if (i < source->GetNumberOfLines()) {
+				str += "\n";
 			}
 		}
 
-		AddText(str);
+		// AddTextRaw accepts the UTF8 string only.
+		AddTextRaw(str.c_str());
 
 		for (size_t i = 0; i < m_ctx->GetBreakPointSize(); ++i) {
 			const BreakPoint &bp = m_ctx->GetBreakPoint(i);
@@ -320,6 +226,7 @@ private:
 		m_key = source->GetKey();
 		m_title = wxConvFromUTF8(source->GetTitle());
 		m_currentLine = -1;
+		m_initialized = true;
 	}
 
 	void OnMarginClick(wxScintillaEvent &event) {
@@ -338,20 +245,43 @@ private:
 		}
 	}
 
-	void OnChar(wxKeyEvent &event) {
+	void OnKeyDown(wxKeyEvent &event) {
 		scoped_lock lock(m_mutex);
 		event.Skip();
 
-		if (!GetModify() || m_wasTitleChanged) {
+		if (event.ControlDown() && event.GetKeyCode() == 'S') {
+			SaveSource();
+		}
+	}
+
+	void ChangeModified(bool modified) {
+		if (!m_initialized || modified == m_wasTitleChanged) {
 			return;
 		}
 
 		size_t sel = m_parent->GetPageIndex(this);
-		if (sel != (size_t)wxNOT_FOUND) {
-			m_parent->SetPageText(sel, m_title + wxT("*"));
-		}
+		if (sel != wxNOT_FOUND) {
+			if (modified) {
+				/* Add '*' to the source title. */
+				m_parent->SetPageText(sel, m_title + wxT("*"));
+			}
+			else {
+				/* Set the source title. */
+				m_parent->SetPageText(sel, m_title);
+			}
 
-		m_wasTitleChanged = true;
+			m_wasTitleChanged = modified;
+		}
+	}
+
+	void OnModified(wxScintillaEvent &event) {
+		scoped_lock lock(m_mutex);
+		event.Skip();
+
+		if (event.GetModificationType()
+			& (wxSCI_MOD_INSERTTEXT | wxSCI_MOD_DELETETEXT)) {
+			ChangeModified(true);
+		}
 	}
 
 	void OnCharAdded(wxScintillaEvent &event) {
@@ -379,14 +309,13 @@ private:
 				+ (indentSize / indentWidth)
 				+ (indentSize % indentWidth));
 
-			// change markers
-			// :TODO
+			// notify that the test was changed
+			ChangeModified(true);
 		}
 	}
 
 	void OnHotSpotClick(wxScintillaEvent &event) {
 		scoped_lock lock(m_mutex);
-
 		//int pos = event.GetPosition();
 		//CallTipShow(pos, event.GetText());
 	}
@@ -402,7 +331,7 @@ public:
 
 	int SetCurrentLine(int line, bool isCurrentRunning) {
 		scoped_lock lock(m_mutex);
-		wxASSERT(line == -1 || (0 <= line && line < GetLineCount()));
+		wxASSERT((line < 0) || (0 <= line && line < GetLineCount()));
 
 		if (isCurrentRunning && m_currentLine >= 0) {
 			MarkerDelete(m_currentLine, MARKNUM_RUNNING);
@@ -411,7 +340,7 @@ public:
 		
 		// Hide mark always.
 		if (m_markedLine >= 0) {
-			MarkerDeleteAll(MARKNUM_MARK);
+			MarkerDeleteAll(MARKNUM_BACKTRACE);
 			m_markedLine = -1;
 		}
 
@@ -425,7 +354,7 @@ public:
 				MarkerAdd(line, MARKNUM_RUNNING);
 			}
 			else {
-				MarkerAdd(line, MARKNUM_MARK);
+				MarkerAdd(line, MARKNUM_BACKTRACE);
 			}
 		}
 
@@ -435,6 +364,7 @@ public:
 		else {
 			m_markedLine = line;
 		}
+
 		SetFocus();
 		return 0;
 	}
@@ -469,24 +399,40 @@ public:
 
 	void SaveSource() {
 		scoped_lock lock(m_mutex);
-
 		string_array array;
+
 		for (int i = 0; i < GetLineCount(); ++i) {
-			std::string buffer = wxConvToUTF8(GetLine(i).Trim(true));
+			wxCharBuffer cbuffer = GetLineRaw(i);
+			std::string buffer = (cbuffer != NULL ? cbuffer : "");
+
+			// trim newlines
+			while (!buffer.empty()) {
+				char c = *(--buffer.end());
+				if (c == '\n' || c == '\r') {
+					buffer.erase(buffer.length() - 1);
+				}
+				else {
+					break;
+				}
+			}
+
 			array.push_back(buffer);
 		}
 
-		if (!array.empty() && array.back().size() == 0) {
+		// Erase the last line if it has newline only.
+		if (!array.empty() && array.back().empty()) {
 			array.pop_back();
 		}
 
 		m_ctx->SaveSource(m_key, array);
+		ChangeModified(false);
 	}
 
 private:
 	SourceView *m_parent;
 	Context *m_ctx;
 	mutex m_mutex;
+	bool m_initialized;
 	bool m_wasTitleChanged;
 
 	std::string m_key;
@@ -498,7 +444,8 @@ private:
 };
 
 BEGIN_EVENT_TABLE(SourceViewPage, wxScintilla)
-	EVT_CHAR(SourceViewPage::OnChar)
+	EVT_KEY_DOWN(SourceViewPage::OnKeyDown)
+	EVT_SCI_MODIFIED(wxID_ANY, SourceViewPage::OnModified)
 	EVT_SCI_MARGINCLICK(wxID_ANY, SourceViewPage::OnMarginClick)
 	EVT_SCI_CHARADDED(wxID_ANY, SourceViewPage::OnCharAdded)
 	EVT_SCI_HOTSPOT_CLICK(wxID_ANY, SourceViewPage::OnHotSpotClick)
@@ -595,7 +542,7 @@ void SourceView::OnUpdateSource(wxSourceLineEvent &event) {
 	}
 
 	// If exist current line, page must not be NULL.
-	wxASSERT((page != NULL) == (event.GetLine() >= 0));
+	//wxASSERT((page != NULL) == (event.GetLine() >= 0));
 	if (page != NULL) {
 		page->SetCurrentLine(event.GetLine() - 1, event.IsCurrentRunning());
 	}

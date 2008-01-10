@@ -24,7 +24,6 @@ class SourceView : public wxAuiNotebook {
 public:
 	explicit SourceView(Context *ctx, wxWindow *parent);
 	virtual ~SourceView();
-
 	void ToggleBreakPoint();
 
 private:
