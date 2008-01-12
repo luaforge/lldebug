@@ -34,6 +34,14 @@
 #include <fstream>
 #include <sstream>
 
+const char *c_configDir =
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+	"lldebug"
+#else
+	".lldebug"
+#endif
+	;
+
 namespace lldebug {
 
 std::string GetConfigFileName(const std::string &filename) {
@@ -42,7 +50,7 @@ std::string GetConfigFileName(const std::string &filename) {
 	wxString dir = wxStandardPaths().GetUserConfigDir();
 
 	path basePath(wxConvLocal.cWC2MB(dir.c_str()));
-	path configPath = basePath / "lldebug";
+	path configPath = basePath / c_configDir;
 	if (!exists(configPath)) {
 		try {
 			if (!create_directory(configPath)) {
