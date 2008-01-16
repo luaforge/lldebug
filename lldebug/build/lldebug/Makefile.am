@@ -63,6 +63,7 @@ liblldebug_la_SOURCES = \
 	../../src/lldebug_event.cpp \
 	../../src/lldebug_interactview.cpp \
 	../../src/lldebug_luainfo.cpp \
+	../../src/lldebug_langsettings.cpp \
 	../../src/lldebug_mainframe.cpp \
 	../../src/lldebug_sourceview.cpp \
 	../../src/lldebug_sysinfo.cpp \

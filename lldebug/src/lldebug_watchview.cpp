@@ -284,8 +284,8 @@ void WatchView::OnEndLabelEdit(wxTreeEvent &event) {
 	event.Skip();
 
 	if (m_type == TYPE_WATCH) {
-		wxTreeItemId item = event.GetItem();
-		WatchViewItemData *data = GetItemData(item);
+		//wxTreeItemId item = event.GetItem();
+		//WatchViewItemData *data = GetItemData(item);
 	}
 }
 

@@ -420,7 +420,7 @@ public:
 
 		for (int i = 0; i < GetLineCount(); ++i) {
 			wxCharBuffer cbuffer = GetLineRaw(i);
-			std::string buffer = (cbuffer != NULL ? cbuffer : "");
+			std::string buffer = (cbuffer != NULL ? cbuffer.data() : "");
 
 			// trim newlines
 			while (!buffer.empty()) {

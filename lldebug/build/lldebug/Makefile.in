@@ -76,6 +76,7 @@ am_liblldebug_la_OBJECTS = liblldebug_la-lapi.lo \
 	liblldebug_la-lldebug_event.lo \
 	liblldebug_la-lldebug_interactview.lo \
 	liblldebug_la-lldebug_luainfo.lo \
+	liblldebug_la-lldebug_langsettings.lo \
 	liblldebug_la-lldebug_mainframe.lo \
 	liblldebug_la-lldebug_sourceview.lo \
 	liblldebug_la-lldebug_sysinfo.lo \
@@ -284,6 +285,7 @@ liblldebug_la_SOURCES = \
 	../../src/lldebug_event.cpp \
 	../../src/lldebug_interactview.cpp \
 	../../src/lldebug_luainfo.cpp \
+	../../src/lldebug_langsettings.cpp \
 	../../src/lldebug_mainframe.cpp \
 	../../src/lldebug_sourceview.cpp \
 	../../src/lldebug_sysinfo.cpp \
@@ -379,6 +381,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_context.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_event.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_interactview.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_langsettings.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_luainfo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_mainframe.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_la-lldebug_sourceview.Plo@am__quote@
@@ -702,6 +705,13 @@ liblldebug_la-lldebug_luainfo.lo: ../../src/lldebug_luainfo.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_luainfo.cpp' object='liblldebug_la-lldebug_luainfo.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_luainfo.lo `test -f '../../src/lldebug_luainfo.cpp' || echo '$(srcdir)/'`../../src/lldebug_luainfo.cpp
+
+liblldebug_la-lldebug_langsettings.lo: ../../src/lldebug_langsettings.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_langsettings.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_langsettings.Tpo -c -o liblldebug_la-lldebug_langsettings.lo `test -f '../../src/lldebug_langsettings.cpp' || echo '$(srcdir)/'`../../src/lldebug_langsettings.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_la-lldebug_langsettings.Tpo $(DEPDIR)/liblldebug_la-lldebug_langsettings.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/lldebug_langsettings.cpp' object='liblldebug_la-lldebug_langsettings.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_la-lldebug_langsettings.lo `test -f '../../src/lldebug_langsettings.cpp' || echo '$(srcdir)/'`../../src/lldebug_langsettings.cpp
 
 liblldebug_la-lldebug_mainframe.lo: ../../src/lldebug_mainframe.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_la-lldebug_mainframe.lo -MD -MP -MF $(DEPDIR)/liblldebug_la-lldebug_mainframe.Tpo -c -o liblldebug_la-lldebug_mainframe.lo `test -f '../../src/lldebug_mainframe.cpp' || echo '$(srcdir)/'`../../src/lldebug_mainframe.cpp
