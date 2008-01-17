@@ -29,6 +29,7 @@
 
 #include "lldebug_sysinfo.h"
 #include "lldebug_luainfo.h"
+#include "lldebug_remoteengine.h"
 
 namespace lldebug {
 
@@ -139,10 +140,12 @@ private:
 	explicit Context();
 	virtual ~Context();
 	virtual int Initialize();
+	virtual int CreateDebuggerFrame();
 	virtual int LoadConfig();
 	virtual int SaveConfig();
 	virtual void SetState(State state);
-	
+	virtual int HandleCommand();
+
 	static void SetHook(lua_State *L, bool enable);
 	virtual void HookCallback(lua_State *L, lua_Debug *ar);
 	static void s_HookCallback(lua_State *L, lua_Debug *ar);
@@ -184,6 +187,7 @@ private:
 	CoroutineList m_coroutines;
 	CoroutineInfo m_stepinfo;
 
+	RemoteEngine m_engine;
 	CommandQueue m_cmdQueue;
 	SourceManager m_sourceManager;
 	BreakPointList m_breakPoints;

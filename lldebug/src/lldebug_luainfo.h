@@ -99,6 +99,7 @@ public:
 	void SetHasFields(bool hasFields) {
 		m_hasFields = hasFields;
 	}
+
 	/// 親を取得します。
 	shared_ptr<LuaVar> GetParent() const {
 		return m_parent;
@@ -127,6 +128,23 @@ public:
 
 	friend bool operator!=(const LuaVar &x, const LuaVar &y) {
 		return !(x == y);
+	}
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int) {
+		boost::uint64_t pointer = reinterpret_cast<boost::uint64_t>(m_L);
+		ar & BOOST_SERIALIZATION_NVP(pointer);
+		m_L = reinterpret_cast<lua_State *>(pointer);
+
+		ar & LLDEBUG_MEMBER_NVP(rootType);
+		ar & LLDEBUG_MEMBER_NVP(level);
+		ar & LLDEBUG_MEMBER_NVP(parent);
+		ar & LLDEBUG_MEMBER_NVP(name);
+		ar & LLDEBUG_MEMBER_NVP(value);
+		ar & LLDEBUG_MEMBER_NVP(valueType);
+		ar & LLDEBUG_MEMBER_NVP(hasFields);
 	}
 
 private:
@@ -180,6 +198,19 @@ public:
 	/// 呼び出し元の関数の名前です。
 	const std::string &GetFuncName() const {
 		return m_funcName;
+	}
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int) {
+		ar & LLDEBUG_MEMBER_NVP(lua);
+		ar & LLDEBUG_MEMBER_NVP(level);
+
+		ar & LLDEBUG_MEMBER_NVP(key);
+		ar & LLDEBUG_MEMBER_NVP(sourceTitle);
+		ar & LLDEBUG_MEMBER_NVP(line);
+		ar & LLDEBUG_MEMBER_NVP(funcName);
 	}
 
 public:

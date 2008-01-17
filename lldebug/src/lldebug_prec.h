@@ -32,6 +32,13 @@
 #include <list>
 #include <map>
 #include <set>
+#include <queue>
+
+#define BOOST_SYSTEM_NO_LIB
+#define NOMINMAX
+#define _WIN32_WINDOWS 0x400
+#include "boost/asio.hpp"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/thread.hpp>

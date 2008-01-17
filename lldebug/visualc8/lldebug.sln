@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxtreelistctrl", "wxtreelis
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxscintilla", "wxscintilla\wxscintilla.vcproj", "{55A0D8B1-7F28-4469-B541-EBCEFCF30180}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost_asio", "boost_asio\boost_asio.vcproj", "{B5BB6319-E5C2-4EB4-ABB0-43798D2BC247}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -37,6 +39,10 @@ Global
 		{55A0D8B1-7F28-4469-B541-EBCEFCF30180}.Debug|Win32.Build.0 = Debug|Win32
 		{55A0D8B1-7F28-4469-B541-EBCEFCF30180}.Release|Win32.ActiveCfg = Release|Win32
 		{55A0D8B1-7F28-4469-B541-EBCEFCF30180}.Release|Win32.Build.0 = Release|Win32
+		{B5BB6319-E5C2-4EB4-ABB0-43798D2BC247}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B5BB6319-E5C2-4EB4-ABB0-43798D2BC247}.Debug|Win32.Build.0 = Debug|Win32
+		{B5BB6319-E5C2-4EB4-ABB0-43798D2BC247}.Release|Win32.ActiveCfg = Release|Win32
+		{B5BB6319-E5C2-4EB4-ABB0-43798D2BC247}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

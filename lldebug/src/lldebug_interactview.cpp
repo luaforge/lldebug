@@ -41,7 +41,7 @@ public:
 	}
 
 protected:
-	virtual void OnButton(wxCommandEvent &event) {
+	virtual void OnButton(wxCommandEvent &) {
 		m_parent->Run();
 	}
 

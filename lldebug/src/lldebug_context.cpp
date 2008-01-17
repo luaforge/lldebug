@@ -41,12 +41,75 @@ namespace lldebug {
  */
 class Context::ContextManager {
 public:
-	explicit ContextManager();
-	~ContextManager();
+	explicit ContextManager() {
+	}
 
-	Context *Find(lua_State *L);
-	void Add(Context *ctx, lua_State *L);
-	void Erase(Context *ctx);
+	~ContextManager() {
+		// 'lock' must be unlocked
+		// at the end of this function.
+		{
+			scoped_lock lock(m_mutex);
+
+			while (!m_map.empty()) {
+				Context *ctx = (*m_map.begin()).second;
+				ctx->Delete();
+			}
+		}
+	}
+
+	/// Get weather this object is empty.
+	bool IsEmpty() {
+		scoped_lock lock(m_mutex);
+
+		return m_map.empty();
+	}
+
+	/// Add the pair of (L, ctx).
+	void Add(Context *ctx, lua_State *L) {
+		scoped_lock lock(m_mutex);
+
+		if (ctx == NULL || L == NULL) {
+			return;
+		}
+
+		m_map.insert(std::make_pair(L, ctx));
+	}
+
+	/// Erase the 'ctx' and corresponding lua_State objects.
+	void Erase(Context *ctx) {
+		scoped_lock lock(m_mutex);
+
+		if (ctx == NULL) {
+			return;
+		}
+
+		for (Map::iterator it = m_map.begin(); it != m_map.end(); ) {
+			Context *p = (*it).second;
+ 
+			if (p == ctx) {
+				m_map.erase(it++);
+			}
+			else {
+				++it;
+			}
+		}
+	}
+
+	/// Find the Context object from a lua_State object.
+	Context *Find(lua_State *L) {
+		scoped_lock lock(m_mutex);
+
+		if (L == NULL) {
+			return NULL;
+		}
+
+		Map::iterator it = m_map.find(L);
+		if (it == m_map.end()) {
+			return NULL;
+		}
+
+		return (*it).second;
+	}
 
 private:
 	typedef std::map<lua_State *, Context *> Map;
@@ -54,69 +117,14 @@ private:
 	mutex m_mutex;
 };
 
-Context::ContextManager::ContextManager() {
-}
-
-Context::ContextManager::~ContextManager() {
-	scoped_lock lock(m_mutex);
-
-	while (!m_map.empty()) {
-		Context *ctx = (*m_map.begin()).second;
-		ctx->Delete();
-	}
-}
-
-void Context::ContextManager::Add(Context *ctx, lua_State *L) {
-	if (ctx == NULL || L == NULL) {
-		return;
-	}
-
-	scoped_lock lock(m_mutex);
-	m_map.insert(std::make_pair(L, ctx));
-}
-
-void Context::ContextManager::Erase(Context *ctx) {
-	if (ctx == NULL) {
-		return;
-	}
-
-	scoped_lock lock(m_mutex);
-	for (Map::iterator it = m_map.begin(); it != m_map.end(); ) {
-		Context *p = (*it).second;
- 
-		if (p == ctx) {
-			m_map.erase(it++);
-		}
-		else {
-			++it;
-		}
-	}
-}
-
-Context *Context::ContextManager::Find(lua_State *L) {
-	if (L == NULL) {
-		return NULL;
-	}
-
-	scoped_lock lock(m_mutex);
-	for (Map::iterator it = m_map.begin(); it != m_map.end(); ++it) {
-		Map::value_type v = *it;
-
-		if (v.first == L) {
-			return v.second;
-		}
-	}
-
-	return NULL;
-}
-
 
 /*-----------------------------------------------------------------*/
 shared_ptr<Context::ContextManager> Context::ms_manager;
 int Context::ms_idCounter = 0;
 
 Context *Context::Create() {
-	// deleteできないので、xxx_ptr関係のクラスは使えません。
+	// It's impossible to use 'xxx_ptr' classes,
+	// because ctx don't have public delete.
 	Context *ctx = new Context;
 
 	try {
@@ -125,9 +133,17 @@ Context *Context::Create() {
 			return NULL;
 		}
 
+		// After the all initialization was done,
+		// we create a new frame for this context.
+		if (ctx->CreateDebuggerFrame() != 0) {
+			ctx->Delete();
+			return NULL;
+		}
+
 		if (ms_manager == NULL) {
 			ms_manager.reset(new ContextManager);
 		}
+
 		ms_manager->Add(ctx, ctx->GetLua());
 	}
 	catch (...) {
@@ -144,56 +160,72 @@ Context::Context()
 	, m_currentSourceKey(NULL), m_currentLine(-1)
 	, m_frame(NULL) {
 
-	scoped_lock lock(m_mutex);
 	m_id = ms_idCounter++;
 }
 
-int Context::Initialize() {
+/// Create the new debug frame.
+int Context::CreateDebuggerFrame() {
 	scoped_lock lock(m_mutex);
-	int result = 0;
+
+	if (m_engine.StartDebuggee(51123) != 0) {
+		return -1;
+	}
 
 	// このコンテキスト用のフレーム作成指令を出します。
 	SendCreateFrameEvent(this);
 
+	// Wait for creation of the frame.
+	while (m_frame == NULL) {
+		boost::xtime xt;
+		boost::xtime_get(&xt, boost::TIME_UTC);
+		xt.sec += 30;
+		// Give up if 30 seconds pass.
+		if (!m_condFrame.timed_wait(lock, xt)) {
+			return -1;
+		}
+	}
+
+	/*
+	for (;;) {
+		if (!m_engine.HasReadCommand()) {
+			Command_ command = m_engine.GetReadCommand();
+			m_engine.PopReadCommand();
+
+			if (command.header.type == REMOTECOMMANDTYPE_START_CONNECTION) {
+			}
+		}
+
+		boost::thread::yield();
+	}*/
+
+	return 0;
+}
+
+int Context::Initialize() {
+	scoped_lock lock(m_mutex);
+
 	// dllからの呼び出しなので普通に失敗する可能性があります。
 	lua_State *L = lua_open();
 	if (L == NULL) {
-		result = -1;
-		goto on_end;
+		return -1;
 	}
 
 	if (LuaInitialize(L) != 0) {
 		lua_close(L);
-		result = -1;
-		goto on_end;
+		return -1;
 	}
 
 	/*lldebug_InitState init = lldebug_getinitstate();
 	if (init != NULL && init(L) != 0) {
 		lua_close(L);
-		result = -1;
-		goto on_end;
+		return -1;
 	}*/
 
 	SetHook(L, true);
 	m_lua = L;
 	m_state = STATE_STEPINTO; //NORMAL;
 	m_coroutines.push_back(CoroutineInfo(L));
-
-on_end:;
-	// ウィンドウが作成されるのを待つ必要があります。
-	while (m_frame == NULL) {
-		boost::xtime xt;
-		boost::xtime_get(&xt, boost::TIME_UTC);
-		xt.sec += 30;
-		// ３０秒待ってだめならあきらめます。
-		if (!m_condFrame.timed_wait(lock, xt)) {
-			result = -1;
-			break;
-		}
-	}
-	
-	return result;
+	return 0;
 }
 
 Context::~Context() {
@@ -211,7 +243,7 @@ Context::~Context() {
 		boost::xtime xt;
 		boost::xtime_get(&xt, boost::TIME_UTC);
 		xt.sec += 30;
-		// ３０秒待ってだめならあきらめます。
+		// Give up if 30 seconds pass.
 		if (!m_condFrame.timed_wait(lock, xt)) {
 			break;
 		}
@@ -225,11 +257,14 @@ Context::~Context() {
 	// 最初のコンテキストの作成に失敗している可能性があります。
 	if (ms_manager != NULL) {
 		ms_manager->Erase(this);
+
+		if (ms_manager->IsEmpty()) {
+			ms_manager.reset();
+		}
 	}
 }
 
 void Context::Delete() {
-	// delete後はthisが持ついかなるオブジェクトも使えなくなります。
 	delete this;
 }
 
@@ -333,6 +368,7 @@ void Context::Quit() {
 	scoped_lock lock(m_mutex);
 
 	m_cmdQueue.PushCommand(Command::TYPE_QUIT);
+	m_engine.EndConnection(m_id);
 }
 
 void Context::Output(const std::string &str) {
@@ -342,6 +378,7 @@ void Context::Output(const std::string &str) {
 		return;
 	}
 
+	(void)str;
 	//m_frame->Output(str);
 }
 
@@ -491,6 +528,57 @@ void Context::SetState(State state) {
 	}
 }
 
+int Context::HandleCommand() {
+	// 送られたコマンドがあるならそれを処理します。
+	while (m_engine.HasReadCommand()) {
+		Command_ command = m_engine.GetReadCommand();
+		m_engine.PopReadCommand();
+
+		switch (command.header.type) {
+		case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
+			break;
+
+		default:
+			assert(false && "Uncatchable command.");
+			break;
+		}
+	}
+
+	while (!m_cmdQueue.IsEmpty()) {
+		Command cmd = m_cmdQueue.Get();
+		m_cmdQueue.Pop();
+
+		switch (cmd.GetType()) {
+		case Command::TYPE_NONE:
+			/* ignore */
+			break;
+		case Command::TYPE_PAUSE:
+			SetState(STATE_BREAK);
+			break;
+		case Command::TYPE_RESTART:
+			SetState(STATE_NORMAL);
+			break;
+		case Command::TYPE_TOGGLE:
+			//breaking = !breaking;
+			break;
+		case Command::TYPE_STEPOVER:
+			SetState(STATE_STEPOVER);
+			break;
+		case Command::TYPE_STEPINTO:
+			SetState(STATE_STEPINTO);
+			break;
+		case Command::TYPE_STEPRETURN:
+			SetState(STATE_STEPRETURN);
+			break;
+		case Command::TYPE_QUIT:
+			SetState(STATE_QUIT);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 class Context::scoped_current_source {
 public:
 	explicit scoped_current_source(Context *ctx, lua_Debug *ar)
@@ -529,6 +617,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		return;
 	}
 
+	// Stop running if need.
 	switch (m_state) {
 	case STATE_QUIT:
 		luaL_error(L, "quited");
@@ -570,37 +659,9 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	State prevState = STATE_NORMAL;
 	do {
 		// handle event and message queue
-		while (!m_cmdQueue.IsEmpty()) {
-			Command cmd = m_cmdQueue.Get();
-			m_cmdQueue.Pop();
-
-			switch (cmd.GetType()) {
-			case Command::TYPE_NONE:
-				/* ignore */
-				break;
-			case Command::TYPE_PAUSE:
-				SetState(STATE_BREAK);
-				break;
-			case Command::TYPE_RESTART:
-				SetState(STATE_NORMAL);
-				break;
-			case Command::TYPE_TOGGLE:
-				//breaking = !breaking;
-				break;
-			case Command::TYPE_STEPOVER:
-				SetState(STATE_STEPOVER);
-				break;
-			case Command::TYPE_STEPINTO:
-				SetState(STATE_STEPINTO);
-				break;
-			case Command::TYPE_STEPRETURN:
-				SetState(STATE_STEPRETURN);
-				break;
-			case Command::TYPE_QUIT:
-				SetState(STATE_QUIT);
-				luaL_error(L, "quited");
-				return;
-			}
+		if (HandleCommand() != 0) {
+			luaL_error(L, "quited");
+			return;
 		}
 
 		if (prevState != STATE_BREAK && m_state == STATE_BREAK) {
@@ -939,7 +1000,7 @@ struct LuaGetFieldsCallback : public IIterateCallback {
 
 private:
 	struct CallbackInner : public IIterateCallback {
-		virtual int OnCallback(lua_State *L, const std::string &name, int valueIdx) {
+		virtual int OnCallback(lua_State *, const std::string &, int) {
 			return 0xFFFF;
 		}
 	};

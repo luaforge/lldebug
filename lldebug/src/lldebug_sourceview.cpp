@@ -501,7 +501,7 @@ size_t SourceView::FindPageFromKey(const std::string &key) {
 		}
 	}
 
-	return wxNOT_FOUND;
+	return (size_t)wxNOT_FOUND;
 }
 
 SourceViewPage *SourceView::GetPage(size_t i) {
