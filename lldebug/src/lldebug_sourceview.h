@@ -39,24 +39,25 @@ class SourceViewPage;
  */
 class SourceView : public wxAuiNotebook {
 public:
-	explicit SourceView(Context *ctx, wxWindow *parent);
+	explicit SourceView(wxWindow *parent);
 	virtual ~SourceView();
-	void ToggleBreakPoint();
+	void ToggleBreakpoint();
 
 private:
 	void CreateGUIControls();
-	void OnChangedState(wxChangedStateEvent &event);
-	void OnUpdateSource(wxSourceLineEvent &event);
-
 	size_t FindPageFromKey(const std::string &key);
 	SourceViewPage *GetPage(size_t i);
 	SourceViewPage *GetSelected();
+
+private:
+	void OnChangedState(wxChangedStateEvent &event);
+	void OnUpdateSource(wxSourceLineEvent &event);
+	void OnAddSource(wxSourceLineEvent &event);
 
 	DECLARE_EVENT_TABLE();
 
 private:
 	mutex m_mutex;
-	Context *m_ctx;
 };
 
 }

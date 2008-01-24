@@ -26,26 +26,18 @@
 
 #include "lldebug_prec.h"
 #include "lldebug_application.h"
-#include "lldebug_bootstrap.h"
 #include "lldebug_mainframe.h"
 
-IMPLEMENT_APP_NO_MAIN(lldebug::Application)
+IMPLEMENT_APP(lldebug::Application)
+
+int main(int argc, char *argv[]) {
+	wxEntry(argc, argv);
+	return 0;
+}
 
 namespace lldebug {
 
-BEGIN_EVENT_TABLE(ManagerFrame, wxFrame)
-	EVT_CUSTOM(wxEVT_CREATE_FRAME, ID_MANAGER_FRAME, ManagerFrame::OnCreateFrame)
-	EVT_CUSTOM(wxEVT_DESTROY_FRAME, ID_MANAGER_FRAME, ManagerFrame::OnDestroyFrame)
-END_EVENT_TABLE()
-
-ManagerFrame::ManagerFrame()
-	: wxFrame(NULL, ID_MANAGER_FRAME, wxT(""), wxPoint(20000,0), wxSize(1,1))
-	, m_frameCounter(0) {
-}
-
-ManagerFrame::~ManagerFrame() {
-}
-
+#if 0
 void ManagerFrame::OnCreateFrame(wxEvent &event) {
 	wxContextEvent &e = dynamic_cast<wxContextEvent &>(event);
 
@@ -65,66 +57,54 @@ void ManagerFrame::OnDestroyFrame(wxEvent &event) {
 		}
 	}
 }
+#endif
 
 
-/* --------------------------------------------------------------- */
 Application::Application()
 	: m_frame(NULL) {
-	SetAppName(wxT("LLDebug"));
+	SetAppName(wxT("lldebug debugger"));
 }
 
 Application::~Application() {
 }
 
-bool Application::OnInit() {
-	class InitResult {
-	public:
-		explicit InitResult()
-			: m_successed(false) {
-		}
-		~InitResult() {
-			Bootstrap::Get()->Success(m_successed);
-		}
-		void Success() {
-			m_successed = true;
-		}
-	private:
-		bool m_successed;
-	}
-	resultObj;
+/*
+static int wxToInt(const wxString &str) {
+	int value = 0;
 
-    ManagerFrame* frame = new ManagerFrame();
+	for (size_t i = 0; i < str.Length(); ++i) {
+		wxChar c = str[i];
+
+		if (c < '0' || '9' < c) {
+			return -1;
+		}
+
+		value = value * 10 + (c - '0');
+	}
+
+	return value;
+}*/
+
+bool Application::OnInit() {
+	std::string hostName = wxConvToUTF8(this->argv[1]);
+	std::string portName = wxConvToUTF8(this->argv[2]);
+
+	if (m_mediator.Initialize(hostName, portName) != 0) {
+		return false;
+	}
+
+	MainFrame* frame = new MainFrame();
 	SetTopWindow(frame);
-	//frame->Show();
-	m_frame = frame;
+	frame->Show();
 
 	wxLogWindow *log = new wxLogWindow(frame, wxT("Logger"), true);
 	wxLog::SetActiveTarget(log);
-
-	resultObj.Success();
+	m_frame = frame;
     return true;
 }
 
 int Application::OnExit() {
 	return 0;
-}
-
-void SendCreateFrameEvent(Context *ctx) {
-	assert(wxApp::GetInstance() != NULL);
-	assert(wxGetApp().GetFrame() != NULL);
-	ManagerFrame *frame = wxGetApp().GetFrame();
-
-	wxContextEvent event(wxEVT_CREATE_FRAME, frame->GetId(), ctx);
-	frame->AddPendingEvent(event);
-}
-
-void SendDestroyedFrameEvent(Context *ctx) {
-	assert(wxApp::GetInstance() != NULL);
-	assert(wxGetApp().GetFrame() != NULL);
-	ManagerFrame *frame = wxGetApp().GetFrame();
-
-	wxContextEvent event(wxEVT_DESTROY_FRAME, frame->GetId(), ctx);
-	frame->AddPendingEvent(event);
 }
 
 }

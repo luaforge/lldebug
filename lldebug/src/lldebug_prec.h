@@ -53,12 +53,38 @@
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 
-#define LUA_CORE
-extern "C" {
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
+
+#define LLDEBUG_MEMBER_NVP(name) \
+	boost::serialization::make_nvp( \
+		BOOST_STRINGIZE(name), BOOST_PP_CAT(m_, name))
+
+namespace lldebug {
+	using boost::shared_ptr;
+	using boost::shared_static_cast;
+	using boost::shared_dynamic_cast;
+	using boost::shared_polymorphic_cast;
+	using boost::shared_polymorphic_downcast;
+	using boost::static_pointer_cast;
+	using boost::weak_ptr;
+
+	using boost::thread;
+	using boost::condition;
+	typedef boost::recursive_mutex mutex;
+	typedef boost::recursive_mutex::scoped_lock scoped_lock;
+
+	typedef std::vector<std::string> string_array;
+
+	template<class Ty>
+	const Ty &median(const Ty &x, const Ty &min_value, const Ty &max_value) {
+		return std::max(min_value, std::min(x, max_value));
+	}
 }
+
+
+#ifdef LLDEBUG_FRAME
 
 #ifndef WX_PRECOMP
 	#include <wx/wx.h>
@@ -85,36 +111,18 @@ extern "C" {
     #define WXDLLIMPEXP_LLDEBUG
 #endif
 
-#if defined(_MSC_VER)
-#define snprintf _snprintf
-#endif
-
 namespace lldebug {
-	using boost::shared_ptr;
-	using boost::shared_static_cast;
-	using boost::shared_dynamic_cast;
-	using boost::shared_polymorphic_cast;
-	using boost::shared_polymorphic_downcast;
-	using boost::static_pointer_cast;
-	using boost::weak_ptr;
-
-	using boost::thread;
-	using boost::condition;
-	typedef boost::recursive_mutex mutex;
-	typedef boost::recursive_mutex::scoped_lock scoped_lock;
-
-	typedef std::vector<std::string> string_array;
 	typedef std::vector<wxString> StringArray;
-
-	template<class Ty>
-	const Ty &median(const Ty &x, const Ty &min_value, const Ty &max_value) {
-		return std::max(min_value, std::min(x, max_value));
-	}
 }
 
-#define LLDEBUG_MEMBER_NVP(name) \
-	boost::serialization::make_nvp( \
-		BOOST_STRINGIZE(name), BOOST_PP_CAT(m_, name))
+#else // LLDEBUG_FRAME
+
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
+
+#endif // LLDEBUG_FRAME
 
 #endif
-

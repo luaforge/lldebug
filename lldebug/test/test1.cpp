@@ -38,7 +38,7 @@ int init_state(lua_State *L) {
 
 int main(int argc, char **argv) {
 	lldebug_setinitstate(init_state);
-	lua_State *L = lua_open();
+	lua_State *L = lldebug_open();
 	if (L == NULL) {
 		return -1;
 	}
@@ -51,6 +51,6 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	lua_close(L);
+	lldebug_close(L);
 	return 0;
 }

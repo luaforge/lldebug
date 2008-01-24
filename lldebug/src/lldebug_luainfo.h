@@ -29,8 +29,13 @@
 
 namespace lldebug {
 
+#ifndef LLDEBUG_FRAME
 std::string LuaToString(lua_State *L, int idx);
+#endif
 
+/**
+ * @brief
+ */
 enum VarRootType {
 	VARROOT_GLOBAL,
 	VARROOT_LOCAL,
@@ -40,24 +45,101 @@ enum VarRootType {
 };
 
 /**
+ * @brief 異なるアプリケーション間でlua_Stateの値を共有するために必要なクラスです。
+ */
+class LuaHandle {
+public:
+	explicit LuaHandle()
+		: m_luaState(0) {
+	}
+
+	LuaHandle(const LuaHandle &x)
+		: m_luaState(x.m_luaState) {
+	}
+
+	~LuaHandle() {
+	}
+
+	LuaHandle &operator =(const LuaHandle &x) {
+		m_luaState = x.m_luaState;
+		return *this;
+	}
+
+#ifndef LLDEBUG_FRAME
+	LuaHandle(lua_State *L) {
+		SetState(L);
+	}
+
+	LuaHandle &operator =(lua_State *x) {
+		SetState(x);
+		return *this;
+	}
+
+	lua_State *oprator() const {
+		return GetState();
+	}
+
+	lua_State *GetState() const {
+		return reinterpret_cast<lua_State *>(m_luaState);
+	}
+
+	void SetState(lua_State *L) {
+		m_luaState = reinterpret_cast<boost::uint64_t>(L);
+	}
+#endif
+
+	friend bool operator==(const LuaHandle &x, const LuaHandle &y) {
+		return (x.m_luaState == y.m_luaState);
+	}
+	friend bool operator!=(const LuaHandle &x, const LuaHandle &y) {
+		return !(x == y);
+	}
+	friend bool operator <(const LuaHandle &x, const LuaHandle &y) {
+		return (x.m_luaState < y.m_luaState);
+	}
+	friend bool operator >(const LuaHandle &x, const LuaHandle &y) {
+		return (y < x);
+	}
+	friend bool operator<=(const LuaHandle &x, const LuaHandle &y) {
+		return !(x > y);
+	}
+	friend bool operator>=(const LuaHandle &x, const LuaHandle &y) {
+		return !(x < y);
+	}
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int) {
+		ar & LLDEBUG_MEMBER_NVP(luaState);
+	}
+
+private:
+	boost::uint64_t m_luaState;
+};
+
+/**
  * @brief luaの変数情報を保持します。
  */
 class LuaVar {
 public:
 	explicit LuaVar();
-	LuaVar(lua_State *L, VarRootType type, int level = -1);
-	LuaVar(shared_ptr<LuaVar> parent, const std::string &name, int valueIdx);
-	LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx);
 	virtual ~LuaVar();
 
+#ifndef LLDEBUG_FRAME
+	LuaVar(const LuaHandle &lua, VarRootType type, int level = -1);
+	LuaVar(shared_ptr<LuaVar> parent, const std::string &name, int valueIdx);
+	LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx);
+#endif
+	
 	/// このオブジェクトが有効かどうか取得します。
 	bool IsOk() const {
 		return (m_parent != NULL);
 	}
 
 	/// この変数があるlua_State *を取得します。
-	lua_State *GetLua() const {
-		return m_L;
+	const LuaHandle &GetLua() const {
+		return m_lua;
 	}
 
 	/// 基底のテーブルタイプを取得します。
@@ -87,7 +169,7 @@ public:
 
 	/// 変数の値型を文字列で取得します。
 	std::string GetValueTypeName() const {
-		return lua_typename(NULL, m_valueType);
+		return "";//lua_typename(NULL, m_valueType);
 	}
 
 	/// 変数がフィールドを持つかどうかを取得します。
@@ -112,7 +194,7 @@ public:
 			return false;
 		}
 
-		if (x.m_L != y.m_L || x.m_name != y.m_name) {
+		if (x.m_lua != y.m_lua || x.m_name != y.m_name) {
 			return false;
 		}
 
@@ -134,10 +216,7 @@ private:
 	friend class boost::serialization::access;
 	template<class Archive>
 	void serialize(Archive& ar, const unsigned int) {
-		boost::uint64_t pointer = reinterpret_cast<boost::uint64_t>(m_L);
-		ar & BOOST_SERIALIZATION_NVP(pointer);
-		m_L = reinterpret_cast<lua_State *>(pointer);
-
+		ar & LLDEBUG_MEMBER_NVP(lua);
 		ar & LLDEBUG_MEMBER_NVP(rootType);
 		ar & LLDEBUG_MEMBER_NVP(level);
 		ar & LLDEBUG_MEMBER_NVP(parent);
@@ -148,7 +227,7 @@ private:
 	}
 
 private:
-	lua_State *m_L;
+	LuaHandle m_lua;
 	VarRootType m_rootType;
 	int m_level;  ///< 基底がローカルだった場合のスタックフレームレベルです。
 	shared_ptr<LuaVar> m_parent;
@@ -165,19 +244,25 @@ private:
  */
 class LuaBackTraceInfo {
 public:
-	explicit LuaBackTraceInfo(lua_State *L = NULL, int level = 0,
-							  lua_Debug *ar = NULL,
-							  const std::string &sourceTitle = std::string(""));
+	explicit LuaBackTraceInfo();
 	~LuaBackTraceInfo();
 
+#ifndef LLDEBUG_FRAME
+	explicit LuaBackTraceInfo(const LuaHandle &lua,
+							  const std::string &name,
+							  const std::string &sourceKey,
+							  const std::string &sourceTitle,
+							  int line, int level);
+#endif
+
 	/// このコールがなされたlua_Stateです。
-	lua_State *GetLua() const {
+	const LuaHandle &GetLua() const {
 		return m_lua;
 	}
 
-	/// 関数のスタックレベルです。
-	int GetLevel() const {
-		return m_level;
+	/// 呼び出し元の関数の名前です。
+	const std::string &GetFuncName() const {
+		return m_funcName;
 	}
 
 	/// このコールがなされたソースの識別子です。
@@ -195,9 +280,9 @@ public:
 		return m_line;
 	}
 
-	/// 呼び出し元の関数の名前です。
-	const std::string &GetFuncName() const {
-		return m_funcName;
+	/// 関数のスタックレベルです。
+	int GetLevel() const {
+		return m_level;
 	}
 
 private:
@@ -205,27 +290,85 @@ private:
 	template<class Archive>
 	void serialize(Archive& ar, const unsigned int) {
 		ar & LLDEBUG_MEMBER_NVP(lua);
-		ar & LLDEBUG_MEMBER_NVP(level);
-
+		ar & LLDEBUG_MEMBER_NVP(funcName);
 		ar & LLDEBUG_MEMBER_NVP(key);
 		ar & LLDEBUG_MEMBER_NVP(sourceTitle);
 		ar & LLDEBUG_MEMBER_NVP(line);
-		ar & LLDEBUG_MEMBER_NVP(funcName);
+		ar & LLDEBUG_MEMBER_NVP(level);
 	}
 
 public:
-	lua_State *m_lua;
-	int m_level;
-
+	LuaHandle m_lua;
+	std::string m_funcName;
 	std::string m_key;
 	std::string m_sourceTitle;
 	int m_line;
-	std::string m_funcName;
+	int m_level;
 };
 
 typedef std::vector<LuaVar> LuaVarList;
 typedef std::vector<LuaVar> LuaStackList;
 typedef std::vector<LuaBackTraceInfo> LuaBackTrace;
+
+#if 0
+class SourceLineInfo {
+public:
+	explicit SourceLineInfo(const LuaHandle &lua,
+							const std::string &key, int line);
+	virtual ~SourceLineInfo();
+
+	/// Get the lua object.
+	const LuaHandle &GetLua() const {
+		return m_lua;
+	}
+
+	/// Get identifier key of the source file.
+	const std::string &GetKey() const {
+		return m_key;
+	}
+
+	/// Get title of the source file.
+	const std::string &GetTitle() const {
+		return m_title;
+	}
+
+	/// Get the number of line.
+	int GetLine() const {
+		return m_line;
+	}
+
+	/// Get the level of the stack frame of the function.
+	int GetLevel() const {
+		return m_level;
+	}
+
+	/// Is this source with this line current running ?
+	/// (considering backtrace)
+	bool IsCurrentRunning() const {
+		return m_isCurrentRunning;
+	}
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int) {
+		ar & LLDEBUG_MEMBER_NVP(lua);
+		ar & LLDEBUG_MEMBER_NVP(key);
+		ar & LLDEBUG_MEMBER_NVP(sourceTitle);
+		ar & LLDEBUG_MEMBER_NVP(line);
+		ar & LLDEBUG_MEMBER_NVP(level);
+		ar & LLDEBUG_MEMBER_NVP(isCurrentRunning);
+	}
+
+private:
+	LuaHandle m_lua;
+	std::string m_key;
+	std::string m_title;
+	int m_line;
+	int m_level;
+	bool m_isCurrentRunning;
+};
+#endif
 
 }
 

@@ -26,13 +26,16 @@
 
 #include "lldebug_prec.h"
 #include "lldebug_codeconv.h"
-#include "lldebug_mainframe.h"
 #include "lldebug_context.h"
 #include "lldebug.h"
 
+#include <boost/functional.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/archive/xml_iarchive.hpp>
 #include <fstream>
+
+#include <shellapi.h>
+#pragma comment(lib, "shell32")
 
 namespace lldebug {
 
@@ -158,8 +161,10 @@ Context::Context()
 	: m_id(0), m_lua(NULL)
 	, m_state(STATE_INITIAL)
 	, m_currentSourceKey(NULL), m_currentLine(-1)
-	, m_frame(NULL) {
+	, m_breakpoints(&m_engine), m_sourceManager(&m_engine) {
 
+	m_engine.SetReadCommandCallback(
+		boost::bind1st(boost::mem_fn(&Context::CommandCallback), this));
 	m_id = ms_idCounter++;
 }
 
@@ -167,32 +172,23 @@ Context::Context()
 int Context::CreateDebuggerFrame() {
 	scoped_lock lock(m_mutex);
 
-	if (m_engine.StartDebuggee(51123) != 0) {
+	if (m_engine.StartContext(51123, m_id) != 0) {
 		return -1;
 	}
 
-	// このコンテキスト用のフレーム作成指令を出します。
-	SendCreateFrameEvent(this);
+	/*HINSTANCE inst = ::ShellExecuteA(
+		NULL, NULL,
+		"..\\debug\\lldebug_frame.exe",
+		"localhost 51123",
+		"",
+		SW_SHOWNORMAL);
+	if ((unsigned int)inst <= 32) {
+		return -1;
+	}*/
 
-	// Wait for creation of the frame.
-	while (m_frame == NULL) {
-		boost::xtime xt;
-		boost::xtime_get(&xt, boost::TIME_UTC);
-		xt.sec += 30;
-		// Give up if 30 seconds pass.
-		if (!m_condFrame.timed_wait(lock, xt)) {
-			return -1;
-		}
-	}
-
-	/*
-	for (;;) {
-		if (!m_engine.HasReadCommand()) {
-			Command_ command = m_engine.GetReadCommand();
-			m_engine.PopReadCommand();
-
-			if (command.header.type == REMOTECOMMANDTYPE_START_CONNECTION) {
-			}
+	/*for (;;) {
+		if (m_engine.GetCtxId() >= 0) {
+			break;
 		}
 
 		boost::thread::yield();
@@ -233,21 +229,7 @@ Context::~Context() {
 
 	SaveConfig();
 	
-	while (m_frame != NULL) {
-		// イベントでウィンドウのクローズを通知します。
-		wxCloseEvent event(wxEVT_CLOSE_WINDOW, m_frame->GetId());
-		event.SetCanVeto(false);
-		event.SetEventObject(m_frame);
-		m_frame->AddPendingEvent(event);
-
-		boost::xtime xt;
-		boost::xtime_get(&xt, boost::TIME_UTC);
-		xt.sec += 30;
-		// Give up if 30 seconds pass.
-		if (!m_condFrame.timed_wait(lock, xt)) {
-			break;
-		}
-	}
+	m_engine.EndConnection();
 
 	if (m_lua != NULL) {
 		lua_close(m_lua);
@@ -324,7 +306,7 @@ int Context::LoadConfig() {
 	}
 
 	boost::archive::xml_iarchive ar(ifs);
-	ar & LLDEBUG_MEMBER_NVP(breakPoints);
+	ar & LLDEBUG_MEMBER_NVP(breakpoints);
 	return 0;
 }
 
@@ -340,7 +322,7 @@ int Context::SaveConfig() {
 	}
 
 	boost::archive::xml_oarchive ar(ofs);
-	ar & LLDEBUG_MEMBER_NVP(breakPoints);
+	ar & LLDEBUG_MEMBER_NVP(breakpoints);
 	return 0;
 }
 
@@ -352,31 +334,15 @@ Context *Context::Find(lua_State *L) {
 	return ms_manager->Find(L);
 }
 
-void Context::SetFrame(MainFrame *frame) {
-	scoped_lock lock(m_mutex);
-
-	if (m_frame == frame) {
-		return;
-	}
-
-	m_frame = frame;
-	if (m_frame == NULL) Quit();
-	m_condFrame.notify_all();
-}
-
 void Context::Quit() {
 	scoped_lock lock(m_mutex);
 
-	m_cmdQueue.PushCommand(Command::TYPE_QUIT);
-	m_engine.EndConnection(m_id);
+	m_engine.EndConnection();
+	SetState(STATE_QUIT);
 }
 
 void Context::Output(const std::string &str) {
 	scoped_lock lock(m_mutex);
-
-	if (m_frame == NULL) {
-		return;
-	}
 
 	(void)str;
 	//m_frame->Output(str);
@@ -401,6 +367,8 @@ void Context::BeginCoroutine(lua_State *L) {
 }
 
 void Context::EndCoroutine(lua_State *L) {
+	scoped_lock lock(m_mutex);
+
 	if (m_coroutines.empty() || m_coroutines.back().L != L) {
 		assert(0 && "Couldn't end coroutine.");
 		return;
@@ -445,7 +413,6 @@ void Context::SetState(State state) {
 
 	if (state == STATE_QUIT) {
 		m_state = state;
-		SetFrame(NULL);
 		return;
 	}
 
@@ -458,7 +425,7 @@ void Context::SetState(State state) {
 		switch (state) {
 		case STATE_BREAK:
 			m_state = state;
-			m_frame->ChangedState(true);
+			m_engine.ChangedState(true);
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
@@ -475,14 +442,14 @@ void Context::SetState(State state) {
 		switch (state) {
 		case STATE_NORMAL:
 			m_state = state;
-			m_frame->ChangedState(false);
+			m_engine.ChangedState(false);
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
 		case STATE_STEPRETURN:
 			m_state = state;
 			if (state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-				m_frame->ChangedState(false);
+				m_engine.ChangedState(false);
 			}
 			break;
 		default:
@@ -503,7 +470,7 @@ void Context::SetState(State state) {
 			break;
 		case STATE_BREAK:
 			if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-				m_frame->ChangedState(true);
+				m_engine.ChangedState(true);
 			}
 			m_state = state;
 			break;
@@ -528,55 +495,8 @@ void Context::SetState(State state) {
 	}
 }
 
-int Context::HandleCommand() {
-	// 送られたコマンドがあるならそれを処理します。
-	while (m_engine.HasReadCommand()) {
-		Command_ command = m_engine.GetReadCommand();
-		m_engine.PopReadCommand();
-
-		switch (command.header.type) {
-		case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
-			break;
-
-		default:
-			assert(false && "Uncatchable command.");
-			break;
-		}
-	}
-
-	while (!m_cmdQueue.IsEmpty()) {
-		Command cmd = m_cmdQueue.Get();
-		m_cmdQueue.Pop();
-
-		switch (cmd.GetType()) {
-		case Command::TYPE_NONE:
-			/* ignore */
-			break;
-		case Command::TYPE_PAUSE:
-			SetState(STATE_BREAK);
-			break;
-		case Command::TYPE_RESTART:
-			SetState(STATE_NORMAL);
-			break;
-		case Command::TYPE_TOGGLE:
-			//breaking = !breaking;
-			break;
-		case Command::TYPE_STEPOVER:
-			SetState(STATE_STEPOVER);
-			break;
-		case Command::TYPE_STEPINTO:
-			SetState(STATE_STEPINTO);
-			break;
-		case Command::TYPE_STEPRETURN:
-			SetState(STATE_STEPRETURN);
-			break;
-		case Command::TYPE_QUIT:
-			SetState(STATE_QUIT);
-			return -1;
-		}
-	}
-
-	return 0;
+void Context::CommandCallback(const Command_ &command) {
+	scoped_lock lock(m_mutex);
 }
 
 class Context::scoped_current_source {
@@ -651,7 +571,8 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		LoadConfig();
 	}
 
-	if (FindBreakPoint(ar->source, ar->currentline - 1) != NULL) {
+	Breakpoint bp = FindBreakpoint(ar->source, ar->currentline - 1);
+	if (bp.IsOk()) {
 		SetState(STATE_BREAK);
 	}
 
@@ -659,23 +580,21 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	State prevState = STATE_NORMAL;
 	do {
 		// handle event and message queue
-		if (HandleCommand() != 0) {
+		/*if (HandleCommand() != 0) {
 			luaL_error(L, "quited");
 			return;
-		}
+		}*/
 
 		if (prevState != STATE_BREAK && m_state == STATE_BREAK) {
-			if (m_frame != NULL) {
-				m_sourceManager.Add(ar->source);
-				m_frame->UpdateSource(ar->source, ar->currentline);
-			}
+			m_sourceManager.Add(ar->source, "");
+			m_engine.UpdateSource(ar->source, ar->currentline);
 		}
 		prevState = m_state;
 
 		// デバッグコマンドを最大３０秒間待ちます。
 		if (m_state == STATE_BREAK) {
 			lock.unlock();
-			m_cmdQueue.Wait(30);
+			boost::thread::yield();
 			lock.lock();
 		}
 	} while (m_state == STATE_BREAK);
@@ -832,7 +751,7 @@ public:
 	}
 
 	virtual int Iterate() {
-		lua_State *L = m_var->GetLua();
+		lua_State *L = m_var->GetLua().GetState();
 		Context::scoped_lua scoped(L, 0);
 
 		m_curpos = m_parentList.begin();
@@ -1144,7 +1063,27 @@ LuaBackTrace Context::LuaGetBackTrace() {
 				sourceTitle = source->GetTitle();
 			}
 
-			array.push_back(LuaBackTraceInfo(L1, level, &ar, sourceTitle));
+			std::string name;
+
+	if (*ar.namewhat != '\0') { /* is there a name? */
+		name = ConvToUTF8(ar.name);
+	}
+	else {
+		if (*ar.what == 'm') { /* main? */
+			name = "main chunk";
+		}
+		else if (*ar.what == 'C' || *ar.what == 't') {
+			name = std::string("?");  /* C function or tail call */
+		}
+		else {
+			std::stringstream stream;
+			stream << "no name [defined <" << ar.short_src << ":" << ar.linedefined << ">]";
+			stream.flush();
+			name = stream.str();
+		}
+	}
+
+			array.push_back(LuaBackTraceInfo(L1, name, ar.source, sourceTitle, ar.currentline, level));
 		}
 	}
 

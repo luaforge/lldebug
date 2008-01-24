@@ -24,10 +24,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __LLDEBUG_DEBUGFRAME_H__
-#define __LLDEBUG_DEBUGFRAME_H__
+#ifndef __LLDEBUG_MAINFRAME_H__
+#define __LLDEBUG_MAINFRAME_H__
 
 #include "lldebug_controls.h"
+#include "lldebug_remoteengine.h"
 #include <wx/aui/aui.h>
 #include <wx/aui/auibook.h>
 
@@ -38,25 +39,25 @@ namespace lldebug {
  */
 class MainFrame : public wxFrame {
 public:
-	explicit MainFrame(Context *ctx);
+	explicit MainFrame();
 	virtual ~MainFrame();
 
-	void ChangedState(bool isBreak);
-	void UpdateSource(const std::string &key, int line);
-	void SetViewSource(const std::string &key, int line, lua_State *L, int level);
+	shared_ptr<ICommandHandler> CreateRemoteEngineCallback();
 
 private:
 	void CreateGUIControls();
 	void AddPendingLLDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways);
 	bool IsExistWindow(int wintypeid);
 	void ShowView(int wintypeid);
-	void OnClose(wxCloseEvent &event);
 	void OnMenu(wxCommandEvent &event);
 
+	class RemoteEngineCallback;
+	friend class RemoteEngineCallback;
+
 	DECLARE_EVENT_TABLE();
+	//DECLARE_DYNAMIC_CLASS(wxFrame);
 		
 private:
-	Context *m_ctx;
 	mutex m_mutex;
 
 	wxAuiManager *m_auiManager;

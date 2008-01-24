@@ -28,25 +28,9 @@
 #define __LLDEBUG_APPLICATION_H__
 
 #include "lldebug_controls.h"
+#include "lldebug_mediator.h"
 
 namespace lldebug {
-
-class ManagerFrame : public wxFrame {
-public:
-	explicit ManagerFrame();
-	virtual ~ManagerFrame();
-
-	void DestroyedFrame(Context *ctx);
-
-private:
-	void OnCreateFrame(wxEvent &event);
-	void OnDestroyFrame(wxEvent &event);
-
-	DECLARE_EVENT_TABLE();
-
-private:
-	int m_frameCounter;
-};
 
 /**
  * @brief アプリケーションクラスです。
@@ -56,7 +40,7 @@ public:
 	explicit Application();
 	virtual ~Application();
 
-	ManagerFrame *GetFrame() {
+	MainFrame *GetFrame() {
 		return m_frame;
 	}
 
@@ -65,7 +49,8 @@ public:
 	virtual int OnExit();
 
 private:
-	ManagerFrame *m_frame;
+	Mediator m_mediator;
+	MainFrame *m_frame;
 };
 
 }

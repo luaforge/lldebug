@@ -25,12 +25,54 @@
  */
 
 #include "lldebug_prec.h"
-#include "lldebug_event.h"
-#include "lldebug_controls.h"
+#include "lldebug_mediator.h"
+#include "lldebug_remoteengine.h"
+#include "lldebug_mainframe.h"
+
+#include <boost/functional.hpp>
 
 namespace lldebug {
 
-DEFINE_EVENT_TYPE(wxEVT_CHANGED_STATE)
-DEFINE_EVENT_TYPE(wxEVT_UPDATE_SOURCE)
+Mediator *Mediator::ms_instance = NULL;
+
+Mediator::Mediator()
+	: m_engine(new RemoteEngine), m_mainFrame(NULL)
+	, m_breakpoints(m_engine.get()), m_sourceManager(m_engine.get()) {
+}
+
+Mediator::~Mediator() {
+	ms_instance = NULL;
+}
+
+int Mediator::GetId() {
+	scoped_lock lock(m_mutex);
+	return m_engine->GetCtxId();
+}
+
+int Mediator::Initialize(const std::string &hostName, const std::string &portName) {
+	scoped_lock lock(m_mutex);
+
+	if (m_engine->StartDebugger(hostName, portName, 30) != 0) {
+		return -1;
+	}
+
+	ms_instance = this;
+	return 0;
+}
+
+void Mediator::SetMainFrame(MainFrame *frame) {
+	scoped_lock lock(m_mutex);
+	shared_ptr<ICommandHandler> handler;
+
+	if (frame == NULL) {
+		m_engine->SetReadCommandHandler(handler);
+	}
+	else {
+		handler = frame->CreateRemoteEngineCallback();
+		m_engine->SetReadCommandHandler(handler);
+	}
+
+	m_mainFrame = frame;
+}
 
 }

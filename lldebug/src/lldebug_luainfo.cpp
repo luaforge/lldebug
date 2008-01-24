@@ -28,10 +28,9 @@
 #include "lldebug_codeconv.h"
 #include "lldebug_luainfo.h"
 
-#include <sstream>
-
 namespace lldebug {
 
+#ifndef LLDEBUG_FRAME
 std::string LuaToString(lua_State *L, int idx) {
 	int type = lua_type(L, idx);
 	bool ascii = true;
@@ -90,69 +89,72 @@ std::string LuaToString(lua_State *L, int idx) {
 
 	return (ascii ? str : ConvToUTF8(str));
 }
-
+#endif
 
 LuaVar::LuaVar()
-	: m_L(NULL), m_valueType(LUA_TNONE) {
-}
-
-LuaVar::LuaVar(lua_State *L, VarRootType type, int level)
-	: m_L(L), m_rootType(type), m_level(level), m_hasFields(false) {
-	m_valueType = LUA_TTABLE;
-	m_value = "root table";
-}
-
-LuaVar::LuaVar( shared_ptr<LuaVar> parent, const std::string &name, int valueIdx)
-	: m_L(parent->m_L), m_rootType(parent->m_rootType), m_level(parent->m_level)
-	, m_parent(parent), m_name(name), m_hasFields(false) {
-	m_valueType = lua_type(m_L, valueIdx);
-	m_value = LuaToString(m_L, valueIdx);
-}
-
-LuaVar::LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx)
-	: m_L(parent->m_L), m_rootType(parent->m_rootType), m_level(parent->m_level)
-	, m_parent(parent), m_hasFields(false) {
-	m_name = LuaToString(m_L, keyIdx);
-	m_valueType = lua_type(m_L, valueIdx);
-	m_value = LuaToString(m_L, valueIdx);
+: m_valueType(-1) { //LUA_TNONE) {
 }
 
 LuaVar::~LuaVar() {
 }
 
+#ifndef LLDEBUG_FRAME
+LuaVar::LuaVar(const LuaHandle &lua, VarRootType type, int level)
+	: m_lua(lua), m_rootType(type), m_level(level), m_hasFields(false) {
+	m_valueType = LUA_TTABLE;
+	m_value = "root table";
+}
 
-LuaBackTraceInfo::LuaBackTraceInfo(lua_State *L, int level,
-								   lua_Debug *ar,
-								   const std::string &sourceTitle) {
-	std::string name;
+LuaVar::LuaVar(shared_ptr<LuaVar> parent, const std::string &name, int valueIdx)
+	: m_lua(parent->m_lua), m_rootType(parent->m_rootType), m_level(parent->m_level)
+	, m_parent(parent), m_name(name), m_hasFields(false) {
+	m_valueType = lua_type(m_lua.GetState(), valueIdx);
+	m_value = LuaToString(m_lua.GetState(), valueIdx);
+}
 
-	if (*ar->namewhat != '\0') { /* is there a name? */
-		name = ConvToUTF8(ar->name);
-	}
-	else {
-		if (*ar->what == 'm') { /* main? */
-			name = "main chunk";
-		}
-		else if (*ar->what == 'C' || *ar->what == 't') {
-			name = std::string("?");  /* C function or tail call */
-		}
-		else {
-			std::stringstream stream;
-			stream << "no name [defined <" << ar->short_src << ":" << ar->linedefined << ">]";
-			stream.flush();
-			name = stream.str();
-		}
-	}
+LuaVar::LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx)
+	: m_lua(parent->m_lua), m_rootType(parent->m_rootType), m_level(parent->m_level)
+	, m_parent(parent), m_hasFields(false) {
+	m_name = LuaToString(m_lua.GetState(), keyIdx);
+	m_valueType = lua_type(m_lua.GetState(), valueIdx);
+	m_value = LuaToString(m_lua.GetState(), valueIdx);
+}
+#endif
 
-	m_lua = L;
-	m_key = ar->source;
-	m_sourceTitle = sourceTitle;
-	m_line = ar->currentline;
-	m_funcName = name;
-	m_level = level;
+
+LuaBackTraceInfo::LuaBackTraceInfo() {
 }
 
 LuaBackTraceInfo::~LuaBackTraceInfo() {
 }
+
+#ifndef LLDEBUG_FRAME
+LuaBackTraceInfo::LuaBackTraceInfo(const LuaHandle &lua,
+								   const std::string &name,
+								   const std::string &sourceKey,
+								   const std::string &sourceTitle,
+								   int line, int level)
+	: m_lua(lua), m_funcName(name)
+	, m_key(sourceKey), m_sourceTitle(sourceTitle)
+	, m_line(line), m_level(level) {
+#if 0
+	
+#endif
+}
+#endif
+
+
+#if 0
+SourceLineInfo::SourceLineInfo(const LuaHandle &lua,
+							   const std::string &key,
+							   const std::string &title,
+							   int line, int level, bool isCurrentRunning)
+	: m_lua(lua), m_key(key), m_title(title), m_line(line)
+	, m_level(level), m_isCurrentRunning(isCurrentRunning) {
+}
+
+SourceLineInfo::~SourceLineInfo() {
+}
+#endif
 
 }

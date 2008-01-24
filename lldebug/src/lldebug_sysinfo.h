@@ -101,30 +101,41 @@ private:
 /**
  * @brief デバッガのブレイクポイントオブジェクトです。
  */
-class BreakPoint {
+class Breakpoint {
 public:
-	explicit BreakPoint(const std::string &key = std::string(""), int line = 0,
+	explicit Breakpoint(const std::string &key = std::string(""), int line = 0,
 						bool isInternal = false, bool isTemp = false);
-	~BreakPoint();
+	~Breakpoint();
 
-	/// 設定されているファイルの識別子を取得します。
+	/// Is this valid ?
+	bool IsOk() const {
+		return !m_key.empty();
+	}
+
+	/// Get the key of source file.
 	const std::string &GetKey() const {
 		return m_key;
 	}
 
-	/// 設定されている行数を取得します。
+	/// Get the line number.
 	int GetLine() const {
 		return m_line;
 	}
 
-	/// 内部で使うブレークポイントか？
+	/// Is this a internal breakpoint ? (user can't see it)
 	bool IsInternal() const {
 		return m_isInternal;
 	}
 
-	/// 一時的なブレークポイントか？
+	/// Is this a temporary breakpoint ?
 	bool IsTemp() const {
 		return m_isTemp;
+	}
+
+	friend bool operator <(const Breakpoint &x, const Breakpoint &y) {
+		return (
+			(x.GetKey() < y.GetKey()) ||
+			(x.GetKey() == y.GetKey() && x.GetLine() < y.GetLine()));
 	}
 
 private:
@@ -142,27 +153,29 @@ private:
 	bool m_isTemp;
 };
 
+class RemoteEngine;
+
 /**
  * @brief ブレイクポイントのリストを取得します。
  */
-class BreakPointList {
+class BreakpointList {
 public:
-	explicit BreakPointList();
-	virtual ~BreakPointList();
+	explicit BreakpointList(RemoteEngine *engine);
+	virtual ~BreakpointList();
 
-	/// ブレイクポイントを取得します(iは0origin)。
-	const BreakPoint &Get(size_t i);
+	/// Find the breakpoint from key and line.
+	Breakpoint Find(const std::string &key, int line);
 
-	/// ブレイクポイントの合計サイズを取得します。
-	size_t GetSize();
+	/// Find the next breakpoint (same key and bigger line).
+	Breakpoint Next(const Breakpoint &bp);
 
-	/// 所定の位置にあるブレイクポイントを探し出します。
-	const BreakPoint *Find(const std::string &key, int line);
+	/// Set the new breakpoint.
+	void Set(const Breakpoint &bp);
 
-	/// ブレイクポイントを新規に追加します。
-	void Add(const BreakPoint &bp);
+	/// Remove the breakpoint.
+	void Remove(const Breakpoint &bp);
 
-	/// ブレイクポイントのオン／オフを切り替えます。
+	/// Toggle on/off of the breakpoint.
 	void Toggle(const std::string &key, int line);
 
 private:
@@ -173,91 +186,92 @@ private:
 	}
 
 private:
-	mutex m_mutex;
+	RemoteEngine *m_engine;
 
-	typedef std::vector<BreakPoint> ImplList;
-	ImplList m_breakPoints;
+	typedef std::set<Breakpoint> ImplSet;
+	ImplSet m_breakPoints;
 };
-
 
 /**
  * @brief デバッグ時に表示されるソースファイルなどを管理します。
  */
 class Source {
 public:
-	explicit Source(const std::string &key = std::string(""),
-					const std::string &title = std::string(""),
-					const string_array &sources = string_array(),
+	explicit Source(const std::string &key,
+					const std::string &title,
+					const string_array &sources,
 					const std::string &path = std::string(""));
+	explicit Source();
 	~Source();
 
-	/// ソースの識別子を取得します。
+	/// Get the source identifier.
 	const std::string &GetKey() const {
 		return m_key;
 	}
 
-	/// ソースのタイトルをUTF8形式で取得します。
+	/// Get the source title with utf8.
 	const std::string &GetTitle() const {
 		return m_title;
 	}
 
-	/// ソースのパスがあればそれをネイティブのエンコーディング形式で取得します。
+	/// Get the path of the source with local encoding, if any.
 	const std::string &GetPath() const {
 		return m_path;
 	}
 
-	/// ソースの文字列をUTF8形式で取得します。
+	/// Get the source contents with utf8.
 	const string_array &GetSources() const {
 		return m_sources;
 	}
 
-	/// ソースの行数を取得します。
-	string_array::size_type GetNumberOfLines() const {
+	/// Get the line string of the source with utf8.
+	string_array::size_type GetLineCount() const {
 		return m_sources.size();
 	}
 
-	/// ソースある行の文字列をUTF8形式で取得します。
+	/// Get the number of the source lines.
 	const std::string &GetSourceLine(string_array::size_type l) const {
 		return m_sources[l];
 	}
 
 	/// 読み込み時のソースのエンコーディングを取得します。
-	int GetSourceEncoding() const {
+	/*int GetSourceEncoding() const {
 		return m_sourceEncoding;
-	}
+	}*/
 
 private:
 	std::string m_key;
 	std::string m_title;
 	std::string m_path;
 	string_array m_sources;
-	int m_sourceEncoding;
 };
 
 /**
- * @brief デバッグ時に表示されるソースファイルなどを管理します。
+ * @brief The manager of the source files displayed when debugging.
  */
 class SourceManager {
 public:
-	explicit SourceManager();
+	explicit SourceManager(RemoteEngine *engine);
 	~SourceManager();
 
-	/// ソースファイルをUTF8形式で取得します。
+	/// Get the source infomation from key.
 	const Source *Get(const std::string &key);
 
-	/// ソースをキーから追加します。
-	/// (keyは'@dir/filename.ext'かソースそのままの文字列で渡されます。)
-	int Add(const std::string &key);
+#ifndef LLDEBUG_FRAME
+	/// Add a source.
+	int Add(const std::string &key, const std::string &path);
+#endif
 
-	/// ソースをセーブします。
+	/// Save a source.
 	int Save(const std::string &key, const string_array &source);
 
 private:
+	mutex m_mutex;
+	RemoteEngine *m_engine;
+
 	typedef std::map<std::string, Source> ImplMap;
 	ImplMap m_sourceMap;
 	int m_textCounter;
-
-	mutex m_mutex;
 };
 
 }

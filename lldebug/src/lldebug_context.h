@@ -97,43 +97,46 @@ public:
 		return m_cmdQueue.PushCommand(type);
 	}
 
-	/// ソースファイル情報を保持したオブジェクトを取得します。
+	/// Get the source contents.
 	const Source *GetSource(const std::string &key) {
+		scoped_lock lock(m_mutex);
 		return m_sourceManager.Get(key);
 	}
 
-	/// ソースをセーブします。
+	/// Save the source.
 	int SaveSource(const std::string &key, const string_array &source) {
+		scoped_lock lock(m_mutex);
 		return m_sourceManager.Save(key, source);
 	}
 
-	/// ブレイクポイントを取得します。
-	const BreakPoint &GetBreakPoint(size_t i) {
-		return m_breakPoints.Get(i);
+	/// Find the breakpoint.
+	Breakpoint FindBreakpoint(const std::string &key, int line) {
+		scoped_lock lock(m_mutex);
+		return m_breakpoints.Find(key, line);
 	}
 
-	/// ブレイクポイントの合計数です。
-	size_t GetBreakPointSize() {
-		return m_breakPoints.GetSize();
+	/// Find the next breakpoint.
+	Breakpoint NextBreakpoint(const Breakpoint &bp) {
+		scoped_lock lock(m_mutex);
+		return m_breakpoints.Next(bp);
 	}
 
-	/// ブレイクポイントを発見します。
-	const BreakPoint *FindBreakPoint(const std::string &key, int line) {
-		return m_breakPoints.Find(key, line);
+	/// Set the breakpoint.
+	void SetBreakpoint(const Breakpoint &bp) {
+		scoped_lock lock(m_mutex);
+		m_breakpoints.Set(bp);
 	}
 
-	/// ブレイクポイントを追加します。
-	void AddBreakPoint(const BreakPoint &bp) {
-		m_breakPoints.Add(bp);
+	/// Toggle on/off of the breakpoint.
+	void ToggleBreakpoint(const std::string &key, int line) {
+		scoped_lock lock(m_mutex);
+		m_breakpoints.Toggle(key, line);
 	}
 
-	/// ブレイクポイントのオン／オフを切り替えます。
-	void ToggleBreakPoint(const std::string &key, int line) {
-		m_breakPoints.Toggle(key, line);
-	}
-
-	MainFrame *GetFrame() {
-		return m_frame;
+	/// Toggle on/off of the breakpoint.
+	void ChangedBreakpointList(const BreakpointList &bps) {
+		scoped_lock lock(m_mutex);
+		m_breakpoints = bps;
 	}
 
 private:
@@ -144,7 +147,7 @@ private:
 	virtual int LoadConfig();
 	virtual int SaveConfig();
 	virtual void SetState(State state);
-	virtual int HandleCommand();
+	virtual void CommandCallback(const Command_ &command);
 
 	static void SetHook(lua_State *L, bool enable);
 	virtual void HookCallback(lua_State *L, lua_Debug *ar);
@@ -156,15 +159,16 @@ private:
 	void BeginCoroutine(lua_State *L);
 	void EndCoroutine(lua_State *L);
 
-protected:
-	friend class MainFrame;
-	void SetFrame(MainFrame *frame);
+	class CommandHandler;
+	friend class CommandHandler;
+	shared_ptr<ICommandHandler> CreateCommandHandler();
 
 private:
 	class ContextManager;
 	static shared_ptr<ContextManager> ms_manager;
 	static int ms_idCounter;
 
+	mutex m_mutex;
 	int m_id;
 	lua_State *m_lua;
 	State m_state;
@@ -190,12 +194,8 @@ private:
 	RemoteEngine m_engine;
 	CommandQueue m_cmdQueue;
 	SourceManager m_sourceManager;
-	BreakPointList m_breakPoints;
+	BreakpointList m_breakpoints;
 	std::string m_rootFileKey;
-
-	MainFrame *m_frame;
-	mutex m_mutex;
-	condition m_condFrame;
 };
 
 /**

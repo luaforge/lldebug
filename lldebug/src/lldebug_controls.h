@@ -27,12 +27,11 @@
 #ifndef __LLDEBUG_CONTROLS_H__
 #define __LLDEBUG_CONTROLS_H__
 
+#include "lldebug_mediator.h"
 #include "lldebug_event.h"
 
 namespace lldebug {
 
-class Context;
-class ManagerFrame;
 class MainFrame;
 class SourceView;
 class InteractView;
@@ -42,8 +41,7 @@ class TracebackView;
 enum {
 	LLDEBUG_FRAMESIZE = 128,
 
-	ID_MANAGER_FRAME = wxID_HIGHEST + 2560,
-	ID_MAINFRAME,
+	ID_MAINFRAME = wxID_HIGHEST + 2560,
 	ID_MAINFRAME_END = ID_MAINFRAME + LLDEBUG_FRAMESIZE,
 	ID_WINDOWHOLDER,
 	ID_WINDOWHOLDER_END = ID_WINDOWHOLDER + LLDEBUG_FRAMESIZE,
@@ -75,9 +73,6 @@ inline std::string wxConvToUTF8(const wxString &str) {
 inline wxString wxConvFromUTF8(const std::string &str) {
 	return wxString(wxConvUTF8.cMB2WC(str.c_str()));
 }
-
-void SendCreateFrameEvent(Context *ctx);
-void SendDestroyedFrameEvent(Context *ctx);
 
 }
 

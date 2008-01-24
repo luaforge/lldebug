@@ -48,7 +48,7 @@ LUA_API void lldebug_call(lua_State *L, int narg, int nresult);
 LUA_API int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc);
 LUA_API int lldebug_resume(lua_State *L, int narg);
 
-#ifndef LLDEBUG_BUILD_DLL
+#if 0 //ndef LLDEBUG_CONTEXT
 #undef lua_open
 #define lua_open() lldebug_open()
 #undef lua_close

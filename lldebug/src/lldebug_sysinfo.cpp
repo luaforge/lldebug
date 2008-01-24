@@ -26,7 +26,7 @@
 
 #include "lldebug_prec.h"
 #include "lldebug_sysinfo.h"
-#include "lldebug_codeconv.h"
+#include "lldebug_remoteengine.h"
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -46,6 +46,7 @@ namespace lldebug {
 
 std::string GetConfigFileName(const std::string &filename) {
 	using namespace boost::filesystem;
+#ifdef LLDEBUG_FRAME
 	wxASSERT(!filename.empty());
 	wxString dir = wxStandardPaths().GetUserConfigDir();
 
@@ -64,6 +65,9 @@ std::string GetConfigFileName(const std::string &filename) {
 
 	configPath /= filename;
 	return configPath.native_file_string();
+#else
+	return "";
+#endif
 }
 
 Command::Command(Type type)
@@ -121,111 +125,115 @@ bool CommandQueue::IsEmpty() {
 
 
 /*-----------------------------------------------------------------*/
-BreakPoint::BreakPoint(const std::string &key, int line,
+Breakpoint::Breakpoint(const std::string &key, int line,
 					   bool isInternal, bool isTemp)
 	: m_key(key), m_line(line)
 	, m_isInternal(isInternal), m_isTemp(isTemp) {
 }
 
-BreakPoint::~BreakPoint() {
+Breakpoint::~Breakpoint() {
 }
 
-BreakPointList::BreakPointList() {
+BreakpointList::BreakpointList(RemoteEngine *engine)
+	: m_engine(engine) {
 }
 
-BreakPointList::~BreakPointList() {
+BreakpointList::~BreakpointList() {
 }
 
-const BreakPoint &BreakPointList::Get(size_t i) {
-	scoped_lock lock(m_mutex);
+Breakpoint BreakpointList::Find(const std::string &key, int line) {
+	Breakpoint bp(key, line);
 
-	return m_breakPoints[i];
-}
-
-size_t BreakPointList::GetSize() {
-	scoped_lock lock(m_mutex);
-
-	return m_breakPoints.size();
-}
-
-const BreakPoint *BreakPointList::Find(const std::string &key, int line) {
-	scoped_lock lock(m_mutex);
-
-	for (ImplList::iterator it = m_breakPoints.begin();
-		it != m_breakPoints.end();
-		++it) {
-		if (it->GetKey() == key && it->GetLine() == line) {
-			return &(*it);
-		}
+	ImplSet::const_iterator it = m_breakPoints.find(bp);
+	if (it == m_breakPoints.end()) {
+		return Breakpoint();
 	}
 
-	return NULL;
+	return *it;
 }
 
-void BreakPointList::Add(const BreakPoint &bp) {
-	scoped_lock lock(m_mutex);
-
-	if (Find(bp.GetKey(), bp.GetLine()) == NULL) {
-		m_breakPoints.push_back(bp);
+Breakpoint BreakpointList::Next(const Breakpoint &bp) {
+	// Increment the line number and find the next.
+	Breakpoint tmp(bp.GetKey(), bp.GetLine() + 1);
+	ImplSet::const_iterator it = m_breakPoints.lower_bound(tmp);
+	if (it == m_breakPoints.end()) {
+		return Breakpoint();
 	}
+
+	// Check weather the keys are same.
+	if (it->GetKey() != bp.GetKey()) {
+		return Breakpoint();
+	}
+
+	return *it;
 }
 
-void BreakPointList::Toggle(const std::string &key, int line) {
-	scoped_lock lock(m_mutex);
-
-	for (ImplList::iterator it = m_breakPoints.begin();
-		it != m_breakPoints.end();
-		++it) {
-		if (it->GetKey() == key && it->GetLine() == line) {
-			m_breakPoints.erase(it);
-			return;
-		}
+void BreakpointList::Set(const Breakpoint &bp) {
+	if (!bp.IsOk()) {
+		return;
 	}
 
-	// 見つからなかったらブレークポイントを追加します。
-	m_breakPoints.push_back(BreakPoint(key, line, false, false));
+#ifdef LLDEBUG_FRAME
+	m_engine->SetBreakpoint(bp);
+#else
+	m_breakPoints.insert(bp);
+#endif
+}
+
+void BreakpointList::Remove(const Breakpoint &bp) {
+	ImplSet::iterator it = m_breakPoints.find(bp);
+	if (it == m_breakPoints.end()) {
+		return;
+	}
+
+#ifdef LLDEBUG_FRAME
+	m_engine->RemoveBreakpoint(bp);
+#else
+	m_breakPoints.erase(it);
+#endif
+}
+
+void BreakpointList::Toggle(const std::string &key, int line) {
+	Breakpoint bp(key, line);
+
+	// erase if it exists, add if it isn't
+	ImplSet::iterator it = m_breakPoints.find(bp);
+	if (it == m_breakPoints.end()) {
+		Set(bp);
+	}
+	else {
+		Remove(*it);
+	}
 }
 
 
 /*-----------------------------------------------------------------*/
 Source::Source(const std::string &key, const std::string &title,
 			   const string_array &sources, const std::string &path) {
-	char buffer[1024 * 4];
-
-	// sizeof(buffer)分の文字列を抽出します。
-	string_array::size_type pos = 0;
-	for (string_array::size_type i = 0; i < sources.size() && pos < sizeof(buffer) - 1; ++i) {
-		const std::string &str = sources[i];
-
-		size_t nextpos = std::min(pos + str.length(), sizeof(buffer) - 1);
-		memcpy(&buffer[pos], str.c_str(), nextpos - pos);
-		pos = nextpos;
-	}
-	buffer[pos] = '\0';
-
-	// ソースのエンコーディングを識別します。
-	int enc = GetEncoding(buffer);
-
-	// エンコーディングをUTF8に変換します。
-	string_array array;
+	// Convert sources to utf8.
+	/*string_array array;
 	for (string_array::size_type i = 0; i < sources.size(); ++i) {
-		const std::string &str = sources[i];
-		array.push_back(ConvToUTF8From(str, enc));
-	}
+		wxString str(wxConvLocal.cMB2WX(sources[i].c_str()));
+
+		array.push_back(wxConvToUTF8(str));
+	}*/
 
 	m_key = key;
-	m_title = ConvToUTF8(title);
+	m_title = title;
 	m_path = path;
-	m_sources = array;
-	m_sourceEncoding = enc;
+	m_sources = sources;
+	//m_sourceEncoding = enc;
+}
+
+Source::Source() {
 }
 
 Source::~Source() {
 }
 
 
-SourceManager::SourceManager()
-	: m_textCounter(0) {
+SourceManager::SourceManager(RemoteEngine *engine)
+	: m_engine(engine), m_textCounter(0) {
 }
 
 SourceManager::~SourceManager() {
@@ -242,11 +250,12 @@ const Source *SourceManager::Get(const std::string &key) {
 	return &(it->second);
 }
 
+#ifndef LLDEBUG_FRAME
 static string_array split(std::istream &stream) {
 	string_array array;
 	char buffer[2048];
 
-	// 行ごとに分解します。
+	// Split each line.
 	while (! stream.eof()) {
 		stream.getline(buffer, sizeof(buffer));
 		array.push_back(buffer);
@@ -255,7 +264,7 @@ static string_array split(std::istream &stream) {
 	return array;
 }
 
-int SourceManager::Add(const std::string &key) {
+int SourceManager::Add(const std::string &key, const std::string &path) {
 	scoped_lock lock(m_mutex);
 
 	if (key.empty()) {
@@ -266,20 +275,16 @@ int SourceManager::Add(const std::string &key) {
 		return 0;
 	}
 
-	// 先頭が'@'ならそれはファイル名です。
+	// It's a file if the beginning char is '@'.
 	if (key[0] == '@') {
-		// パスのエンコーディングは変換しません。
-		boost::filesystem::path path(&key[1]);
-		boost::filesystem::complete(path);
-		std::string filepath = path.native_file_string();
-
-		std::ifstream ifs(filepath.c_str());
+		std::ifstream ifs(path.c_str());
 		if (ifs.fail()) {
 			return -1;
 		}
 
-		Source src(key, std::string(key, 1), split(ifs), filepath);
+		Source src(key, std::string(key, 1), split(ifs), path);
 		m_sourceMap.insert(std::make_pair(key, src));
+		m_engine->AddSource(src);
 	}
 	else {
 		// ソースがテキストの場合は長すぎる可能性があるので、タイトルを別に作成します。
@@ -290,10 +295,12 @@ int SourceManager::Add(const std::string &key) {
 		std::stringstream sstream(key);
 		Source src(key, title.str(), split(sstream));
 		m_sourceMap.insert(std::make_pair(key, src));
+		m_engine->AddSource(src);
 	}
-
+	
 	return 0;
 }
+#endif
 
 int SourceManager::Save(const std::string &key, const string_array &source) {
 	scoped_lock lock(m_mutex);
@@ -317,12 +324,11 @@ int SourceManager::Save(const std::string &key, const string_array &source) {
 	for (string_array::size_type i = 0; i < source.size(); ++i) {
 		const std::string &line = source[i];
 
-		// 最後の行に改行を入れないようにします。
 		if (i > 0) {
 			fp << std::endl;
 		}
 
-		fp << ConvFromUTF8(line, src.GetSourceEncoding());
+		fp << line; //ConvFromUTF8(line, src.GetSourceEncoding());
 	}
 
 	return 0;

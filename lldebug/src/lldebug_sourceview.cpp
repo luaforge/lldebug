@@ -25,8 +25,8 @@
  */
 
 #include "lldebug_prec.h"
+#include "lldebug_sysinfo.h"
 #include "lldebug_sourceview.h"
-#include "lldebug_context.h"
 #include "lldebug_langsettings.h"
 #include "wx/wxscintilla.h"
 
@@ -61,14 +61,12 @@ class SourceViewPage : public wxScintilla {
 	};
 
 public:
-	explicit SourceViewPage(SourceView *parent, Context *ctx,
-							const Source *source)
+	explicit SourceViewPage(SourceView *parent)
 		: wxScintilla(parent, wxID_ANY)
-		, m_parent(parent), m_ctx(ctx)
-		, m_initialized(false), m_wasTitleChanged(false)
+		, m_parent(parent), m_initialized(false)
+		, m_wasTitleChanged(false)
 		, m_currentLine(-1), m_markedLine(-1) {
 		CreateGUIControls();
-		Initialize(source);
 	}
 
 	virtual ~SourceViewPage() {
@@ -216,36 +214,6 @@ private:
 		SetLayoutCache(wxSCI_CACHE_PAGE);
 	}
 
-	void Initialize(const Source *source) {
-		scoped_lock lock(m_mutex);
-		wxASSERT(source != NULL);
-
-		std::string str;
-		for (string_array::size_type i = 0; i < source->GetNumberOfLines(); ++i) {
-			// The encoding is UTF8.
-			str += source->GetSourceLine(i);
-
-			// 原則的に、最後の行には改行を入れません。
-			if (i < source->GetNumberOfLines()) {
-				str += "\n";
-			}
-		}
-
-		// AddTextRaw accepts the UTF8 string only.
-		AddTextRaw(str.c_str());
-
-		for (size_t i = 0; i < m_ctx->GetBreakPointSize(); ++i) {
-			const BreakPoint &bp = m_ctx->GetBreakPoint(i);
-			MarkerAdd(bp.GetLine(), MARKNUM_BREAKPOINT);
-		}
-
-		// タイトルはユニコードにエンコーディングを変換します。
-		m_key = source->GetKey();
-		m_title = wxConvFromUTF8(source->GetTitle());
-		m_currentLine = -1;
-		m_initialized = true;
-	}
-
 	void OnMarginClick(wxScintillaEvent &event) {
 		scoped_lock lock(m_mutex);
 
@@ -258,7 +226,7 @@ private:
 		}
 		else if (event.GetMargin() == MARGIN_DEBUG) {
 			int lineClick = LineFromPosition(event.GetPosition());
-			ToggleBreakPointFromLine(lineClick);
+			ToggleBreakpointFromLine(lineClick);
 		}
 	}
 
@@ -279,11 +247,11 @@ private:
 		size_t sel = m_parent->GetPageIndex(this);
 		if (sel != wxNOT_FOUND) {
 			if (modified) {
-				/* Add '*' to the source title. */
+				// Add '*' to the source title.
 				m_parent->SetPageText(sel, m_title + wxT("*"));
 			}
 			else {
-				/* Set the source title. */
+				// Set the source title.
 				m_parent->SetPageText(sel, m_title);
 			}
 
@@ -326,7 +294,7 @@ private:
 				+ (indentSize / indentWidth)
 				+ (indentSize % indentWidth));
 
-			// notify that the test was changed
+			// notify that the text was changed
 			ChangeModified(true);
 		}
 	}
@@ -337,16 +305,47 @@ private:
 		//CallTipShow(pos, event.GetText());
 	}
 
+	/*void OnChangedBreakpointList(wxNotifyEvent &event) {
+		scoped_lock lock(m_mutex);
+	}*/
+
 public:
 	const std::string &GetKey() const {
 		return m_key;
 	}
 
-	const wxString &GetTitle() const {
-		return m_title;
+	void Initialize(const Source *source) {
+		scoped_lock lock(m_mutex);
+		wxASSERT(source != NULL);
+
+		std::string str;
+		for (string_array::size_type i = 0; i < source->GetLineCount(); ++i) {
+			// The encoding is UTF8.
+			str += source->GetSourceLine(i);
+
+			// Don't insert line breaks at the last line.
+			if (i < source->GetLineCount()) {
+				str += "\n";
+			}
+		}
+
+		// AddTextRaw accepts only the UTF8 string.
+		AddTextRaw(str.c_str());
+
+		//Mediator::Get()->GetBreakpointList();
+		/*for (size_t i = 0; i < m_ctx->GetBreakpointSize(); ++i) {
+			const Breakpoint &bp = m_ctx->GetBreakpoint(i);
+			MarkerAdd(bp.GetLine(), MARKNUM_BREAKPOINT);
+		}*/
+
+		// The title is converted to UTF8.
+		m_key = source->GetKey();
+		m_title = wxConvFromUTF8(source->GetTitle());
+		m_currentLine = -1;
+		m_initialized = true;
 	}
 
-	int SetCurrentLine(int line, bool isCurrentRunning) {
+	int SetCurrentLine(int line, bool isCurrentRunning = true) {
 		scoped_lock lock(m_mutex);
 		wxASSERT((line < 0) || (0 <= line && line < GetLineCount()));
 
@@ -386,24 +385,24 @@ public:
 		return 0;
 	}
 
-	void ToggleBreakPointFromLine(int line) {
+	void ToggleBreakpointFromLine(int line) {
 		scoped_lock lock(m_mutex);
 		line = median(line, 0, GetLineCount());
-		m_ctx->ToggleBreakPoint(m_key, line);
+		//Mediator::Get()->ToggleBreakpoint(m_key, line);
 
-		if (m_ctx->FindBreakPoint(m_key, line) != NULL) {
+		/*if (m_ctx->FindBreakpoint(m_key, line) != NULL) {
 			MarkerAdd(line, MARKNUM_BREAKPOINT);
 		}
 		else {
 			MarkerDelete(line, MARKNUM_BREAKPOINT);
-		}
+		}*/
 	}
 
-	void ToggleBreakPoint() {
+	void ToggleBreakpoint() {
 		scoped_lock lock(m_mutex);
 		int from, to;
 		GetSelection(&from, &to);
-		ToggleBreakPointFromLine(LineFromPosition(to));
+		ToggleBreakpointFromLine(LineFromPosition(to));
 	}
 
 	void ChangeEnable(bool enable) {
@@ -441,13 +440,12 @@ public:
 			array.pop_back();
 		}
 
-		m_ctx->SaveSource(m_key, array);
+//		m_ctx->SaveSource(m_key, array);
 		ChangeModified(false);
 	}
 
 private:
 	SourceView *m_parent;
-	Context *m_ctx;
 	mutex m_mutex;
 	bool m_initialized;
 	bool m_wasTitleChanged;
@@ -475,11 +473,10 @@ BEGIN_EVENT_TABLE(SourceView, wxAuiNotebook)
 	EVT_LLDEBUG_UPDATE_SOURCE(ID_SOURCEVIEW, SourceView::OnUpdateSource)
 END_EVENT_TABLE()
 
-SourceView::SourceView(Context *ctx, wxWindow *parent)
-	: wxAuiNotebook(parent, ID_SOURCEVIEW + ctx->GetId()
+SourceView::SourceView(wxWindow *parent)
+	: wxAuiNotebook(parent, ID_SOURCEVIEW + Mediator::Get()->GetId()
 		, wxDefaultPosition, wxDefaultSize
-		, wxAUI_NB_TOP | wxAUI_NB_TAB_MOVE | wxAUI_NB_SCROLL_BUTTONS)
-	, m_ctx(ctx) {
+		, wxAUI_NB_TOP | wxAUI_NB_TAB_MOVE | wxAUI_NB_SCROLL_BUTTONS) {
 	CreateGUIControls();
 }
 
@@ -525,44 +522,44 @@ void SourceView::OnChangedState(wxChangedStateEvent &event) {
 	// 実行中は使えないようにします。
 	SourceViewPage *page = GetSelected();
 	if (page != NULL) {
-		page->ChangeEnable(event.GetValue());
+		page->ChangeEnable(event.IsBreak());
 	}
 }
 
-void SourceView::ToggleBreakPoint() {
+/*void SourceView::ToggleBreakpoint() {
 	scoped_lock lock(m_mutex);
 	SourceViewPage *page = GetSelected();
 
 	if (page != NULL) {
-		page->ToggleBreakPoint();
+		page->ToggleBreakpoint();
 	}
-}
+}*/
 
 void SourceView::OnUpdateSource(wxSourceLineEvent &event) {
 	scoped_lock lock(m_mutex);
-	SourceViewPage *page = NULL;
 	
 	size_t i = FindPageFromKey(event.GetKey());
 	if (i == wxNOT_FOUND) {
-		if (event.IsCurrentRunning()) {
-			const Source *source = m_ctx->GetSource(event.GetKey());
-			wxASSERT(source != NULL);
-
-			// 新しいページを作成します。
-			page = new SourceViewPage(this, m_ctx, source);
-			AddPage(page, page->GetTitle(), true);
-		}
-	}
-	else {
-		page = GetPage(i);
-		SetSelection(i);
+		wxASSERT(false);
+		return;
 	}
 
-	// If exist current line, page must not be NULL.
-	//wxASSERT((page != NULL) == (event.GetLine() >= 0));
-	if (page != NULL) {
-		page->SetCurrentLine(event.GetLine() - 1, event.IsCurrentRunning());
-	}
+	SourceViewPage *page = GetPage(i);
+	SetSelection(i);
+
+	// Base line of GetLine is 1.
+	page->SetCurrentLine(event.GetLine() - 1);
+}
+
+void SourceView::OnAddSource(wxSourceLineEvent &event) {
+	scoped_lock lock(m_mutex);
+	const Source *source = NULL; //m_ctx->GetSource(info.GetKey());
+	wxASSERT(source != NULL);
+
+	// 新しいページを作成します。
+	SourceViewPage *page = new SourceViewPage(this);
+	page->Initialize(NULL);
+	AddPage(page, wxT(""), true);
 }
 
 }

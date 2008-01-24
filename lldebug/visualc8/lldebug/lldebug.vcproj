@@ -247,22 +247,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_backtraceview.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_backtraceview.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\lldebug_bootstrap.cpp"
 				>
 				<FileConfiguration
@@ -339,62 +323,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_event.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_event.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_interactview.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_interactview.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_langsettings.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_langsettings.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\lldebug_luainfo.cpp"
 				>
 				<FileConfiguration
@@ -416,30 +344,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\lldebug_luainfo.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_mainframe.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_mainframe.h"
 				>
 			</File>
 			<File
@@ -483,30 +387,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_sourceview.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_sourceview.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\lldebug_sysinfo.cpp"
 				>
 				<FileConfiguration
@@ -528,30 +408,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\lldebug_sysinfo.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_watchview.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_watchview.h"
 				>
 			</File>
 		</Filter>
