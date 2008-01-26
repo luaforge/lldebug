@@ -157,7 +157,7 @@ private:
             StyleSetUnderline(style, (curType.fontStyle & FONTSTYLE_UNDERL) > 0);
             StyleSetVisible(style, (curType.fontStyle & FONTSTYLE_HIDDEN) == 0);
             StyleSetCase(style, curType.letterCase);
-			StyleSetHotSpot(style, curType.hotspot);
+			//StyleSetHotSpot(style, curType.hotspot);
             if (curType.words != NULL) {
                 SetKeyWords(keywordnr, curType.words);
                 ++keywordnr;
@@ -314,17 +314,20 @@ public:
 		return m_key;
 	}
 
-	void Initialize(const Source *source) {
+	const wxString &GetTitle() const {
+		return m_title;
+	}
+
+	void Initialize(const Source &source) {
 		scoped_lock lock(m_mutex);
-		wxASSERT(source != NULL);
 
 		std::string str;
-		for (string_array::size_type i = 0; i < source->GetLineCount(); ++i) {
+		for (string_array::size_type i = 0; i < source.GetLineCount(); ++i) {
 			// The encoding is UTF8.
-			str += source->GetSourceLine(i);
+			str += source.GetSourceLine(i);
 
 			// Don't insert line breaks at the last line.
-			if (i < source->GetLineCount()) {
+			if (i < source.GetLineCount()) {
 				str += "\n";
 			}
 		}
@@ -339,8 +342,8 @@ public:
 		}*/
 
 		// The title is converted to UTF8.
-		m_key = source->GetKey();
-		m_title = wxConvFromUTF8(source->GetTitle());
+		m_key = source.GetKey();
+		m_title = wxConvFromUTF8(source.GetTitle());
 		m_currentLine = -1;
 		m_initialized = true;
 	}
@@ -469,12 +472,13 @@ END_EVENT_TABLE()
 
 /*-----------------------------------------------------------------*/
 BEGIN_EVENT_TABLE(SourceView, wxAuiNotebook)
-	EVT_LLDEBUG_CHANGED_STATE(ID_SOURCEVIEW, SourceView::OnChangedState)
-	EVT_LLDEBUG_UPDATE_SOURCE(ID_SOURCEVIEW, SourceView::OnUpdateSource)
+	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, SourceView::OnChangedState)
+	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, SourceView::OnUpdateSource)
+	EVT_LLDEBUG_ADDED_SOURCE(wxID_ANY, SourceView::OnAddedSource)
 END_EVENT_TABLE()
 
 SourceView::SourceView(wxWindow *parent)
-	: wxAuiNotebook(parent, ID_SOURCEVIEW + Mediator::Get()->GetId()
+	: wxAuiNotebook(parent, ID_SOURCEVIEW
 		, wxDefaultPosition, wxDefaultSize
 		, wxAUI_NB_TOP | wxAUI_NB_TAB_MOVE | wxAUI_NB_SCROLL_BUTTONS) {
 	CreateGUIControls();
@@ -485,6 +489,12 @@ SourceView::~SourceView() {
 
 void SourceView::CreateGUIControls() {
 	scoped_lock lock(m_mutex);
+
+	std::list<Source> sources = Mediator::Get()->GetSourceManager().GetList();
+	std::list<Source>::iterator it;
+	for (it = sources.begin(); it != sources.end(); ++it) {
+		CreatePage(*it);
+	}
 }
 
 size_t SourceView::FindPageFromKey(const std::string &key) {
@@ -502,11 +512,14 @@ size_t SourceView::FindPageFromKey(const std::string &key) {
 }
 
 SourceViewPage *SourceView::GetPage(size_t i) {
+	scoped_lock lock(m_mutex);
+
 	wxWindow *page = wxAuiNotebook::GetPage(i);
 	return dynamic_cast<SourceViewPage *>(page);
 }
 
 SourceViewPage *SourceView::GetSelected() {
+	scoped_lock lock(m_mutex);
 	size_t sel = GetSelection();
 
 	if (sel == wxNOT_FOUND) {
@@ -514,6 +527,15 @@ SourceViewPage *SourceView::GetSelected() {
 	}
 
 	return GetPage(sel);
+}
+
+void SourceView::CreatePage(const Source &source) {
+	scoped_lock lock(m_mutex);
+
+	// 新しいページを作成します。
+	SourceViewPage *page = new SourceViewPage(this);
+	page->Initialize(source);
+	AddPage(page, page->GetTitle(), true);
 }
 
 void SourceView::OnChangedState(wxChangedStateEvent &event) {
@@ -540,7 +562,7 @@ void SourceView::OnUpdateSource(wxSourceLineEvent &event) {
 	
 	size_t i = FindPageFromKey(event.GetKey());
 	if (i == wxNOT_FOUND) {
-		wxASSERT(false);
+		//wxASSERT(false);
 		return;
 	}
 
@@ -551,15 +573,10 @@ void SourceView::OnUpdateSource(wxSourceLineEvent &event) {
 	page->SetCurrentLine(event.GetLine() - 1);
 }
 
-void SourceView::OnAddSource(wxSourceLineEvent &event) {
+void SourceView::OnAddedSource(wxSourceEvent &event) {
 	scoped_lock lock(m_mutex);
-	const Source *source = NULL; //m_ctx->GetSource(info.GetKey());
-	wxASSERT(source != NULL);
 
-	// 新しいページを作成します。
-	SourceViewPage *page = new SourceViewPage(this);
-	page->Initialize(NULL);
-	AddPage(page, wxT(""), true);
+	CreatePage(event.GetSource());
 }
 
 }

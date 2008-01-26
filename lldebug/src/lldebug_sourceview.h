@@ -48,11 +48,12 @@ private:
 	size_t FindPageFromKey(const std::string &key);
 	SourceViewPage *GetPage(size_t i);
 	SourceViewPage *GetSelected();
+	void CreatePage(const Source &source);
 
 private:
 	void OnChangedState(wxChangedStateEvent &event);
 	void OnUpdateSource(wxSourceLineEvent &event);
-	void OnAddSource(wxSourceLineEvent &event);
+	void OnAddedSource(wxSourceEvent &event);
 
 	DECLARE_EVENT_TABLE();
 

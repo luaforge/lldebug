@@ -25,6 +25,7 @@
  */
 
 #include "lldebug_prec.h"
+#include "lldebug_remoteengine.h"
 #include "lldebug_mainframe.h"
 #include "lldebug_sourceview.h"
 /*#include "lldebug_interactview.h"
@@ -52,6 +53,7 @@ enum {
 };
 
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
+	EVT_CLOSE(MainFrame::OnClose)
 	EVT_MENU(wxID_EXIT, MainFrame::OnMenu)
 
 	EVT_MENU(ID_MENU_BREAK, MainFrame::OnMenu)
@@ -72,13 +74,12 @@ BEGIN_EVENT_TABLE(MainFrame, wxFrame)
 END_EVENT_TABLE()
 
 MainFrame::MainFrame()
-	: wxFrame(NULL, ID_MAINFRAME + Mediator::Get()->GetId()
+	: wxFrame(NULL, ID_MAINFRAME
 		, wxT("Lua Debugger")
 		, wxDefaultPosition, wxSize(800, 600)
 		, wxCAPTION | wxRESIZE_BORDER | wxSYSTEM_MENU | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
 	, m_auiManager(NULL), m_auiNotebook(NULL) {
 	CreateGUIControls();
-	Mediator::Get()->SetMainFrame(this); // Set this object.
 }
 
 MainFrame::~MainFrame() {
@@ -106,14 +107,14 @@ void MainFrame::CreateGUIControls() {
 		.Name(wxT("SourceView")).Caption(wxT("SourceView"))
 		.CentrePane().Floatable(false).PaneBorder(false));
 
-	ShowView(ID_INTERACTVIEW);
-	ShowView(ID_GLOBALWATCHVIEW);
-	ShowView(ID_REGISTRYWATCHVIEW);
-	//ShowView(ID_ENVIRONWATCHVIEW);
-	ShowView(ID_STACKWATCHVIEW);
-	//ShowView(ID_WATCHVIEW);
-	ShowView(ID_BACKTRACEVIEW);
-	ShowView(ID_LOCALWATCHVIEW);
+	ShowDebugWindow(ID_INTERACTVIEW);
+	ShowDebugWindow(ID_GLOBALWATCHVIEW);
+	ShowDebugWindow(ID_REGISTRYWATCHVIEW);
+	//ShowDebugWindow(ID_ENVIRONWATCHVIEW);
+	ShowDebugWindow(ID_STACKWATCHVIEW);
+	//ShowDebugWindow(ID_WATCHVIEW);
+	ShowDebugWindow(ID_BACKTRACEVIEW);
+	ShowDebugWindow(ID_LOCALWATCHVIEW);
 
 	wxMenu *fileMenu = new wxMenu;
 	fileMenu->AppendSeparator();
@@ -151,7 +152,14 @@ void MainFrame::CreateGUIControls() {
 	Center();
 }
 
-void MainFrame::AddPendingLLDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways) {
+void MainFrame::OnClose(wxCloseEvent &event) {
+	scoped_lock lock(m_mutex);
+
+	event.Skip();
+	wxExit();
+}
+
+void MainFrame::AddPendingDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways) {
 	scoped_lock lock(m_mutex);
 
 	if (!sendAlways && !parent->IsShown()) {
@@ -160,21 +168,20 @@ void MainFrame::AddPendingLLDebugEvent(wxEvent &event, wxWindow *parent, bool se
 
 	wxWindowList& children = parent->GetChildren();
 	for (size_t i = 0; i < children.GetCount(); ++i) {
-		AddPendingLLDebugEvent(event, children[i], sendAlways);
+		AddPendingDebugEvent(event, children[i], sendAlways);
 	}
 
 	event.SetId(parent->GetId());
 	parent->AddPendingEvent(event);
 }
 
-bool MainFrame::IsExistWindow(int wintypeid) {
+bool MainFrame::IsExistDebugWindow(int wintypeid) {
 	scoped_lock lock(m_mutex);
-	int ctxId = Mediator::Get()->GetId();
 
-	return (FindWindowById(wintypeid + ctxId) != NULL);
+	return (FindWindowById(wintypeid) != NULL);
 }
 
-void MainFrame::ShowView(int wintypeid) {
+void MainFrame::ShowDebugWindow(int wintypeid) {
 	scoped_lock lock(m_mutex);
 
 	// If a notebook is hidden, we have to close and recreate it.
@@ -186,9 +193,9 @@ void MainFrame::ShowView(int wintypeid) {
 	}
 
 	// find and create a notebook window
-	if (m_auiNotebook == NULL || !IsExistWindow(ID_WINDOWHOLDER)) {
+	if (m_auiNotebook == NULL || !IsExistDebugWindow(ID_WINDOWHOLDER)) {
 		m_auiNotebook = new wxAuiNotebook(
-			this, ID_WINDOWHOLDER + Mediator::Get()->GetId(),
+			this, ID_WINDOWHOLDER,
 			wxDefaultPosition, wxSize(100, 300),
 			wxAUI_NB_TOP | wxAUI_NB_SCROLL_BUTTONS | wxAUI_NB_TAB_SPLIT
 				| wxAUI_NB_CLOSE_ON_ACTIVE_TAB);
@@ -199,7 +206,7 @@ void MainFrame::ShowView(int wintypeid) {
 	}
 
 	// If the view is already exist, do nothing.
-	if (IsExistWindow(wintypeid)) {
+	if (IsExistDebugWindow(wintypeid)) {
 		return;
 	}
 
@@ -256,91 +263,50 @@ void MainFrame::OnMenu(wxCommandEvent &event) {
 	case wxID_EXIT:
 		Close(true);
 		break;
-	/*case ID_MENU_BREAK:
-		m_ctx->PushCommand(Command::TYPE_PAUSE);
+	case ID_MENU_BREAK:
+		Mediator::Get()->GetEngine()->Break();
 		break;
 	case ID_MENU_RESTART:
-		m_ctx->PushCommand(Command::TYPE_RESTART);
+		Mediator::Get()->GetEngine()->Resume();
 		break;
 	case ID_MENU_STEPOVER:
-		m_ctx->PushCommand(Command::TYPE_STEPOVER);
+		Mediator::Get()->GetEngine()->StepOver();
 		break;
 	case ID_MENU_STEPINTO:
-		m_ctx->PushCommand(Command::TYPE_STEPINTO);
+		Mediator::Get()->GetEngine()->StepInto();
 		break;
 	case ID_MENU_STEPRETURN:
-		m_ctx->PushCommand(Command::TYPE_STEPRETURN);
+		Mediator::Get()->GetEngine()->StepReturn();
 		break;
-	case ID_MENU_TOGGLE_BREAKPOINT:
+	/*case ID_MENU_TOGGLE_BREAKPOINT:
 		//m_sourceView->ToggleBreakpoint();
 		break;*/
 
 	case ID_MENU_SHOW_LOCALWATCH:
-		ShowView(ID_LOCALWATCHVIEW);
+		ShowDebugWindow(ID_LOCALWATCHVIEW);
 		break;
 	case ID_MENU_SHOW_GLOBALWATCH:
-		ShowView(ID_GLOBALWATCHVIEW);
+		ShowDebugWindow(ID_GLOBALWATCHVIEW);
 		break;
 	case ID_MENU_SHOW_REGISTRYWATCH:
-		ShowView(ID_REGISTRYWATCHVIEW);
+		ShowDebugWindow(ID_REGISTRYWATCHVIEW);
 		break;
 	case ID_MENU_SHOW_ENVIRONWATCH:
-		ShowView(ID_ENVIRONWATCHVIEW);
+		ShowDebugWindow(ID_ENVIRONWATCHVIEW);
 		break;
 	case ID_MENU_SHOW_STACKWATCH:
-		ShowView(ID_STACKWATCHVIEW);
+		ShowDebugWindow(ID_STACKWATCHVIEW);
 		break;
 	case ID_MENU_SHOW_WATCH:
-		ShowView(ID_WATCHVIEW);
+		ShowDebugWindow(ID_WATCHVIEW);
 		break;
 	case ID_MENU_SHOW_BACKTRACEVIEW:
-		ShowView(ID_BACKTRACEVIEW);
+		ShowDebugWindow(ID_BACKTRACEVIEW);
 		break;
 	case ID_MENU_SHOW_INTERACTVIEW:
-		ShowView(ID_INTERACTVIEW);
+		ShowDebugWindow(ID_INTERACTVIEW);
 		break;
 	}
-
-	Breakpoint bp("test", 10);
-	Mediator::Get()->SetBreakpoint(bp);
-}
-
-/***************************************/
-class MainFrame::RemoteEngineCallback : public ICommandHandler {
-public:
-	explicit RemoteEngineCallback(MainFrame *frame)
-		: m_frame(frame) {
-	}
-
-	virtual ~RemoteEngineCallback() {
-	}
-
-	virtual void OnChangedState(const Command_ &command, bool isBreak) {
-		wxChangedStateEvent event(wxEVT_CHANGED_STATE, wxID_ANY, isBreak);
-		m_frame->AddPendingLLDebugEvent(event, m_frame, true);
-	}
-
-	virtual void OnUpdateSource(const Command_ &command, const std::string &key, int line) {
-		wxSourceLineEvent event(wxEVT_UPDATE_SOURCE, wxID_ANY, key, line);
-		m_frame->AddPendingLLDebugEvent(event, m_frame, false);
-	}
-
-	virtual void OnSetBreakpoint(const Command_ &command, const Breakpoint &bp) {
-	}
-
-	virtual void OnRemoveBreakpoint(const Command_ &command, const Breakpoint &bp) {
-	}
-
-	virtual void OnChangedBreakpoint(const Command_ &command, const BreakpointList &bps) {
-	}
-
-private:
-	MainFrame *m_frame;
-};
-
-shared_ptr<ICommandHandler> MainFrame::CreateRemoteEngineCallback() {
-	shared_ptr<ICommandHandler> handler(new RemoteEngineCallback(this));
-	return handler;
 }
 
 }

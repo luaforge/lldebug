@@ -240,6 +240,16 @@ public:
 	}*/
 
 private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int) {
+		ar & LLDEBUG_MEMBER_NVP(key);
+		ar & LLDEBUG_MEMBER_NVP(title);
+		ar & LLDEBUG_MEMBER_NVP(path);
+		ar & LLDEBUG_MEMBER_NVP(sources);
+	}
+
+private:
 	std::string m_key;
 	std::string m_title;
 	std::string m_path;
@@ -254,13 +264,17 @@ public:
 	explicit SourceManager(RemoteEngine *engine);
 	~SourceManager();
 
+	/// Get the source list.
+	std::list<Source> GetList();
+
 	/// Get the source infomation from key.
 	const Source *Get(const std::string &key);
 
-#ifndef LLDEBUG_FRAME
 	/// Add a source.
-	int Add(const std::string &key, const std::string &path);
-#endif
+	int Add(const std::string &key);
+
+	/// Add a source.
+	int Add(const Source &source);
 
 	/// Save a source.
 	int Save(const std::string &key, const string_array &source);

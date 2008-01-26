@@ -34,6 +34,7 @@ namespace lldebug {
 class Application;
 class MainFrame;
 class RemoteEngine;
+class Command_;
 
 /**
  * @brief ‚·‚×‚Ä‚ÌƒNƒ‰ƒX‚É‹¤’Ê‚Ìî•ñ‚ğ•Û‚µ‚Ü‚·B
@@ -47,7 +48,25 @@ public:
 	}
 
 	/// Get the ID of the 'lldebug::Context' class.
-	int GetId();
+	int GetCtxId();
+
+	/// Get the RemoteEngine object.
+	RemoteEngine *GetEngine() {
+		scoped_lock lock(m_mutex);
+		return m_engine.get();
+	}
+
+	/// Get the BreakpointList object.
+	BreakpointList &GetBreakpoints() {
+		scoped_lock lock(m_mutex);
+		return m_breakpoints;
+	}
+
+	/// Get the SourceManager object.
+	SourceManager &GetSourceManager() {
+		scoped_lock lock(m_mutex);
+		return m_sourceManager;
+	}
 
 	/// Get the source contents.
 	const Source *GetSource(const std::string &key) {
@@ -85,10 +104,9 @@ public:
 		m_breakpoints.Toggle(key, line);
 	}
 
-	/// Toggle on/off of the breakpoint.
-	void ChangedBreakpointList(const BreakpointList &bps) {
+	MainFrame *GetFrame() {
 		scoped_lock lock(m_mutex);
-		m_breakpoints = bps;
+		return m_frame;
 	}
 
 private:
@@ -104,11 +122,14 @@ private:
 	void SetMainFrame(MainFrame *frame);
 
 private:
+	void RemoteCommandCallback(const Command_ &command);
+
+private:
 	static Mediator *ms_instance;
 
 	mutex m_mutex;
 	shared_ptr<RemoteEngine> m_engine;
-	MainFrame *m_mainFrame;
+	MainFrame *m_frame;
 	BreakpointList m_breakpoints;
 	SourceManager m_sourceManager;
 };

@@ -25,14 +25,16 @@
  */
 
 #include "lldebug_prec.h"
+#include "lldebug_remoteengine.h"
 #include "lldebug_application.h"
 #include "lldebug_mainframe.h"
 
 IMPLEMENT_APP(lldebug::Application)
 
 int main(int argc, char *argv[]) {
-	wxEntry(argc, argv);
-	return 0;
+	::wxExecute(_T("..\\debug\\test.exe"));
+
+	return wxEntry(argc, argv);
 }
 
 namespace lldebug {
@@ -99,7 +101,11 @@ bool Application::OnInit() {
 
 	wxLogWindow *log = new wxLogWindow(frame, wxT("Logger"), true);
 	wxLog::SetActiveTarget(log);
+	
+	m_mediator.SetMainFrame(frame);
 	m_frame = frame;
+
+	Mediator::Get()->GetEngine()->StartConnection(m_mediator.GetCtxId());
     return true;
 }
 

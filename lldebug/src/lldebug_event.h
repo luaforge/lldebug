@@ -27,13 +27,15 @@
 #ifndef __LLDEBUG_EVENT_H__
 #define __LLDEBUG_EVENT_H__
 
+#include "lldebug_sysinfo.h"
+
 namespace lldebug {
 
 class wxChangedStateEvent : public wxEvent {
 public:
 	explicit wxChangedStateEvent(wxEventType type, int winid,
 								 bool isBreak)
-		: m_isBreak(isBreak) {
+		: wxEvent(winid, type), m_isBreak(isBreak) {
 	}
 
 	virtual ~wxChangedStateEvent() {
@@ -57,7 +59,7 @@ class wxSourceLineEvent : public wxEvent {
 public:
 	explicit wxSourceLineEvent(wxEventType type, int winid,
 							   const std::string &key, int line)
-		: m_key(key), m_line(line) {
+		: wxEvent(winid, type), m_key(key), m_line(line) {
 	}
 
 	virtual ~wxSourceLineEvent() {
@@ -82,6 +84,29 @@ private:
 	int m_line;
 };
 
+class wxSourceEvent : public wxEvent {
+public:
+	explicit wxSourceEvent(wxEventType type, int winid,
+						   const Source &source)
+		: wxEvent(winid, type), m_source(source) {
+	}
+
+	virtual ~wxSourceEvent() {
+	}
+
+	/// Get source object.
+	const Source &GetSource() const {
+		return m_source;
+	}
+
+	virtual wxEvent *Clone() const {
+		return new wxSourceEvent(*this);
+	}
+
+private:
+	Source m_source;
+};
+
 
 BEGIN_DECLARE_EVENT_TYPES()
 #if !wxCHECK_VERSION(2, 5, 0)
@@ -90,18 +115,21 @@ BEGIN_DECLARE_EVENT_TYPES()
 #else
 	DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_LLDEBUG, wxEVT_CHANGED_STATE, 2652)
 	DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_LLDEBUG, wxEVT_UPDATE_SOURCE, 2653)
+	DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_LLDEBUG, wxEVT_ADDED_SOURCE, 2654)
 #endif
 END_DECLARE_EVENT_TYPES()
 
 typedef void (wxEvtHandler::*wxChangedStateEventFunction)(wxChangedStateEvent &);
 typedef void (wxEvtHandler::*wxSourceLineEventFunction)(wxSourceLineEvent &);
+typedef void (wxEvtHandler::*wxSourceEventFunction)(wxSourceEvent &);
 
 #if !wxCHECK_VERSION(2, 5, 0)
 #define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxChangedStateEventFunction)&fn, (wxObject *)NULL),
 #define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxSourceLineEventFunction)&fn, (wxObject *)NULL),
 #else
-#define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxChangedStateEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxSourceLineEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxChangedStateEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxSourceLineEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxSourceEventFunction, &fn), (wxObject *)NULL),
 #endif
 
 }

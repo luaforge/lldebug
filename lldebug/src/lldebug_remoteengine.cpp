@@ -15,12 +15,17 @@ using boost::asio::ip::tcp;
 
 class SocketBase {
 private:
-	boost::asio::io_service &m_ioService;
 	boost::asio::ip::tcp::socket m_socket;
-	CommandCallback m_callback;
-	mutex m_mutex;
+	const CommandCallback m_callback;
+	bool m_isConnected;
+
+	struct ReadCommand {
+		CommandHeader header;
+		std::vector<char> data;
+	};
 	
 	typedef std::queue<Command_> WriteCommandQueue;
+	/// This object is handled in one specific thread.
 	WriteCommandQueue m_writeCommandQueue;
 	
 public:
@@ -30,50 +35,58 @@ public:
 		writeCommand.header = header;
 		writeCommand.data = data;
 
-		m_ioService.post(boost::bind(&SocketBase::doWrite, this, writeCommand));
+		GetService().post(boost::bind(&SocketBase::doWrite, this, writeCommand));
 	}
 
 	/// Close this socket.
 	void Close() {
-		m_ioService.post(boost::bind(&SocketBase::doClose, this));
+		GetService().post(boost::bind(&SocketBase::doClose, this));
+	}
+
+	void Connected() {
+		GetService().post(boost::bind(&SocketBase::connected, this));
+	}
+
+	/// Is this socket connected ?
+	bool IsConnected() {
+		return m_isConnected;
 	}
 
 	/// Get the io_service object.
 	boost::asio::io_service &GetService() {
-		scoped_lock lock(m_mutex);
-		return m_ioService;
+		return m_socket.io_service();
 	}
 
 	/// Get the socket object.
 	boost::asio::ip::tcp::socket &GetSocket() {
-		scoped_lock lock(m_mutex);
 		return m_socket;
 	}
 
 	/// Get the callback.
 	CommandCallback GetCallback() {
-		scoped_lock lock(m_mutex);
 		return m_callback;
-	}
-
-	/// Get the mutex object.
-	mutex &GetMutex() {
-		return m_mutex;
 	}
 
 protected:
 	SocketBase(boost::asio::io_service &ioService,
 			   const CommandCallback &callback)
-		: m_ioService(ioService)
-		, m_socket(ioService), m_callback(callback) {
+		: m_socket(ioService), m_callback(callback)
+		, m_isConnected(false) {
 	}
 
 	virtual ~SocketBase() {
 	}
 
+private:
+	void connected() {
+		if (!m_isConnected) {
+			m_isConnected = true;
+			asyncReadCommand();
+		}
+	}
+
 	void asyncReadCommand() {
-		scoped_lock lock(m_mutex);
-		shared_ptr<Command_> command(new Command_);
+		shared_ptr<ReadCommand> command(new ReadCommand);
 
 		boost::asio::async_read(m_socket,
 			boost::asio::buffer(&command->header, sizeof(CommandHeader)),
@@ -82,19 +95,18 @@ protected:
 				boost::asio::placeholders::error));
 	}
 
-	void handleReadCommand(shared_ptr<Command_> command,
+	void handleReadCommand(shared_ptr<ReadCommand> command,
 						   const boost::system::error_code &error) {
-		scoped_lock lock(m_mutex);
-
 		if (!error) {
 			// Check that response is OK.
 			if (command->header.ctxId < 0) {
 				doClose();
 			}
 
-			command->data.resize(command->header.dataSize + 1);
-
+			// Read the command data if exists.
 			if (command->header.dataSize > 0) {
+				command->data.resize(command->header.dataSize);
+
 				boost::asio::async_read(m_socket,
 					boost::asio::buffer(command->data, command->header.dataSize),
 					boost::bind(
@@ -110,12 +122,20 @@ protected:
 		}
 	}
 
-	void handleReadData(shared_ptr<Command_> command,
+	/// It's called after the end of the command reading.
+	void handleReadData(shared_ptr<ReadCommand> command,
 						const boost::system::error_code &error) {
-		scoped_lock lock(m_mutex);
-
 		if (!error) {
-			m_callback(*command);
+			Command_ cmd;
+			cmd.header = command->header;
+			cmd.data = (command->header.dataSize == 0
+				? ""
+				: std::string(&command->data[0], command->header.dataSize));
+
+			// m_callback isn't mutable.
+			m_callback(cmd);
+
+			// Prepare the new command.
 			asyncReadCommand();
 		}
 		else {
@@ -123,41 +143,58 @@ protected:
 		}
 	}
 
-	void asyncWrite(const Command_ *command) {
-		scoped_lock lock(m_mutex);
-
-		boost::asio::async_write(m_socket,
-			boost::asio::buffer(&command->header, sizeof(CommandHeader)),
-			boost::bind(
-			&SocketBase::handleWrite, this,
-			boost::asio::placeholders::error));
-
-		if (command->header.dataSize > 0) {
+	/// Send the asynchronous write order.
+	/// The memory of the command must be kept somewhere.
+	void asyncWrite(const Command_ &command) {
+		if (command.header.dataSize == 0) {
+			// Delete the command memory.
 			boost::asio::async_write(m_socket,
-				boost::asio::buffer(command->data, command->header.dataSize),
+				boost::asio::buffer(&command.header, sizeof(CommandHeader)),
 				boost::bind(
-				&SocketBase::handleWrite, this,
-				boost::asio::placeholders::error));
+					&SocketBase::handleWrite, this, true,
+					boost::asio::placeholders::error));
+		}
+		else {
+			// Don't delete the command memory.
+			boost::asio::async_write(m_socket,
+				boost::asio::buffer(&command.header, sizeof(CommandHeader)),
+				boost::bind(
+					&SocketBase::handleWrite, this, false,
+					boost::asio::placeholders::error));
+
+			// Write command data.
+			boost::asio::async_write(m_socket,
+				boost::asio::buffer(command.data, command.header.dataSize),
+				boost::bind(
+					&SocketBase::handleWrite, this, true,
+					boost::asio::placeholders::error));
 		}
 	}
 
+	/// Do the asynchronous writing of the command.
+	/// The command memory must be kept until the end of the writing,
+	/// so there is a write command queue.
 	void doWrite(const Command_ &command) {
-		scoped_lock lock(m_mutex);
 		bool isProgress = !m_writeCommandQueue.empty();
 		m_writeCommandQueue.push(command);
 
 		if (!isProgress) {
-			asyncWrite(&m_writeCommandQueue.front());
+			asyncWrite(m_writeCommandQueue.front());
 		}
 	}
 
-	void handleWrite(const boost::system::error_code& error) {
-		scoped_lock lock(m_mutex);
-
+	/// It's called after the end of writing command.
+	/// The command memory is deleted if possible.
+	void handleWrite(bool deleteCommand,
+					 const boost::system::error_code& error) {
 		if (!error) {
-			m_writeCommandQueue.pop();
-			if (!m_writeCommandQueue.empty()) {
-				asyncWrite(&m_writeCommandQueue.front());
+			if (deleteCommand) {
+				m_writeCommandQueue.pop();
+
+				// Begin the new write order.
+				if (!m_writeCommandQueue.empty()) {
+					asyncWrite(m_writeCommandQueue.front());
+				}
 			}
 		}
 		else {
@@ -166,54 +203,8 @@ protected:
 	}
 
 	void doClose() {
-		scoped_lock lock(m_mutex);
-
 		m_socket.close();
-	}
-};
-
-
-/*-----------------------------------------------------------------*/
-class FrameSocket : public SocketBase {
-private:
-	tcp::acceptor m_acceptor;
-
-public:
-	explicit FrameSocket(boost::asio::io_service &ioService,
-						 const CommandCallback &callback,
-						 tcp::endpoint endpoint)
-		: SocketBase(ioService, callback)
-		, m_acceptor(ioService, endpoint) {
-
-		m_acceptor.async_accept(GetSocket(),
-			boost::bind(
-				&FrameSocket::handleAccept, this,
-				boost::asio::placeholders::error));
-	}
-
-	virtual ~FrameSocket() {
-	}
-
-protected:
-	void handleAccept(const boost::system::error_code &error) {
-		scoped_lock lock(GetMutex());
-
-		if (!error) {
-			this->asyncReadCommand();
-
-			Command_ command;
-			command.header.ctxId = -1;
-			command.header.dataSize = 0;
-			command.header.commandId = -1;
-			//command.header.type = REMOTECOMMANDTYPE_SUCCESS_CONNECTION;
-			GetCallback()(command);
-		}
-		else {
-			m_acceptor.async_accept(GetSocket(),
-				boost::bind(
-					&FrameSocket::handleAccept, this,
-					boost::asio::placeholders::error));
-		}
+		m_isConnected = false;
 	}
 };
 
@@ -221,32 +212,22 @@ protected:
 /*-----------------------------------------------------------------*/
 class ContextSocket : public SocketBase {
 private:
-	tcp::resolver::iterator m_endpointIterator;
-	bool m_isStartSuccessed;
+	tcp::acceptor m_acceptor;
 
 public:
 	explicit ContextSocket(boost::asio::io_service &ioService,
-						   const CommandCallback &callback,
-						   tcp::resolver::query query)
+						 const CommandCallback &callback,
+						 tcp::endpoint endpoint)
 		: SocketBase(ioService, callback)
-		, m_isStartSuccessed(false) {
-		tcp::resolver resolver(ioService);
-		m_endpointIterator = resolver.resolve(query);
-	}
-
-	virtual ~ContextSocket() {
+		, m_acceptor(ioService, endpoint) {
 	}
 
 	/// Start connection.
 	int Start(int waitSeconds) {
-		scoped_lock lock(GetMutex());
-		tcp::resolver::iterator endpoint_iterator = m_endpointIterator;
-		tcp::endpoint endpoint = *endpoint_iterator;
-
-		GetSocket().async_connect(endpoint,
+		m_acceptor.async_accept(GetSocket(),
 			boost::bind(
-				&ContextSocket::handleConnect, this,
-				boost::asio::placeholders::error, endpoint_iterator));
+				&ContextSocket::handleAccept, this,
+				boost::asio::placeholders::error));
 
 		// Wait for connection if need.
 		if (waitSeconds >= 0) {
@@ -254,8 +235,8 @@ public:
 			boost::xtime_get(&end, boost::TIME_UTC);
 			end.sec += waitSeconds;
 
-			// m_isStartSuccessed become true in handleConnect.
-			while (!m_isStartSuccessed) {
+			// IsConnected become true in handleConnect.
+			while (!IsConnected()) {
 				boost::xtime_get(&current, boost::TIME_UTC);
 				if (boost::xtime_cmp(current, end) >= 0) {
 					return -1;
@@ -267,19 +248,84 @@ public:
 				boost::thread::yield();
 			}
 		}
+		
+		return 0;
+	}
 
-		this->asyncReadCommand();
+	virtual ~ContextSocket() {
+	}
+
+protected:
+	void handleAccept(const boost::system::error_code &error) {
+		if (!error) {
+			this->Connected();
+		}
+		else {
+			m_acceptor.async_accept(GetSocket(),
+				boost::bind(
+					&ContextSocket::handleAccept, this,
+					boost::asio::placeholders::error));
+		}
+	}
+};
+
+
+/*-----------------------------------------------------------------*/
+class FrameSocket : public SocketBase {
+private:
+	tcp::resolver::iterator m_endpointIterator;
+
+public:
+	explicit FrameSocket(boost::asio::io_service &ioService,
+						   const CommandCallback &callback,
+						   tcp::resolver::query query)
+		: SocketBase(ioService, callback) {
+		tcp::resolver resolver(ioService);
+		m_endpointIterator = resolver.resolve(query);
+	}
+
+	virtual ~FrameSocket() {
+	}
+
+	/// Start connection.
+	int Start(int waitSeconds) {
+		tcp::resolver::iterator endpoint_iterator = m_endpointIterator;
+		tcp::endpoint endpoint = *endpoint_iterator;
+
+		GetSocket().async_connect(endpoint,
+			boost::bind(
+				&FrameSocket::handleConnect, this,
+				boost::asio::placeholders::error, endpoint_iterator));
+
+		// Wait for connection if need.
+		if (waitSeconds >= 0) {
+			boost::xtime current, end;
+			boost::xtime_get(&end, boost::TIME_UTC);
+			end.sec += waitSeconds;
+
+			// IsOpen become true in handleConnect.
+			while (!IsConnected()) {
+				boost::xtime_get(&current, boost::TIME_UTC);
+				if (boost::xtime_cmp(current, end) >= 0) {
+					return -1;
+				}
+
+				// Do async operation.
+				GetService().poll_one();
+				GetService().reset();
+				boost::thread::yield();
+			}
+		}
+		
 		return 0;
 	}
 
 protected:
 	virtual void handleConnect(const boost::system::error_code &error,
 							   tcp::resolver::iterator endpointIterator) {
-		scoped_lock lock(GetMutex());
-
 		if (!error) {
 			// The connection was successful.
-			m_isStartSuccessed = true;
+			this->Connected();
 		}
 		else {
 			//if (endpointIterator != tcp::resolver::iterator()) {
@@ -289,7 +335,7 @@ protected:
 			GetSocket().close();
 			GetSocket().async_connect(endpoint,
 				boost::bind(
-					&ContextSocket::handleConnect, this,
+					&FrameSocket::handleConnect, this,
 					boost::asio::placeholders::error, endpointIterator));
 		}
 		/*else {
@@ -309,7 +355,7 @@ RemoteEngine::~RemoteEngine() {
 	StopThread();
 }
 
-int RemoteEngine::StartContext(int portNum, int ctxId) {
+int RemoteEngine::StartContext(int portNum, int ctxId, int waitSeconds) {
 	scoped_lock lock(m_mutex);
 	shared_ptr<ContextSocket> socket;
 
@@ -318,8 +364,46 @@ int RemoteEngine::StartContext(int portNum, int ctxId) {
 	boost::xtime_get(&xt, boost::TIME_UTC);
 	xt.sec += waitSeconds;
 
-	// Create socket object.
 	socket.reset(new ContextSocket(m_ioService,
+		boost::bind(
+			&RemoteEngine::handleReadCommand, this, _1),
+			tcp::endpoint(tcp::v4(), portNum)));
+
+	// Start connection.
+	if (socket->Start(waitSeconds) != 0) {
+		return -1;
+	}
+
+	StartThread();
+	m_commandIdCounter = 1;
+	m_socket = boost::shared_static_cast<SocketBase>(socket);
+	StartConnection(ctxId);
+
+	// Wait for START_CONNECTION and ctxId value.
+	if (m_ctxId < 0) {
+		m_ctxCond.timed_wait(lock, xt);
+
+		if (m_ctxId < 0) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+int RemoteEngine::StartFrame(const std::string &hostName,
+							 const std::string &portName,
+							 int waitSeconds) {
+	scoped_lock lock(m_mutex);
+	shared_ptr<FrameSocket> socket;
+
+	// limit time
+	boost::xtime xt;
+	boost::xtime_get(&xt, boost::TIME_UTC);
+	xt.sec += waitSeconds;
+
+	// Create socket object.
+	socket.reset(new FrameSocket(m_ioService,
 		boost::bind(
 			&RemoteEngine::handleReadCommand, this, _1),
 			tcp::resolver::query(hostName, portName)));
@@ -345,37 +429,23 @@ int RemoteEngine::StartContext(int portNum, int ctxId) {
 	return 0;
 }
 
-int RemoteEngine::StartFrame(const std::string &hostName,
-							 const std::string &portName,
-							 int waitSeconds) {
-	scoped_lock lock(m_mutex);
-	shared_ptr<FrameSocket> socket;
-
-	socket.reset(new FrameSocket(m_ioService,
-		boost::bind(
-			&RemoteEngine::handleReadCommand, this, _1),
-			tcp::endpoint(tcp::v4(), portNum)));
-
-	StartThread();
-	m_commandIdCounter = 1;
-	m_ctxId = ctxId;
-	m_socket = boost::shared_static_cast<SocketBase>(socket);
-	return 0;
-}
-
 void RemoteEngine::SetCtxId(int ctxId) {
 	scoped_lock lock(m_mutex);
 
-	if (ctxId != ctxId) {
+	if (m_ctxId != ctxId) {
 		m_ctxId = ctxId;
 		m_ctxCond.notify_all();
 	}
 }
 
-void RemoteEngine::SetReadCommandHandler(shared_ptr<ICommandHandler> handler) {
+bool RemoteEngine::IsConnected() {
 	scoped_lock lock(m_mutex);
 
-	m_readCommandHandler = handler;
+	if (m_socket == NULL) {
+		return false;
+	}
+
+	return m_socket->IsConnected();
 }
 
 void RemoteEngine::SetReadCommandCallback(const CommandCallback &callback) {
@@ -430,51 +500,17 @@ void RemoteEngine::serviceThread() {
 			}
 
 			m_ioService.reset();
-			boost::thread::yield();
+
+			boost::xtime xt;
+			boost::xtime_get(&xt, boost::TIME_UTC);
+			xt.nsec += 10 * 1000 * 1000; // 1ms = 1000 * 1000nsec
+			boost::thread::sleep(xt);
 		}
 	}
 	catch (std::exception &) {
 	}
 
 	SetThreadActive(false);
-}
-
-template<class T0>
-static std::string SerializeToStr(const T0 &value0) {
-	std::stringstream sstream;
-	boost::archive::xml_oarchive ar(sstream);
-
-	ar << BOOST_SERIALIZATION_NVP(value0);
-	sstream.flush();
-	return sstream.str();
-}
-
-template<class T0, class T1>
-static std::string SerializeToStr(const T0 &value0, const T1 &value1) {
-	std::stringstream sstream;
-	boost::archive::xml_oarchive ar(sstream);
-
-	ar << BOOST_SERIALIZATION_NVP(value0);
-	ar << BOOST_SERIALIZATION_NVP(value1);
-	sstream.flush();
-	return sstream.str();
-}
-
-template<class T0>
-static void DeserializeToValue(const std::string &data, T0 &value0) {
-	std::stringstream sstream(data);
-	boost::archive::xml_iarchive ar(sstream);
-
-	ar >> BOOST_SERIALIZATION_NVP(value0);
-}
-
-template<class T0, class T1>
-static void DeserializeToValue(const std::string &data, T0 &value0, T1 &value1) {
-	std::stringstream sstream(data);
-	boost::archive::xml_iarchive ar(sstream);
-
-	ar >> BOOST_SERIALIZATION_NVP(value0);
-	ar >> BOOST_SERIALIZATION_NVP(value1);
 }
 
 void RemoteEngine::handleReadCommand(const Command_ &command) {
@@ -508,35 +544,6 @@ void RemoteEngine::handleReadCommand(const Command_ &command) {
 	}
 
 	if (!isResponseCommand) {
-		if (m_readCommandHandler != NULL) {
-			// m_readCommandHandler may be changed.
-			shared_ptr<ICommandHandler> handler = m_readCommandHandler;
-
-			lock.unlock();
-			switch (command.header.type) {
-			case REMOTECOMMANDTYPE_CHANGED_STATE: {
-				bool isBreak;
-				DeserializeToValue(command.data, isBreak);
-				handler->OnChangedState(command, isBreak);
-				}
-				break;
-			case REMOTECOMMANDTYPE_UPDATE_SOURCE: {
-				std::string key;
-				int line;
-				DeserializeToValue(command.data, key, line);
-				handler->OnUpdateSource(command, key, line);
-				}
-				break;
-			case REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST: {
-				BreakpointList bps(this);
-				DeserializeToValue(command.data, bps);
-				handler->OnChangedBreakpointList(command, bps);
-				}
-				break;
-			}
-			lock.lock();
-		}
-
 		if (m_readCommandCallback) {
 			CommandCallback callback = m_readCommandCallback;
 
@@ -615,12 +622,15 @@ void RemoteEngine::ResponseFailed(const Command_ &command) {
 	WriteResponse(command, REMOTECOMMANDTYPE_FAILED, "");
 }
 
-void RemoteEngine::StartConnection() {
+void RemoteEngine::StartConnection(int ctxId) {
 	scoped_lock lock(m_mutex);
+	CommandHeader header;
 
-	WriteCommand(
+	header = InitCommandHeader(
 		REMOTECOMMANDTYPE_START_CONNECTION,
-		"");
+		0, 0);
+	header.ctxId = ctxId;
+	m_socket->Write(header, "");
 }
 
 void RemoteEngine::EndConnection() {
@@ -632,12 +642,27 @@ void RemoteEngine::EndConnection() {
 }
 
 void RemoteEngine::ChangedState(bool isBreak) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_CHANGED_STATE,
+		Serializer::ToStr(isBreak));
 }
 
 void RemoteEngine::UpdateSource(const std::string &key, int line) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_UPDATE_SOURCE,
+		Serializer::ToStr(key, line));
 }
 
-void RemoteEngine::AddSource(const Source &source) {
+void RemoteEngine::AddedSource(const Source &source) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_ADDED_SOURCE,
+		Serializer::ToStr(source));
 }
 
 /// Notify that the breakpoint was set.
@@ -646,7 +671,7 @@ void RemoteEngine::SetBreakpoint(const Breakpoint &bp) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_SET_BREAKPOINT,
-		SerializeToStr(bp));
+		Serializer::ToStr(bp));
 }
 
 void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
@@ -654,7 +679,7 @@ void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
-		SerializeToStr(bp));
+		Serializer::ToStr(bp));
 }
 
 void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
@@ -662,7 +687,47 @@ void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST,
-		SerializeToStr(bps));
+		Serializer::ToStr(bps));
+}
+
+void RemoteEngine::Break() {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_BREAK,
+		"");
+}
+
+void RemoteEngine::Resume() {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_RESUME,
+		"");
+}
+
+void RemoteEngine::StepInto() {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_STEPINTO,
+		"");
+}
+
+void RemoteEngine::StepOver() {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_STEPOVER,
+		"");
+}
+
+void RemoteEngine::StepReturn() {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_STEPRETURN,
+		"");
 }
 
 struct VarListResponseHandler {
@@ -674,7 +739,7 @@ struct VarListResponseHandler {
 
 	void operator()(const Command_ &command) {
 		LuaVarList vars;
-		DeserializeToValue(command.data, vars);
+		Serializer::ToValue(command.data, vars);
 		m_callback(command, vars);
 	}
 };
@@ -694,7 +759,7 @@ void RemoteEngine::ResponseVarList(const Command_ &command, const LuaVarList &va
 	WriteResponse(
 		command,
 		REMOTECOMMANDTYPE_VALUE_VARLIST,
-		SerializeToStr(vars));
+		Serializer::ToStr(vars));
 }
 
 }

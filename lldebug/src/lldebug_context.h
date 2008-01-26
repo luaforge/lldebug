@@ -74,7 +74,7 @@ public:
 	LuaVarList LuaGetFields(TableType type);
 	LuaVarList LuaGetFields(const LuaVar &var);
 	LuaStackList LuaGetStack();
-	LuaBackTrace LuaGetBackTrace();
+	LuaBacktraceList LuaGetBackTrace();
 	int LuaEval(const std::string &str, lua_State *L = NULL);
 
 	/// コンテキストのＩＤを取得します。
@@ -148,6 +148,7 @@ private:
 	virtual int SaveConfig();
 	virtual void SetState(State state);
 	virtual void CommandCallback(const Command_ &command);
+	virtual int HandleCommand();
 
 	static void SetHook(lua_State *L, bool enable);
 	virtual void HookCallback(lua_State *L, lua_Debug *ar);
@@ -158,10 +159,6 @@ private:
 	int LuaInitialize(lua_State *L);
 	void BeginCoroutine(lua_State *L);
 	void EndCoroutine(lua_State *L);
-
-	class CommandHandler;
-	friend class CommandHandler;
-	shared_ptr<ICommandHandler> CreateCommandHandler();
 
 private:
 	class ContextManager;
@@ -196,6 +193,10 @@ private:
 	SourceManager m_sourceManager;
 	BreakpointList m_breakpoints;
 	std::string m_rootFileKey;
+
+	typedef std::queue<Command_> CommandQueue;
+	CommandQueue m_readCommandQueue;
+	boost::condition m_readCommandQueueCond;
 };
 
 /**

@@ -28,11 +28,12 @@
 #define __LLDEBUG_MAINFRAME_H__
 
 #include "lldebug_controls.h"
-#include "lldebug_remoteengine.h"
 #include <wx/aui/aui.h>
 #include <wx/aui/auibook.h>
 
 namespace lldebug {
+
+class Command_;
 
 /**
  * @brief メインウィンドウです。
@@ -42,18 +43,16 @@ public:
 	explicit MainFrame();
 	virtual ~MainFrame();
 
-	shared_ptr<ICommandHandler> CreateRemoteEngineCallback();
+	void AddPendingDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways);
+	bool IsExistDebugWindow(int wintypeid);
+	void ShowDebugWindow(int wintypeid);
 
 private:
 	void CreateGUIControls();
-	void AddPendingLLDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways);
-	bool IsExistWindow(int wintypeid);
-	void ShowView(int wintypeid);
 	void OnMenu(wxCommandEvent &event);
+	virtual void OnClose(wxCloseEvent &event);
 
-	class RemoteEngineCallback;
-	friend class RemoteEngineCallback;
-
+private:
 	DECLARE_EVENT_TABLE();
 	//DECLARE_DYNAMIC_CLASS(wxFrame);
 		

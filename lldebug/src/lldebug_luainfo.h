@@ -242,17 +242,17 @@ private:
 /**
  * @brief 関数の呼び出し履歴を保持します。
  */
-class LuaBackTraceInfo {
+class LuaBacktrace {
 public:
-	explicit LuaBackTraceInfo();
-	~LuaBackTraceInfo();
+	explicit LuaBacktrace();
+	~LuaBacktrace();
 
 #ifndef LLDEBUG_FRAME
-	explicit LuaBackTraceInfo(const LuaHandle &lua,
-							  const std::string &name,
-							  const std::string &sourceKey,
-							  const std::string &sourceTitle,
-							  int line, int level);
+	explicit LuaBacktrace(const LuaHandle &lua,
+						  const std::string &name,
+						  const std::string &sourceKey,
+						  const std::string &sourceTitle,
+						  int line, int level);
 #endif
 
 	/// このコールがなされたlua_Stateです。
@@ -308,67 +308,7 @@ public:
 
 typedef std::vector<LuaVar> LuaVarList;
 typedef std::vector<LuaVar> LuaStackList;
-typedef std::vector<LuaBackTraceInfo> LuaBackTrace;
-
-#if 0
-class SourceLineInfo {
-public:
-	explicit SourceLineInfo(const LuaHandle &lua,
-							const std::string &key, int line);
-	virtual ~SourceLineInfo();
-
-	/// Get the lua object.
-	const LuaHandle &GetLua() const {
-		return m_lua;
-	}
-
-	/// Get identifier key of the source file.
-	const std::string &GetKey() const {
-		return m_key;
-	}
-
-	/// Get title of the source file.
-	const std::string &GetTitle() const {
-		return m_title;
-	}
-
-	/// Get the number of line.
-	int GetLine() const {
-		return m_line;
-	}
-
-	/// Get the level of the stack frame of the function.
-	int GetLevel() const {
-		return m_level;
-	}
-
-	/// Is this source with this line current running ?
-	/// (considering backtrace)
-	bool IsCurrentRunning() const {
-		return m_isCurrentRunning;
-	}
-
-private:
-	friend class boost::serialization::access;
-	template<class Archive>
-	void serialize(Archive& ar, const unsigned int) {
-		ar & LLDEBUG_MEMBER_NVP(lua);
-		ar & LLDEBUG_MEMBER_NVP(key);
-		ar & LLDEBUG_MEMBER_NVP(sourceTitle);
-		ar & LLDEBUG_MEMBER_NVP(line);
-		ar & LLDEBUG_MEMBER_NVP(level);
-		ar & LLDEBUG_MEMBER_NVP(isCurrentRunning);
-	}
-
-private:
-	LuaHandle m_lua;
-	std::string m_key;
-	std::string m_title;
-	int m_line;
-	int m_level;
-	bool m_isCurrentRunning;
-};
-#endif
+typedef std::vector<LuaBacktrace> LuaBacktraceList;
 
 }
 

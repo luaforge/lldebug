@@ -172,10 +172,6 @@ Context::Context()
 int Context::CreateDebuggerFrame() {
 	scoped_lock lock(m_mutex);
 
-	if (m_engine.StartContext(51123, m_id) != 0) {
-		return -1;
-	}
-
 	/*HINSTANCE inst = ::ShellExecuteA(
 		NULL, NULL,
 		"..\\debug\\lldebug_frame.exe",
@@ -186,13 +182,9 @@ int Context::CreateDebuggerFrame() {
 		return -1;
 	}*/
 
-	/*for (;;) {
-		if (m_engine.GetCtxId() >= 0) {
-			break;
-		}
-
-		boost::thread::yield();
-	}*/
+	if (m_engine.StartContext(51123, m_id, 300) != 0) {
+		return -1;
+	}
 
 	return 0;
 }
@@ -413,6 +405,7 @@ void Context::SetState(State state) {
 
 	if (state == STATE_QUIT) {
 		m_state = state;
+		m_readCommandQueueCond.notify_all();
 		return;
 	}
 
@@ -497,6 +490,41 @@ void Context::SetState(State state) {
 
 void Context::CommandCallback(const Command_ &command) {
 	scoped_lock lock(m_mutex);
+
+	m_readCommandQueue.push(command);
+	m_readCommandQueueCond.notify_all();
+}
+
+int Context::HandleCommand() {
+	scoped_lock lock(m_mutex);
+
+	while (!m_readCommandQueue.empty()) {
+		Command_ command = m_readCommandQueue.front();
+		m_readCommandQueue.pop();
+
+		switch (command.header.type) {
+		case REMOTECOMMANDTYPE_END_CONNECTION:
+			Quit();
+			return -1;
+		case REMOTECOMMANDTYPE_BREAK:
+			SetState(STATE_BREAK);
+			break;
+		case REMOTECOMMANDTYPE_RESUME:
+			SetState(STATE_NORMAL);
+			break;
+		case REMOTECOMMANDTYPE_STEPINTO:
+			SetState(STATE_STEPINTO);
+			break;
+		case REMOTECOMMANDTYPE_STEPOVER:
+			SetState(STATE_STEPOVER);
+			break;
+		case REMOTECOMMANDTYPE_STEPRETURN:
+			SetState(STATE_STEPRETURN);
+			break;
+		}
+	}
+
+	return 0;
 }
 
 class Context::scoped_current_source {
@@ -578,26 +606,32 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 
 	// ブレイクにつき一回フレームを更新するために必要です。
 	State prevState = STATE_NORMAL;
-	do {
+	for (;;) {
 		// handle event and message queue
-		/*if (HandleCommand() != 0) {
+		if (HandleCommand() != 0 || !m_engine.IsConnected()) {
 			luaL_error(L, "quited");
 			return;
-		}*/
-
-		if (prevState != STATE_BREAK && m_state == STATE_BREAK) {
-			m_sourceManager.Add(ar->source, "");
-			m_engine.UpdateSource(ar->source, ar->currentline);
 		}
-		prevState = m_state;
 
-		// デバッグコマンドを最大３０秒間待ちます。
-		if (m_state == STATE_BREAK) {
-			lock.unlock();
-			boost::thread::yield();
-			lock.lock();
+		// Break this loop if the state isn't STATE_BREAK.
+		if (m_state != STATE_BREAK) {
+			break;
 		}
-	} while (m_state == STATE_BREAK);
+		else {
+			if (prevState != STATE_BREAK) {
+				m_sourceManager.Add(ar->source);
+				m_engine.UpdateSource(ar->source, ar->currentline);
+			}
+			prevState = m_state;
+
+			if (m_readCommandQueue.empty()) {
+				boost::xtime xt;
+				boost::xtime_get(&xt, boost::TIME_UTC);
+				xt.sec += 10;
+				m_readCommandQueueCond.timed_wait(lock, xt);
+			}
+		}
+	}
 }
 
 /**
@@ -617,9 +651,9 @@ public:
 			return 0;
 		}
 
-		LuaBackTrace array = ctx->LuaGetBackTrace();
+		LuaBacktraceList array = ctx->LuaGetBackTrace();
 		for (int i = 1; i < (int)array.size(); ++i) {
-			const LuaBackTraceInfo &info = array[i];
+			const LuaBacktrace &info = array[i];
 			printf("%s:%d: '%s'\n", info.GetKey().c_str(), info.GetLine(), info.GetFuncName().c_str());
 		}
 
@@ -1035,9 +1069,9 @@ int Context::LuaEval(const std::string &str, lua_State *L) {
 
 #define LEVEL_MAX	1024	/* maximum size of the stack */
 
-LuaBackTrace Context::LuaGetBackTrace() {
+LuaBacktraceList Context::LuaGetBackTrace() {
 	scoped_lock lock(m_mutex);
-	LuaBackTrace array;
+	LuaBacktraceList array;
 	
 	for (CoroutineList::reverse_iterator it = m_coroutines.rbegin();
 		it != m_coroutines.rend();
@@ -1083,7 +1117,7 @@ LuaBackTrace Context::LuaGetBackTrace() {
 		}
 	}
 
-			array.push_back(LuaBackTraceInfo(L1, name, ar.source, sourceTitle, ar.currentline, level));
+			array.push_back(LuaBacktrace(L1, name, ar.source, sourceTitle, ar.currentline, level));
 		}
 	}
 

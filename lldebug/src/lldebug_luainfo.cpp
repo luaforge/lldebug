@@ -122,14 +122,14 @@ LuaVar::LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx)
 #endif
 
 
-LuaBackTraceInfo::LuaBackTraceInfo() {
+LuaBacktrace::LuaBacktrace() {
 }
 
-LuaBackTraceInfo::~LuaBackTraceInfo() {
+LuaBacktrace::~LuaBacktrace() {
 }
 
 #ifndef LLDEBUG_FRAME
-LuaBackTraceInfo::LuaBackTraceInfo(const LuaHandle &lua,
+LuaBacktrace::LuaBacktrace(const LuaHandle &lua,
 								   const std::string &name,
 								   const std::string &sourceKey,
 								   const std::string &sourceTitle,
@@ -137,23 +137,6 @@ LuaBackTraceInfo::LuaBackTraceInfo(const LuaHandle &lua,
 	: m_lua(lua), m_funcName(name)
 	, m_key(sourceKey), m_sourceTitle(sourceTitle)
 	, m_line(line), m_level(level) {
-#if 0
-	
-#endif
-}
-#endif
-
-
-#if 0
-SourceLineInfo::SourceLineInfo(const LuaHandle &lua,
-							   const std::string &key,
-							   const std::string &title,
-							   int line, int level, bool isCurrentRunning)
-	: m_lua(lua), m_key(key), m_title(title), m_line(line)
-	, m_level(level), m_isCurrentRunning(isCurrentRunning) {
-}
-
-SourceLineInfo::~SourceLineInfo() {
 }
 #endif
 

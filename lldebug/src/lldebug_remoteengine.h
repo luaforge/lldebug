@@ -22,10 +22,14 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_END_CONNECTION,
 
 	REMOTECOMMANDTYPE_CHANGED_STATE,
-	REMOTECOMMANDTYPE_ADD_SOURCE,
 	REMOTECOMMANDTYPE_UPDATE_SOURCE,
+	REMOTECOMMANDTYPE_ADDED_SOURCE,
 
 	REMOTECOMMANDTYPE_BREAK,
+	REMOTECOMMANDTYPE_RESUME,
+	REMOTECOMMANDTYPE_STEPINTO,
+	REMOTECOMMANDTYPE_STEPOVER,
+	REMOTECOMMANDTYPE_STEPRETURN,
 
 	REMOTECOMMANDTYPE_SET_BREAKPOINT,
 	REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
@@ -57,53 +61,24 @@ struct CommandHeader {
 /**
  * @brief The command using TCP connection.
  */
-struct Command_ {
+class Command_ {
+public:
 	CommandHeader header;
 	std::string data;
 };
 
-/**
- * @brief
- */
-class ICommandHandler {
-public:
-	explicit ICommandHandler() {}
-	virtual ~ICommandHandler() {}
-
-	virtual void OnSuccessed(const Command_ &command) {}
-	virtual void OnFailed(const Command_ &command) {}
-
-	/// Callback for REMOTECOMMANDTYPE_START_CONNECTION.
-	virtual void OnStartConnection(const Command_ &command) {}
-	virtual void OnEndConnection(const Command_ &command) {}
-
-	virtual void OnChangedState(const Command_ &command, bool isBreak) {}
-	virtual void OnUpdateSource(const Command_ &command, const std::string &key, int line) {}
-	virtual void OnAddSource(const Command_ &command, const Source &source) {}
-
-	virtual void OnSetBreakpoint(const Command_ &command, const Breakpoint &bp) {}
-	virtual void OnRemoveBreakpoint(const Command_ &command, const Breakpoint &bp) {}
-	virtual void OnChangedBreakpointList(const Command_ &command, const BreakpointList &bps) {}
-
-	virtual void OnRequestGlobalVarList(const Command_ &command) {}
-
-/*
-	REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
-	REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
-	REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
-	REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
-	REMOTECOMMANDTYPE_REQUEST_STACKVARLIST,
-	REMOTECOMMANDTYPE_REQUEST_BACKTRACE,
-	REMOTECOMMANDTYPE_REQUEST_BREAKPOINTLIST,
-
-	REMOTECOMMANDTYPE_VALUE_VARLIST,
-	REMOTECOMMANDTYPE_VALUE_BACKTRACE,
-	REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST,*/
-};
-
-typedef boost::function1<void, const Command_ &> CommandCallback;
-typedef boost::function2<void, const Command_ &, const LuaVarList &> LuaVarListCallback;
-typedef boost::function2<void, const Command_ &, const BreakpointList &> BreakpointListCallback;
+typedef
+	boost::function1<void, const Command_ &>
+	CommandCallback;
+typedef
+	boost::function2<void, const Command_ &, const LuaVarList &>
+	LuaVarListCallback;
+typedef
+	boost::function2<void, const Command_ &, const BreakpointList &>
+	BreakpointListCallback;
+typedef
+	boost::function2<void, const Command_ &, const LuaBacktraceList &>
+	BacktraceListCallback;
 
 class SocketBase;
 
@@ -116,26 +91,35 @@ public:
 	virtual ~RemoteEngine();
 
 	/// Start the debuggee program (context).
-	int StartContext(int portNum, int ctxId);
+	int StartContext(int portNum, int ctxId, int waitSeconds);
 
 	/// Start the debugger program (frame).
-	int StartFrame(const std::string &hostName, const std::string &portName, int waitSeconds);
+	int StartFrame(const std::string &hostName, const std::string &portName,
+				   int waitSeconds);
 
-	void SetReadCommandHandler(shared_ptr<ICommandHandler> handler);
+	/// Is the socket connected ?
+	bool IsConnected();
+
 	void SetReadCommandCallback(const CommandCallback &callback);
 
 	void ResponseSuccessed(const Command_ &command);
 	void ResponseFailed(const Command_ &command);
-	void StartConnection();
+	void StartConnection(int ctxId);
 	void EndConnection();
 
 	void ChangedState(bool isBreak);
 	void UpdateSource(const std::string &key, int line);
-	void AddSource(const Source &source);
+	void AddedSource(const Source &source);
 
 	void SetBreakpoint(const Breakpoint &bp);
 	void RemoveBreakpoint(const Breakpoint &bp);
 	void ChangedBreakpointList(const BreakpointList &bps);
+
+	void Break();
+	void Resume();
+	void StepInto();
+	void StepOver();
+	void StepReturn();
 	
 	void RequestGlobalVarList(const LuaVarListCallback &callback);
 	void ResponseVarList(const Command_ &command, const LuaVarList &vars);
@@ -174,9 +158,8 @@ private:
 
 	boost::asio::io_service m_ioService;
 	boost::shared_ptr<SocketBase> m_socket;
-	boost::uint32_t m_commandIdCounter;
 	int m_ctxId;
-	shared_ptr<ICommandHandler> m_readCommandHandler;
+	boost::uint32_t m_commandIdCounter;
 	CommandCallback m_readCommandCallback;
 
 	struct WaitResponseCommand {
@@ -188,6 +171,50 @@ private:
 
 	//typedef std::queue<Command_> ReadCommandQueue;
 	//ReadCommandQueue m_readCommandQueue; // commands that were read.
+};
+
+
+/**
+ * @brief Serializer class
+ */
+struct Serializer {
+	template<class T0>
+	static std::string ToStr(const T0 &value0) {
+		std::stringstream sstream;
+		boost::archive::xml_oarchive ar(sstream);
+
+		ar << BOOST_SERIALIZATION_NVP(value0);
+		sstream.flush();
+		return sstream.str();
+	}
+
+	template<class T0, class T1>
+	static std::string ToStr(const T0 &value0, const T1 &value1) {
+		std::stringstream sstream;
+		boost::archive::xml_oarchive ar(sstream);
+
+		ar << BOOST_SERIALIZATION_NVP(value0);
+		ar << BOOST_SERIALIZATION_NVP(value1);
+		sstream.flush();
+		return sstream.str();
+	}
+
+	template<class T0>
+	static void ToValue(const std::string &data, T0 &value0) {
+		std::stringstream sstream(data);
+		boost::archive::xml_iarchive ar(sstream);
+
+		ar >> BOOST_SERIALIZATION_NVP(value0);
+	}
+
+	template<class T0, class T1>
+	static void ToValue(const std::string &data, T0 &value0, T1 &value1) {
+		std::stringstream sstream(data);
+		boost::archive::xml_iarchive ar(sstream);
+
+		ar >> BOOST_SERIALIZATION_NVP(value0);
+		ar >> BOOST_SERIALIZATION_NVP(value1);
+	}
 };
 
 }

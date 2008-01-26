@@ -239,6 +239,18 @@ SourceManager::SourceManager(RemoteEngine *engine)
 SourceManager::~SourceManager() {
 }
 
+std::list<Source> SourceManager::GetList() {
+	scoped_lock lock(m_mutex);
+	std::list<Source> result;
+
+	ImplMap::iterator it;
+	for (it = m_sourceMap.begin(); it != m_sourceMap.end(); ++it) {
+		result.push_back(it->second);
+	}
+
+	return result;
+}
+
 const Source *SourceManager::Get(const std::string &key) {
 	scoped_lock lock(m_mutex);
 
@@ -250,7 +262,6 @@ const Source *SourceManager::Get(const std::string &key) {
 	return &(it->second);
 }
 
-#ifndef LLDEBUG_FRAME
 static string_array split(std::istream &stream) {
 	string_array array;
 	char buffer[2048];
@@ -264,7 +275,7 @@ static string_array split(std::istream &stream) {
 	return array;
 }
 
-int SourceManager::Add(const std::string &key, const std::string &path) {
+int SourceManager::Add(const std::string &key) {
 	scoped_lock lock(m_mutex);
 
 	if (key.empty()) {
@@ -277,14 +288,19 @@ int SourceManager::Add(const std::string &key, const std::string &path) {
 
 	// It's a file if the beginning char is '@'.
 	if (key[0] == '@') {
-		std::ifstream ifs(path.c_str());
+		boost::filesystem::path path(&key[1]);
+		path = boost::filesystem::complete(path);
+		path = path.normalize();
+		std::string pathstr = path.native_file_string();
+
+		std::ifstream ifs(pathstr.c_str());
 		if (ifs.fail()) {
 			return -1;
 		}
 
-		Source src(key, std::string(key, 1), split(ifs), path);
+		Source src(key, std::string(key, 1), split(ifs), pathstr);
 		m_sourceMap.insert(std::make_pair(key, src));
-		m_engine->AddSource(src);
+		m_engine->AddedSource(src);
 	}
 	else {
 		// ソースがテキストの場合は長すぎる可能性があるので、タイトルを別に作成します。
@@ -295,12 +311,18 @@ int SourceManager::Add(const std::string &key, const std::string &path) {
 		std::stringstream sstream(key);
 		Source src(key, title.str(), split(sstream));
 		m_sourceMap.insert(std::make_pair(key, src));
-		m_engine->AddSource(src);
+		m_engine->AddedSource(src);
 	}
 	
 	return 0;
 }
-#endif
+
+int SourceManager::Add(const Source &source) {
+	scoped_lock lock(m_mutex);
+
+	m_sourceMap.insert(std::make_pair(source.GetKey(), source));
+	return 0;
+}
 
 int SourceManager::Save(const std::string &key, const string_array &source) {
 	scoped_lock lock(m_mutex);
