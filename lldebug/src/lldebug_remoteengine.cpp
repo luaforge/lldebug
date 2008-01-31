@@ -30,7 +30,7 @@ private:
 	
 public:
 	/// Write command data.
-	void Write(const CommandHeader &header, const std::string &data) {
+	void Write(const CommandHeader &header, const CommandData &data) {
 		Command_ writeCommand;
 		writeCommand.header = header;
 		writeCommand.data = data;
@@ -128,9 +128,7 @@ private:
 		if (!error) {
 			Command_ cmd;
 			cmd.header = command->header;
-			cmd.data = (command->header.dataSize == 0
-				? ""
-				: std::string(&command->data[0], command->header.dataSize));
+			cmd.data = command->data;
 
 			// m_callback isn't mutable.
 			m_callback(cmd);
@@ -245,7 +243,9 @@ public:
 				// Do async operation.
 				GetService().poll_one();
 				GetService().reset();
-				boost::thread::yield();
+
+				current.nsec += 100 * 1000 * 1000;
+				boost::thread::sleep(current);
 			}
 		}
 		
@@ -313,7 +313,9 @@ public:
 				// Do async operation.
 				GetService().poll_one();
 				GetService().reset();
-				boost::thread::yield();
+
+				current.nsec += 100 * 1000 * 1000;
+				boost::thread::sleep(current);
 			}
 		}
 		
@@ -463,7 +465,20 @@ bool RemoteEngine::IsThreadActive() {
 void RemoteEngine::SetThreadActive(bool is) {
 	scoped_lock lock(m_mutex);
 
+	if (m_isThreadActive == is) {
+		return;
+	}
+
 	m_isThreadActive = is;
+
+	if (!m_isThreadActive) {
+		/*Command_ command;
+		command.header.type = REMOTECOMMANDTYPE_END_CONNECTION;
+		command.header.ctxId = m_ctxId;
+		command.header.commandId = 0;
+		command.header.dataSize = 0;
+		m_readCommandCallback(command);*/
+	}
 }
 
 void RemoteEngine::StartThread() {
@@ -479,9 +494,12 @@ void RemoteEngine::StartThread() {
 void RemoteEngine::StopThread() {
 	if (IsThreadActive()) {
 		SetThreadActive(false);
+	}
 
+	if (m_thread != NULL) {
 		m_thread->join();
 		m_thread.reset();
+		m_socket.reset();
 	}
 }
 
@@ -493,21 +511,25 @@ void RemoteEngine::serviceThread() {
 
 	SetThreadActive(true);
 	try {
-		while (IsThreadActive()) {
+		for (;;) {
 			// 10 works are set.
 			for (int i = 0; i < 10; ++i) {
 				m_ioService.poll_one();
 			}
 
-			m_ioService.reset();
+			if (!IsThreadActive() && m_ioService.poll_one() == 0) {
+				break;
+			}
 
+			m_ioService.reset();
 			boost::xtime xt;
 			boost::xtime_get(&xt, boost::TIME_UTC);
 			xt.nsec += 10 * 1000 * 1000; // 1ms = 1000 * 1000nsec
 			boost::thread::sleep(xt);
 		}
 	}
-	catch (std::exception &) {
+	catch (std::exception &ex) {
+		printf("%s\n", ex.what());
 	}
 
 	SetThreadActive(false);
@@ -525,7 +547,9 @@ void RemoteEngine::handleReadCommand(const Command_ &command) {
 		if (command.header.ctxId == header_.ctxId
 			&& command.header.commandId == header_.commandId) {
 			isResponseCommand = true;
-			(*it).response(command);
+			if (IsThreadActive()) {
+				(*it).response(command);
+			}
 			it = m_waitResponseCommandList.erase(it);
 		}
 		else {
@@ -536,10 +560,14 @@ void RemoteEngine::handleReadCommand(const Command_ &command) {
 	switch (command.header.type) {
 	case REMOTECOMMANDTYPE_START_CONNECTION:
 		SetCtxId(command.header.ctxId);
-		//ResponseSuccessed(command);
-		break;
+		return;
 	case REMOTECOMMANDTYPE_END_CONNECTION:
 		SetCtxId(-1);
+		return;
+	default:
+		if (m_ctxId < 0) {
+			SetCtxId(command.header.ctxId);
+		}
 		break;
 	}
 
@@ -577,7 +605,7 @@ CommandHeader RemoteEngine::InitCommandHeader(RemoteCommandType type,
 }
 
 void RemoteEngine::WriteCommand(RemoteCommandType type,
-								const std::string &data) {
+								const CommandData &data) {
 	scoped_lock lock(m_mutex);
 	CommandHeader header;
 
@@ -586,7 +614,7 @@ void RemoteEngine::WriteCommand(RemoteCommandType type,
 }
 
 void RemoteEngine::WriteCommand(RemoteCommandType type,
-								const std::string &data,
+								const CommandData &data,
 								const CommandCallback &response) {
 	scoped_lock lock(m_mutex);
 	WaitResponseCommand wcommand;
@@ -599,7 +627,7 @@ void RemoteEngine::WriteCommand(RemoteCommandType type,
 
 void RemoteEngine::WriteResponse(const Command_ &readCommand,
 								 RemoteCommandType type,
-								 const std::string &data) {
+								 const CommandData &data) {
 	scoped_lock lock(m_mutex);
 	CommandHeader header;
 
@@ -613,13 +641,13 @@ void RemoteEngine::WriteResponse(const Command_ &readCommand,
 void RemoteEngine::ResponseSuccessed(const Command_ &command) {
 	scoped_lock lock(m_mutex);
 
-	WriteResponse(command, REMOTECOMMANDTYPE_SUCCESSED, "");
+	WriteResponse(command, REMOTECOMMANDTYPE_SUCCESSED, CommandData());
 }
 
 void RemoteEngine::ResponseFailed(const Command_ &command) {
 	scoped_lock lock(m_mutex);
 
-	WriteResponse(command, REMOTECOMMANDTYPE_FAILED, "");
+	WriteResponse(command, REMOTECOMMANDTYPE_FAILED, CommandData());
 }
 
 void RemoteEngine::StartConnection(int ctxId) {
@@ -630,7 +658,7 @@ void RemoteEngine::StartConnection(int ctxId) {
 		REMOTECOMMANDTYPE_START_CONNECTION,
 		0, 0);
 	header.ctxId = ctxId;
-	m_socket->Write(header, "");
+	m_socket->Write(header, CommandData());
 }
 
 void RemoteEngine::EndConnection() {
@@ -638,7 +666,7 @@ void RemoteEngine::EndConnection() {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_END_CONNECTION,
-		"");
+		CommandData());
 }
 
 void RemoteEngine::ChangedState(bool isBreak) {
@@ -646,15 +674,16 @@ void RemoteEngine::ChangedState(bool isBreak) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_CHANGED_STATE,
-		Serializer::ToStr(isBreak));
+		Serializer::ToData(isBreak));
 }
 
-void RemoteEngine::UpdateSource(const std::string &key, int line) {
+void RemoteEngine::UpdateSource(const std::string &key, int line, int updateSourceCount, const CommandCallback &response) {
 	scoped_lock lock(m_mutex);
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_UPDATE_SOURCE,
-		Serializer::ToStr(key, line));
+		Serializer::ToData(key, line, updateSourceCount),
+		response);
 }
 
 void RemoteEngine::AddedSource(const Source &source) {
@@ -662,7 +691,7 @@ void RemoteEngine::AddedSource(const Source &source) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_ADDED_SOURCE,
-		Serializer::ToStr(source));
+		Serializer::ToData(source));
 }
 
 /// Notify that the breakpoint was set.
@@ -671,7 +700,7 @@ void RemoteEngine::SetBreakpoint(const Breakpoint &bp) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_SET_BREAKPOINT,
-		Serializer::ToStr(bp));
+		Serializer::ToData(bp));
 }
 
 void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
@@ -679,7 +708,7 @@ void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
-		Serializer::ToStr(bp));
+		Serializer::ToData(bp));
 }
 
 void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
@@ -687,7 +716,7 @@ void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST,
-		Serializer::ToStr(bps));
+		Serializer::ToData(bps));
 }
 
 void RemoteEngine::Break() {
@@ -695,7 +724,7 @@ void RemoteEngine::Break() {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_BREAK,
-		"");
+		CommandData());
 }
 
 void RemoteEngine::Resume() {
@@ -703,7 +732,7 @@ void RemoteEngine::Resume() {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_RESUME,
-		"");
+		CommandData());
 }
 
 void RemoteEngine::StepInto() {
@@ -711,7 +740,7 @@ void RemoteEngine::StepInto() {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_STEPINTO,
-		"");
+		CommandData());
 }
 
 void RemoteEngine::StepOver() {
@@ -719,7 +748,7 @@ void RemoteEngine::StepOver() {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_STEPOVER,
-		"");
+		CommandData());
 }
 
 void RemoteEngine::StepReturn() {
@@ -727,7 +756,7 @@ void RemoteEngine::StepReturn() {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_STEPRETURN,
-		"");
+		CommandData());
 }
 
 struct VarListResponseHandler {
@@ -744,12 +773,57 @@ struct VarListResponseHandler {
 	}
 };
 
+void RemoteEngine::RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
+		Serializer::ToData(var),
+		VarListResponseHandler(callback));
+}
+
+void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
+		Serializer::ToData(stackFrame),
+		VarListResponseHandler(callback));
+}
+
 void RemoteEngine::RequestGlobalVarList(const LuaVarListCallback &callback) {
 	scoped_lock lock(m_mutex);
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
-		"",
+		CommandData(),
+		VarListResponseHandler(callback));
+}
+
+void RemoteEngine::RequestRegistryVarList(const LuaVarListCallback &callback) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
+		CommandData(),
+		VarListResponseHandler(callback));
+}
+
+void RemoteEngine::RequestEnvironVarList(const LuaVarListCallback &callback) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
+		CommandData(),
+		VarListResponseHandler(callback));
+}
+
+void RemoteEngine::RequestStackList(const LuaVarListCallback &callback) {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_REQUEST_STACKLIST,
+		CommandData(),
 		VarListResponseHandler(callback));
 }
 
@@ -759,7 +833,7 @@ void RemoteEngine::ResponseVarList(const Command_ &command, const LuaVarList &va
 	WriteResponse(
 		command,
 		REMOTECOMMANDTYPE_VALUE_VARLIST,
-		Serializer::ToStr(vars));
+		Serializer::ToData(vars));
 }
 
 }

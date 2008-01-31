@@ -119,6 +119,37 @@ private:
 };
 
 /**
+ * @brief Stackframe object.
+ */
+class LuaStackFrame {
+public:
+	explicit LuaStackFrame(const LuaHandle &lua = LuaHandle(), int level = -1);
+	~LuaStackFrame();
+
+	/// Get the lua state object.
+	LuaHandle &GetLua() {
+		return m_lua;
+	}
+
+	/// Get the level of the local stack frame.
+	int GetLevel() const {
+		return m_level;
+	}
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int) {
+		ar & LLDEBUG_MEMBER_NVP(lua);
+		ar & LLDEBUG_MEMBER_NVP(level);
+	}
+
+private:
+	LuaHandle m_lua;
+	int m_level;
+};
+
+/**
  * @brief luaの変数情報を保持します。
  */
 class LuaVar {
@@ -134,7 +165,7 @@ public:
 	
 	/// このオブジェクトが有効かどうか取得します。
 	bool IsOk() const {
-		return (m_parent != NULL);
+		return (m_valueType >= 0);
 	}
 
 	/// この変数があるlua_State *を取得します。

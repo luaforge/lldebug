@@ -42,6 +42,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/thread.hpp>
+#include <boost/functional.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -71,6 +74,11 @@ namespace lldebug {
 	using boost::shared_polymorphic_downcast;
 	using boost::static_pointer_cast;
 	using boost::weak_ptr;
+
+	//typedef boost::archive::binary_oarchive serialize_oarchive;
+	//typedef boost::archive::binary_iarchive serialize_iarchive;
+	typedef boost::archive::xml_oarchive serialize_oarchive;
+	typedef boost::archive::xml_iarchive serialize_iarchive;
 
 	using boost::thread;
 	using boost::condition;

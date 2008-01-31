@@ -91,8 +91,17 @@ std::string LuaToString(lua_State *L, int idx) {
 }
 #endif
 
+
+LuaStackFrame::LuaStackFrame(const LuaHandle &lua, int level)
+	: m_lua(lua), m_level(level) {
+}
+
+LuaStackFrame::~LuaStackFrame() {
+}
+
+
 LuaVar::LuaVar()
-: m_valueType(-1) { //LUA_TNONE) {
+	: m_valueType(-1) { //LUA_TNONE) {
 }
 
 LuaVar::~LuaVar() {

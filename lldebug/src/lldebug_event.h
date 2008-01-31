@@ -58,8 +58,10 @@ private:
 class wxSourceLineEvent : public wxEvent {
 public:
 	explicit wxSourceLineEvent(wxEventType type, int winid,
-							   const std::string &key, int line)
-		: wxEvent(winid, type), m_key(key), m_line(line) {
+							   const std::string &key, int line,
+							   int updateSourceCount)
+		: wxEvent(winid, type), m_key(key), m_line(line)
+		, m_updateSourceCount(m_updateSourceCount) {
 	}
 
 	virtual ~wxSourceLineEvent() {
@@ -75,6 +77,11 @@ public:
 		return m_line;
 	}
 
+	/// Get the count of 'update source'.
+	int GetUpdateSourceCount() const {
+		return m_updateSourceCount;
+	}
+
 	virtual wxEvent *Clone() const {
 		return new wxSourceLineEvent(*this);
 	}
@@ -82,6 +89,7 @@ public:
 private:
 	std::string m_key;
 	int m_line;
+	int m_updateSourceCount;
 };
 
 class wxSourceEvent : public wxEvent {
@@ -107,6 +115,29 @@ private:
 	Source m_source;
 };
 
+class wxBreakpointEvent : public wxEvent {
+public:
+	explicit wxBreakpointEvent(wxEventType type, int winid,
+							   const BreakpointList &breakpoints)
+		: wxEvent(winid, type), m_breakpoints(breakpoints) {
+	}
+
+	virtual ~wxBreakpointEvent() {
+	}
+
+	/// Get breakpoint object.
+	BreakpointList &GetBreakpoints() {
+		return m_breakpoints;
+	}
+
+	virtual wxEvent *Clone() const {
+		return new wxBreakpointEvent(*this);
+	}
+
+private:
+	BreakpointList m_breakpoints;
+};
+
 
 BEGIN_DECLARE_EVENT_TYPES()
 #if !wxCHECK_VERSION(2, 5, 0)
@@ -116,12 +147,14 @@ BEGIN_DECLARE_EVENT_TYPES()
 	DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_LLDEBUG, wxEVT_CHANGED_STATE, 2652)
 	DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_LLDEBUG, wxEVT_UPDATE_SOURCE, 2653)
 	DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_LLDEBUG, wxEVT_ADDED_SOURCE, 2654)
+	DECLARE_EXPORTED_EVENT_TYPE(WXDLLIMPEXP_LLDEBUG, wxEVT_CHANGED_BREAKPOINTS, 2655)
 #endif
 END_DECLARE_EVENT_TYPES()
 
 typedef void (wxEvtHandler::*wxChangedStateEventFunction)(wxChangedStateEvent &);
 typedef void (wxEvtHandler::*wxSourceLineEventFunction)(wxSourceLineEvent &);
 typedef void (wxEvtHandler::*wxSourceEventFunction)(wxSourceEvent &);
+typedef void (wxEvtHandler::*wxBreakpointEventFunction)(wxBreakpointEvent &);
 
 #if !wxCHECK_VERSION(2, 5, 0)
 #define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxChangedStateEventFunction)&fn, (wxObject *)NULL),
@@ -130,6 +163,7 @@ typedef void (wxEvtHandler::*wxSourceEventFunction)(wxSourceEvent &);
 #define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxChangedStateEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxSourceLineEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxSourceEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxBreakpointEventFunction, &fn), (wxObject *)NULL),
 #endif
 
 }

@@ -52,7 +52,7 @@ public:
 	typedef std::vector<wxTreeItemId> wxTreeItemIdList;
 
 public:
-	explicit WatchView(Context *ctx, wxWindow *parent, Type type);
+	explicit WatchView(wxWindow *parent, Type type);
 	virtual ~WatchView();
 
 	virtual wxTreeItemIdList GetItemChildren(const wxTreeItemId &item);
@@ -60,9 +60,13 @@ public:
 
 private:
 	void CreateGUIControls();
-	void UpdateVars(wxTreeItemId parent, const LuaVarList &vars);
-	LuaVarList GetLuaVarList(lua_State *L, int level);
 	void LayoutColumn(int selectedColumn);
+
+	class UpdateVars;
+	friend class UpdateVars;
+	void BeginUpdateVars(bool isExpand);
+	void BeginUpdateVars(wxTreeItemId item, const LuaVar &var, bool isExpand);
+	void DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool isExpand);
 
 private:
 	void OnChangedState(wxChangedStateEvent &event);
@@ -77,10 +81,7 @@ private:
 
 private:
 	mutex m_mutex;
-	Context *m_ctx;
 	Type m_type;
-	lua_State *m_lua;
-	int m_level;
 };
 
 }

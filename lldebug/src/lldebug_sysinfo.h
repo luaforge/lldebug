@@ -32,73 +32,6 @@ namespace lldebug {
 std::string GetConfigFileName(const std::string &filename);
 
 /**
- * @brief スクリプトやその実行に対して命令を下すクラスです。
- */
-class Command {
-public:
-	/**
-	 * @brief コマンドを識別します。
-	 */
-	enum Type {
-		TYPE_NONE,
-		TYPE_PAUSE,
-		TYPE_RESTART,
-		TYPE_TOGGLE,
-		TYPE_STEPOVER,
-		TYPE_STEPINTO,
-		TYPE_STEPRETURN,
-		TYPE_QUIT,
-	};
-
-public:
-	explicit Command(Type type);
-	virtual ~Command();
-
-	/// コマンドの種類を取得します。
-	Type GetType() const {
-		return m_type;
-	}
-
-private:
-	Type m_type;
-};
-
-/**
- * @brief コマンドキューです。
- */
-class CommandQueue {
-public:
-	explicit CommandQueue();
-	virtual ~CommandQueue();
-
-	/// コマンドを最大maxSec秒間待ちます。
-	virtual bool Wait(size_t maxSec);
-
-	/// コマンドを取得します。
-	virtual const Command &Get();
-
-	/// コマンドを一つ追加します。
-	virtual int Push(const Command &cmd);
-
-	/// コマンドを一つ追加します。
-	virtual int PushCommand(Command::Type type);
-
-	/// コマンドを一つ削除します。
-	virtual void Pop();
-
-	/// コマンドが空かどうか調べます。
-	virtual bool IsEmpty();
-
-private:
-	typedef std::list<Command> QueueImpl;
-	QueueImpl m_queue;
-
-	mutex m_mutex;
-	condition m_cond;
-};
-
-
-/**
  * @brief デバッガのブレイクポイントオブジェクトです。
  */
 class Breakpoint {
@@ -165,6 +98,9 @@ public:
 
 	/// Find the breakpoint from key and line.
 	Breakpoint Find(const std::string &key, int line);
+
+	/// Find the first breakpoint of the key.
+	Breakpoint First(const std::string &key);
 
 	/// Find the next breakpoint (same key and bigger line).
 	Breakpoint Next(const Breakpoint &bp);

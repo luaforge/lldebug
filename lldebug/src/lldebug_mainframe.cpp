@@ -28,9 +28,10 @@
 #include "lldebug_remoteengine.h"
 #include "lldebug_mainframe.h"
 #include "lldebug_sourceview.h"
-/*#include "lldebug_interactview.h"
+#include "lldebug_outputview.h"
+//#include "lldebug_interactview.h"
 #include "lldebug_watchview.h"
-#include "lldebug_backtraceview.h"*/
+//#include "lldebug_backtraceview.h"
 
 namespace lldebug {
 
@@ -53,7 +54,6 @@ enum {
 };
 
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
-	EVT_CLOSE(MainFrame::OnClose)
 	EVT_MENU(wxID_EXIT, MainFrame::OnMenu)
 
 	EVT_MENU(ID_MENU_BREAK, MainFrame::OnMenu)
@@ -107,6 +107,7 @@ void MainFrame::CreateGUIControls() {
 		.Name(wxT("SourceView")).Caption(wxT("SourceView"))
 		.CentrePane().Floatable(false).PaneBorder(false));
 
+	ShowDebugWindow(ID_OUTPUTVIEW);
 	ShowDebugWindow(ID_INTERACTVIEW);
 	ShowDebugWindow(ID_GLOBALWATCHVIEW);
 	ShowDebugWindow(ID_REGISTRYWATCHVIEW);
@@ -150,13 +151,6 @@ void MainFrame::CreateGUIControls() {
 	SetIcon(wxNullIcon);
 	SetAutoLayout(true);
 	Center();
-}
-
-void MainFrame::OnClose(wxCloseEvent &event) {
-	scoped_lock lock(m_mutex);
-
-	event.Skip();
-	wxExit();
 }
 
 void MainFrame::AddPendingDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways) {
@@ -210,33 +204,38 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 		return;
 	}
 
-	/*switch (wintypeid) {
-	case ID_INTERACTVIEW:
+	switch (wintypeid) {
+	/*case ID_INTERACTVIEW:
 		m_auiNotebook->AddPage(
 			new InteractView(m_ctx, this),
 			_("InteractView"));
+		break;*/
+	case ID_OUTPUTVIEW:
+		m_auiNotebook->AddPage(
+			new OutputView(this),
+			_("OutputView"));
 		break;
 	case ID_LOCALWATCHVIEW:
 		m_auiNotebook->AddPage(
-			new WatchView(m_ctx, this, WatchView::TYPE_LOCALWATCH),
+			new WatchView(this, WatchView::TYPE_LOCALWATCH),
 			_("LocalWatch"));
 		break;
 	case ID_GLOBALWATCHVIEW:
 		m_auiNotebook->AddPage(
-			new WatchView(m_ctx, this, WatchView::TYPE_GLOBALWATCH),
+			new WatchView(this, WatchView::TYPE_GLOBALWATCH),
 			_("GlobalWatch"));
 		break;
 	case ID_REGISTRYWATCHVIEW:
 		m_auiNotebook->AddPage(
-			new WatchView(m_ctx, this, WatchView::TYPE_REGISTRYWATCH),
+			new WatchView(this, WatchView::TYPE_REGISTRYWATCH),
 			_("RegistryWatch"));
 		break;
 	case ID_STACKWATCHVIEW:
 		m_auiNotebook->AddPage(
-			new WatchView(m_ctx, this, WatchView::TYPE_STACKWATCH),
+			new WatchView(this, WatchView::TYPE_STACKWATCH),
 			_("StackWatch"));
 		break;
-	case ID_WATCHVIEW:
+	/*case ID_WATCHVIEW:
 		m_auiNotebook->AddPage(
 			new WatchView(m_ctx, this, WatchView::TYPE_WATCH),
 			_("Watch"));
@@ -245,7 +244,7 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 		m_auiNotebook->AddPage(
 			new BackTraceView(m_ctx, this),
 			_("BackTrace"));
-		break;
+		break;*/
 	default:
 		return;
 	}
@@ -253,7 +252,7 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 	// Select and show new page.
 	if (m_auiNotebook->GetPageCount() > 0) {
 		m_auiNotebook->SetSelection(m_auiNotebook->GetPageCount() - 1);
-	}*/
+	}
 }
 
 void MainFrame::OnMenu(wxCommandEvent &event) {
@@ -278,9 +277,9 @@ void MainFrame::OnMenu(wxCommandEvent &event) {
 	case ID_MENU_STEPRETURN:
 		Mediator::Get()->GetEngine()->StepReturn();
 		break;
-	/*case ID_MENU_TOGGLE_BREAKPOINT:
-		//m_sourceView->ToggleBreakpoint();
-		break;*/
+	case ID_MENU_TOGGLE_BREAKPOINT:
+		m_sourceView->ToggleBreakpoint();
+		break;
 
 	case ID_MENU_SHOW_LOCALWATCH:
 		ShowDebugWindow(ID_LOCALWATCHVIEW);

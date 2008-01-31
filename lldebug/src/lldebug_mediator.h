@@ -28,6 +28,7 @@
 #define __LLDEBUG_MEDIATOR_H__
 
 #include "lldebug_sysinfo.h"
+#include "lldebug_luainfo.h"
 
 namespace lldebug {
 
@@ -104,9 +105,16 @@ public:
 		m_breakpoints.Toggle(key, line);
 	}
 
+	/// Get the main frame object.
 	MainFrame *GetFrame() {
 		scoped_lock lock(m_mutex);
 		return m_frame;
+	}
+
+	/// 
+	int GetUpdateSourceCount() {
+		scoped_lock lock(m_mutex);
+		return m_updateSourceCount;
 	}
 
 private:
@@ -132,6 +140,9 @@ private:
 	MainFrame *m_frame;
 	BreakpointList m_breakpoints;
 	SourceManager m_sourceManager;
+
+	LuaStackFrame m_stackFrame;
+	int m_updateSourceCount;
 };
 
 }

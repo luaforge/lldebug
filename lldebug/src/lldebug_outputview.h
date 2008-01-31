@@ -24,63 +24,33 @@
  * SUCH DAMAGE.
  */
 
-#include "lldebug_prec.h"
-#include "lldebug_remoteengine.h"
-#include "lldebug_application.h"
-#include "lldebug_mainframe.h"
+#ifndef __LLDEBUG_OUTPUTVIEW_H__
+#define __LLDEBUG_OUTPUTVIEW_H__
 
-IMPLEMENT_APP(lldebug::Application)
-
-int main(int argc, char *argv[]) {
-	return wxEntry(argc, argv);
-}
+#include "lldebug_controls.h"
 
 namespace lldebug {
 
-Application::Application()
-	: m_frame(NULL) {
-	SetAppName(wxT("lldebug debugger"));
-}
+/**
+ * @brief ソースコードを表示するコントロールです。
+ */
+class OutputView : public wxTextCtrl {
+public:
+	explicit OutputView(wxWindow *parent);
+	virtual ~OutputView();
 
-Application::~Application() {
-}
+	void Output();
 
-//wxFile file;
+private:
+	void CreateGUIControls();
+	//void OnOutput(wx);
 
-bool Application::OnInit() {
-	std::string hostName = wxConvToUTF8(this->argv[1]);
-	std::string portName = wxConvToUTF8(this->argv[2]);
+	DECLARE_EVENT_TABLE();
 
-	/*wxString str;
-	str.Printf(_T("%s_____%s.tmp"), this->argv[1], this->argv[2]);
-	wxFileName filename(wxStandardPaths().GetTempDir(), str);
-	filename.MakeAbsolute();
-	if (!file.Create(filename.GetFullPath(), true, wxS_IXUSR | wxS_IXGRP | wxS_IXOTH)) {
-		return false;
-	}*/
-
-	//::wxExecute(_T("..\\debug\\test.exe"));
-
-	if (m_mediator.Initialize(hostName, portName) != 0) {
-		return false;
-	}
-
-	MainFrame* frame = new MainFrame();
-	SetTopWindow(frame);
-	frame->Show();
-
-	wxLogWindow *log = new wxLogWindow(frame, wxT("Logger"), true);
-	wxLog::SetActiveTarget(log);
-	
-	m_mediator.SetMainFrame(frame);
-	m_frame = frame;
-
-	Mediator::Get()->GetEngine()->StartConnection(m_mediator.GetCtxId());
-    return true;
-}
-
-int Application::OnExit() {
-	return 0;
-}
+private:
+	mutex m_mutex;
+};
 
 }
+
+#endif

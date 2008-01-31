@@ -159,8 +159,7 @@ Context *Context::Create() {
 
 Context::Context()
 	: m_id(0), m_lua(NULL)
-	, m_state(STATE_INITIAL)
-	, m_currentSourceKey(NULL), m_currentLine(-1)
+	, m_state(STATE_INITIAL), m_updateSourceCount(0)
 	, m_breakpoints(&m_engine), m_sourceManager(&m_engine) {
 
 	m_engine.SetReadCommandCallback(
@@ -178,11 +177,11 @@ int Context::CreateDebuggerFrame() {
 		"localhost 51123",
 		"",
 		SW_SHOWNORMAL);
-	if ((unsigned int)inst <= 32) {
+	if ((unsigned long int)inst <= 32) {
 		return -1;
 	}*/
 
-	if (m_engine.StartContext(51123, m_id, 300) != 0) {
+	if (m_engine.StartContext(51123, m_id, 20) != 0) {
 		return -1;
 	}
 
@@ -221,7 +220,9 @@ Context::~Context() {
 
 	SaveConfig();
 	
-	m_engine.EndConnection();
+	if (m_engine.IsConnected()) {
+		m_engine.EndConnection();
+	}
 
 	if (m_lua != NULL) {
 		lua_close(m_lua);
@@ -299,6 +300,7 @@ int Context::LoadConfig() {
 
 	boost::archive::xml_iarchive ar(ifs);
 	ar & LLDEBUG_MEMBER_NVP(breakpoints);
+	m_engine.ChangedBreakpointList(m_breakpoints);
 	return 0;
 }
 
@@ -442,7 +444,7 @@ void Context::SetState(State state) {
 		case STATE_STEPRETURN:
 			m_state = state;
 			if (state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-				m_engine.ChangedState(false);
+				//m_engine.ChangedState(false);
 			}
 			break;
 		default:
@@ -463,7 +465,7 @@ void Context::SetState(State state) {
 			break;
 		case STATE_BREAK:
 			if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-				m_engine.ChangedState(true);
+				//m_engine.ChangedState(true);
 			}
 			m_state = state;
 			break;
@@ -521,27 +523,66 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_STEPRETURN:
 			SetState(STATE_STEPRETURN);
 			break;
+
+		case REMOTECOMMANDTYPE_SET_BREAKPOINT:
+			{
+				Breakpoint bp;
+				Serializer::ToValue(command.data, bp);
+				m_breakpoints.Set(bp);
+			}
+			break;
+		case REMOTECOMMANDTYPE_REMOVE_BREAKPOINT:
+			{
+				Breakpoint bp;
+				Serializer::ToValue(command.data, bp);
+				m_breakpoints.Remove(bp);
+			}
+			break;
+
+		case REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST:
+			{
+				LuaVar var;
+				Serializer::ToValue(command.data, var);
+				m_engine.ResponseVarList(command, LuaGetFields(var));
+			}
+			break;
+		case REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST:
+			{
+				LuaStackFrame stackFrame;
+				Serializer::ToValue(command.data, stackFrame);
+				m_engine.ResponseVarList(command,
+					LuaGetLocals(stackFrame.GetLua().GetState(), stackFrame.GetLevel()));
+			}
+			break;
+		case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
+			m_engine.ResponseVarList(command, LuaGetFields(TABLETYPE_GLOBAL));
+			break;
+		case REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST:
+			m_engine.ResponseVarList(command, LuaGetFields(TABLETYPE_REGISTRY));
+			break;
+		case REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST:
+			m_engine.ResponseVarList(command, LuaGetFields(TABLETYPE_ENVIRON));
+			break;
+		case REMOTECOMMANDTYPE_REQUEST_STACKLIST:
+			m_engine.ResponseVarList(command, LuaGetStack());
+			break;
+		case REMOTECOMMANDTYPE_REQUEST_BACKTRACE:
+			//m_engine.ResponseBacktrace(command, LuaGetBacktrace());
+			break;
 		}
 	}
 
 	return 0;
 }
 
-class Context::scoped_current_source {
-public:
-	explicit scoped_current_source(Context *ctx, lua_Debug *ar)
-		: m_ctx(ctx) {
-		m_ctx->m_currentSourceKey = ar->source;
-		m_ctx->m_currentLine = ar->currentline;
+struct UpdateCallback {
+	shared_ptr<condition> cond;
+	explicit UpdateCallback() 
+		: cond(new condition) {
 	}
-
-	~scoped_current_source() {
-		m_ctx->m_currentSourceKey = "";
-		m_ctx->m_currentLine = -1;
+	void operator()(const Command_ &command) {
+		cond->notify_all();
 	}
-
-private:
-	Context *m_ctx;
 };
 
 void Context::HookCallback(lua_State *L, lua_Debug *ar) {
@@ -591,13 +632,6 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	}
 
 	lua_getinfo(L, "nSl", ar);
-	scoped_current_source currentSource(this, ar);
-
-	// 一番最初のファイルキーを保存します。
-	if (m_rootFileKey.empty()) {
-		m_rootFileKey = ar->source;
-		LoadConfig();
-	}
 
 	Breakpoint bp = FindBreakpoint(ar->source, ar->currentline - 1);
 	if (bp.IsOk()) {
@@ -620,14 +654,19 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		else {
 			if (prevState != STATE_BREAK) {
 				m_sourceManager.Add(ar->source);
-				m_engine.UpdateSource(ar->source, ar->currentline);
+
+				UpdateCallback update;
+				m_engine.UpdateSource(
+					ar->source, ar->currentline,
+					++m_updateSourceCount, update);
+				update.cond->wait(lock);
 			}
 			prevState = m_state;
 
 			if (m_readCommandQueue.empty()) {
 				boost::xtime xt;
 				boost::xtime_get(&xt, boost::TIME_UTC);
-				xt.sec += 10;
+				xt.sec += 1;
 				m_readCommandQueueCond.timed_wait(lock, xt);
 			}
 		}
@@ -651,7 +690,7 @@ public:
 			return 0;
 		}
 
-		LuaBacktraceList array = ctx->LuaGetBackTrace();
+		LuaBacktraceList array = ctx->LuaGetBacktrace();
 		for (int i = 1; i < (int)array.size(); ++i) {
 			const LuaBacktrace &info = array[i];
 			printf("%s:%d: '%s'\n", info.GetKey().c_str(), info.GetLine(), info.GetFuncName().c_str());
@@ -735,6 +774,40 @@ int Context::LuaInitialize(lua_State *L) {
 	lua_settable(L, LUA_GLOBALSINDEX);
 
 	lua_atpanic(L, LuaImpl::atpanic);
+	return 0;
+}
+
+int Context::LoadFile(const char *filename) {
+	scoped_lock lock(m_mutex);
+
+	if (luaL_loadfile(m_lua, filename) != 0) {
+		printf("%s\n", lua_tostring(m_lua, -1));
+		return -1;
+	}
+
+	// Save the first key.
+	if (m_rootFileKey.empty()) {
+		m_rootFileKey = "@";
+		m_rootFileKey += filename;
+		LoadConfig();
+	}
+
+	return 0;
+}
+
+int Context::LoadString(const char *str) {
+	scoped_lock lock(m_mutex);
+
+	if (luaL_loadstring(m_lua, str) != 0) {
+		return -1;
+	}
+
+	// Save the first key.
+	if (m_rootFileKey.empty()) {
+		m_rootFileKey = str;
+		LoadConfig();
+	}
+
 	return 0;
 }
 
@@ -1069,7 +1142,7 @@ int Context::LuaEval(const std::string &str, lua_State *L) {
 
 #define LEVEL_MAX	1024	/* maximum size of the stack */
 
-LuaBacktraceList Context::LuaGetBackTrace() {
+LuaBacktraceList Context::LuaGetBacktrace() {
 	scoped_lock lock(m_mutex);
 	LuaBacktraceList array;
 	

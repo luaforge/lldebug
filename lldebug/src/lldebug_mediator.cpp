@@ -37,7 +37,8 @@ Mediator *Mediator::ms_instance = NULL;
 
 Mediator::Mediator()
 	: m_engine(new RemoteEngine), m_frame(NULL)
-	, m_breakpoints(m_engine.get()), m_sourceManager(m_engine.get()) {
+	, m_breakpoints(m_engine.get()), m_sourceManager(m_engine.get())
+	, m_updateSourceCount(0) {
 
 	// Set the callback called when the end of the reading commands.
 	CommandCallback callback = boost::bind1st(
@@ -46,6 +47,10 @@ Mediator::Mediator()
 }
 
 Mediator::~Mediator() {
+	if (m_engine != NULL && m_engine->IsConnected()) {
+		m_engine->EndConnection();
+	}
+
 	ms_instance = NULL;
 }
 
@@ -57,7 +62,7 @@ int Mediator::GetCtxId() {
 int Mediator::Initialize(const std::string &hostName, const std::string &portName) {
 	scoped_lock lock(m_mutex);
 
-	if (m_engine->StartFrame(hostName, portName, 300) != 0) {
+	if (m_engine->StartFrame(hostName, portName, 20) != 0) {
 		return -1;
 	}
 
@@ -113,11 +118,15 @@ void Mediator::RemoteCommandCallback(const Command_ &command) {
 	case REMOTECOMMANDTYPE_UPDATE_SOURCE:
 		if (GetFrame() != NULL) {
 			std::string key;
-			int line;
-			Serializer::ToValue(command.data, key, line);
+			int line, updateSourceCount;
+			Serializer::ToValue(command.data, key, line, updateSourceCount);
 
-			wxSourceLineEvent event(wxEVT_UPDATE_SOURCE, wxID_ANY, key, line);
-			GetFrame()->AddPendingDebugEvent(event, m_frame, false);
+			wxSourceLineEvent event(
+				wxEVT_UPDATE_SOURCE, wxID_ANY,
+				key, line, updateSourceCount);
+			m_updateSourceCount = updateSourceCount;
+			GetFrame()->AddPendingDebugEvent(event, m_frame, true);
+			m_engine->ResponseSuccessed(command);
 		}
 		break;
 
@@ -137,18 +146,23 @@ void Mediator::RemoteCommandCallback(const Command_ &command) {
 	case REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST:
 		{
 			BreakpointList bps(m_engine.get());
+			std::string str(&command.data[0], command.data.size());
 			Serializer::ToValue(command.data, bps);
-		
 			m_breakpoints = bps;
+
+			if (GetFrame() != NULL) {
+				wxBreakpointEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY, bps);
+				GetFrame()->AddPendingDebugEvent(event, m_frame, true);
+			}
 		}
 		break;
 
-	case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST:
+	case REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST:
+	case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST:
-	case REMOTECOMMANDTYPE_REQUEST_STACKVARLIST:
-	case REMOTECOMMANDTYPE_REQUEST_BREAKPOINTLIST:
+	case REMOTECOMMANDTYPE_REQUEST_STACKLIST:
 	case REMOTECOMMANDTYPE_REQUEST_BACKTRACE:
 	case REMOTECOMMANDTYPE_VALUE_VARLIST:
 	case REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST:

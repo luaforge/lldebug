@@ -44,11 +44,14 @@ LUA_API void lldebug_close(lua_State *L);
 LUA_API int lldebug_openbase(lua_State *L);
 LUA_API void lldebug_openlibs(lua_State *L);
 
+LUA_API int lldebug_loadfile(lua_State *L, const char *filename);
+LUA_API int lldebug_loadstring(lua_State *L, const char *str);
+
 LUA_API void lldebug_call(lua_State *L, int narg, int nresult);
 LUA_API int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc);
 LUA_API int lldebug_resume(lua_State *L, int narg);
 
-#if 0 //ndef LLDEBUG_CONTEXT
+#if !defined(LLDEBUG_CONTEXT) && !defined(LLDEBUG_FRAME)
 #undef lua_open
 #define lua_open() lldebug_open()
 #undef lua_close

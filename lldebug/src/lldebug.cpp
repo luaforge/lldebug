@@ -59,6 +59,24 @@ void lldebug_close(lua_State *L) {
 	}
 }
 
+int lldebug_loadfile(lua_State *L, const char *filename) {
+	Context *ctx = Context::Find(L);
+	if (ctx == NULL || ctx->GetMainLua() != L) {
+		return -1;
+	}
+
+	return ctx->LoadFile(filename);
+}
+
+int lldebug_loadstring(lua_State *L, const char *str) {
+	Context *ctx = Context::Find(L);
+	if (ctx == NULL || ctx->GetMainLua() != L) {
+		return -1;
+	}
+
+	return ctx->LoadString(str);
+}
+
 int lldebug_openbase(lua_State *L) {
 	Context *ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {

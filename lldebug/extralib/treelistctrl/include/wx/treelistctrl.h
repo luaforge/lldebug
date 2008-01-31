@@ -4,7 +4,7 @@
 // Author:      Robert Roebling
 // Maintainer:  Otto Wyss
 // Created:     01/02/97
-// RCS-ID:      $Id: treelistctrl.h,v 1.1 2008-01-09 04:46:22 cielacanth Exp $
+// RCS-ID:      $Id: treelistctrl.h,v 1.2 2008-01-31 15:58:07 cielacanth Exp $
 // Copyright:   (c) 2004 Robert Roebling, Julian Smart, Alberto Griggio,
 //              Vadim Zeitlin, Otto Wyss
 // Licence:     wxWindows
@@ -461,6 +461,11 @@ public:
     void CollapseAndReset(const wxTreeItemId& item); //? TODO ???
     // toggles the current state
     void Toggle (const wxTreeItemId& item);
+
+	// stop refreshing
+	void BeginBatch();
+	// restart refreshing
+	void EndBatch();
 
     // remove the selection from currently selected item (if any)
     void Unselect();

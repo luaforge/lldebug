@@ -67,6 +67,9 @@ public:
 	void Output(const std::string &str);
 	void OutputF(const char *fmt, ...);
 
+	int LoadFile(const char *filename);
+	int LoadString(const char *str);
+
 	int LuaOpenBase(lua_State *L);
 	void LuaOpenLibs(lua_State *L);
 
@@ -74,7 +77,7 @@ public:
 	LuaVarList LuaGetFields(TableType type);
 	LuaVarList LuaGetFields(const LuaVar &var);
 	LuaStackList LuaGetStack();
-	LuaBacktraceList LuaGetBackTrace();
+	LuaBacktraceList LuaGetBacktrace();
 	int LuaEval(const std::string &str, lua_State *L = NULL);
 
 	/// コンテキストのＩＤを取得します。
@@ -90,11 +93,6 @@ public:
 	/// 一番最初に作成されたluaオブジェクトを取得します。
 	lua_State *GetMainLua() {
 		return m_lua;
-	}
-
-	/// コマンドを登録します。
-	int PushCommand(Command::Type type) {
-		return m_cmdQueue.PushCommand(type);
 	}
 
 	/// Get the source contents.
@@ -169,11 +167,7 @@ private:
 	int m_id;
 	lua_State *m_lua;
 	State m_state;
-
-	class scoped_current_source;
-	friend class scoped_current_source;
-	const char *m_currentSourceKey;
-	int m_currentLine;
+	int m_updateSourceCount;
 
 	/// lua_State *ごとの関数呼び出し回数を記録することで
 	/// ステップオーバーを安全に実装します。
@@ -189,7 +183,6 @@ private:
 	CoroutineInfo m_stepinfo;
 
 	RemoteEngine m_engine;
-	CommandQueue m_cmdQueue;
 	SourceManager m_sourceManager;
 	BreakpointList m_breakpoints;
 	std::string m_rootFileKey;

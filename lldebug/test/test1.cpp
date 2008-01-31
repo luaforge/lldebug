@@ -1,7 +1,13 @@
 /*
  */
 
+#undef LLDEBUG_CONTEXT
 #include "lldebug.h"
+/*extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}*/
 #include <stdio.h>
 
 #if defined(_MSC_VER)
@@ -26,19 +32,18 @@ int init_state(lua_State *L) {
 		char buffer[128];
 
 		snprintf(buffer, sizeof(buffer), "%s%s", s_dirlist[i], c_filename);
-		if (luaL_loadfile(L, buffer) == 0) {
+		if (lldebug_loadfile(L, buffer) == 0) {
 			return 0;
 		}
 	}
 
 	printf("%s\n", lua_tostring(L, -1));
-	lldebug_close(L);
 	return -1;
 }
 
 int main(int argc, char **argv) {
 	lldebug_setinitstate(init_state);
-	lua_State *L = lldebug_open();
+	lua_State *L = lua_open();
 	if (L == NULL) {
 		return -1;
 	}
@@ -47,10 +52,10 @@ int main(int argc, char **argv) {
 
 	if (lua_pcall(L, 0, 0, 0) != 0) {
 		printf("%s\n", lua_tostring(L, -1));
-		lldebug_close(L);
+		lua_close(L);
 		return -1;
 	}
 
-	lldebug_close(L);
+	lua_close(L);
 	return 0;
 }

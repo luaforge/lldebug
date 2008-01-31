@@ -25,15 +25,16 @@
  */
 
 #include "lldebug_prec.h"
+#include "lldebug_mediator.h"
+#include "lldebug_remoteengine.h"
 #include "lldebug_watchview.h"
-#include "lldebug_context.h"
 
 namespace lldebug {
 
 class WatchViewItemData : public wxTreeItemData {
 public:
 	explicit WatchViewItemData(const LuaVar &var)
-		: m_var(var) {
+		: m_var(var), m_updateSourceCount(-1) {
 	}
 
 	virtual ~WatchViewItemData() {
@@ -43,15 +44,24 @@ public:
 		return m_var;
 	}
 
+	int GetUpdateSourceCount() const {
+		return m_updateSourceCount;
+	}
+
+	void SetUpdateSourceCount(int updateSourceCount) {
+		m_updateSourceCount = updateSourceCount;
+	}
+
 private:
 	LuaVar m_var;
+	int m_updateSourceCount;
 };
 
 BEGIN_EVENT_TABLE(WatchView, wxTreeListCtrl)
 	EVT_SIZE(WatchView::OnSize)
 	EVT_SHOW(WatchView::OnShow)
-	EVT_LLDEBUG_CHANGED_STATE(ID_LOCALWATCHVIEW, WatchView::OnChangedState)
-	EVT_LLDEBUG_UPDATE_SOURCE(ID_LOCALWATCHVIEW, WatchView::OnUpdateSource)
+	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, WatchView::OnChangedState)
+	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, WatchView::OnUpdateSource)
 
 	EVT_TREE_ITEM_EXPANDED(wxID_ANY, WatchView::OnExpanded)
 	EVT_TREE_END_LABEL_EDIT(wxID_ANY, WatchView::OnEndLabelEdit)
@@ -77,14 +87,13 @@ static int GetWatchViewId(WatchView::Type type) {
 	return -1;
 }
 
-WatchView::WatchView(Context *ctx, wxWindow *parent, Type type)
-	: wxTreeListCtrl(parent
-		, GetWatchViewId(type) + ctx->GetId()
+WatchView::WatchView(wxWindow *parent, Type type)
+	: wxTreeListCtrl(parent, GetWatchViewId(type)
 		, wxDefaultPosition, wxDefaultSize
 		, wxTR_HAS_BUTTONS | wxTR_LINES_AT_ROOT | wxTR_HIDE_ROOT
 		| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
 		| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB)
-	, m_ctx(ctx), m_type(type), m_lua(NULL), m_level(0) {
+	, m_type(type) {
 	CreateGUIControls();
 }
 
@@ -105,7 +114,7 @@ void WatchView::CreateGUIControls() {
 	AddColumn(_("Type"), 60, wxALIGN_LEFT, -1, true, true);
 	SetLineSpacing(2);
 
-	AddRoot(wxT(""));
+	AddRoot(wxT(""), -1, -1, new WatchViewItemData(LuaVar()));
 }
 
 WatchView::wxTreeItemIdList WatchView::GetItemChildren(const wxTreeItemId &item) {
@@ -127,28 +136,84 @@ WatchViewItemData *WatchView::GetItemData(const wxTreeItemId &item) {
 	return static_cast<WatchViewItemData *>(wxTreeListCtrl::GetItemData(item));
 }
 
-LuaVarList WatchView::GetLuaVarList(lua_State *L, int level) {
+class WatchView::UpdateVars {
+public:
+	explicit UpdateVars(WatchView *view, wxTreeItemId item, bool isExpand)
+		: m_view(view), m_item(item), m_isExpand(isExpand) {
+	}
+
+	bool IsNeed() {
+		WatchViewItemData *data = m_view->GetItemData(m_item);
+		return (data->GetUpdateSourceCount() < Mediator::Get()->GetUpdateSourceCount());
+	}
+
+	void operator()(const Command_ &command, const LuaVarList &vars) {
+		m_view->DoUpdateVars(m_item, vars, m_isExpand);
+	}
+
+private:
+	WatchView *m_view;
+	wxTreeItemId m_item;
+	bool m_isExpand;
+};
+
+void WatchView::BeginUpdateVars(bool isExpand) {
 	scoped_lock lock(m_mutex);
+	UpdateVars callback = UpdateVars(this, GetRootItem(), isExpand);
+
+	if (!callback.IsNeed()) {
+		if (isExpand) {
+			wxTreeItemIdList children = GetItemChildren(GetRootItem());
+
+			wxTreeItemIdList::iterator it;
+			for (it = children.begin(); it != children.end(); ++it) {
+				WatchViewItemData *data = GetItemData(*it);
+				BeginUpdateVars(*it, data->GetVar(), false);
+			}
+		}
+		return;
+	}
 
 	switch (m_type) {
 	case TYPE_LOCALWATCH:
-		return m_ctx->LuaGetLocals(L, level);
+		Mediator::Get()->GetEngine()->RequestLocalVarList(
+			LuaStackFrame(LuaHandle(), 0), callback);
+		break;
 	case TYPE_GLOBALWATCH:
-		return m_ctx->LuaGetFields(TABLETYPE_GLOBAL);
+		Mediator::Get()->GetEngine()->RequestGlobalVarList(callback);
+		break;
 	case TYPE_REGISTRYWATCH:
-		return m_ctx->LuaGetFields(TABLETYPE_REGISTRY);
+		Mediator::Get()->GetEngine()->RequestRegistryVarList(callback);
+		break;
 	case TYPE_ENVIRONWATCH:
-		return m_ctx->LuaGetFields(TABLETYPE_ENVIRON);
-	case TYPE_STACKWATCH: {
-		LuaVarList vars = m_ctx->LuaGetStack();
-		std::reverse(vars.begin(), vars.end());
-		return vars;
-		}
+		Mediator::Get()->GetEngine()->RequestEnvironVarList(callback);
+		break;
+	case TYPE_STACKWATCH:
+		Mediator::Get()->GetEngine()->RequestStackList(callback);
+		break;
 	case TYPE_WATCH:
-		return LuaVarList();
+		break;
 	}
+}
 
-	return LuaVarList();
+void WatchView::BeginUpdateVars(wxTreeItemId item, const LuaVar &var, bool isExpand) {
+	scoped_lock lock(m_mutex);
+	UpdateVars callback = UpdateVars(this, item, isExpand);
+
+	if (callback.IsNeed()) {
+		Mediator::Get()->GetEngine()->RequestFieldsVarList(var, callback);
+	}
+	else {
+		if (isExpand) {
+			wxTreeItemIdList children = GetItemChildren(item);
+
+			wxTreeItemIdList::iterator it;
+			for (it = children.begin(); it != children.end(); ++it) {
+				WatchViewItemData *data = GetItemData(*it);
+				BeginUpdateVars(*it, data->GetVar(), false);
+			}
+		}
+	}
 }
 
 struct CompareItem {
@@ -161,11 +226,12 @@ struct CompareItem {
 
 	bool operator()(const wxTreeItemId &item) {
 		WatchViewItemData *data = watch->GetItemData(item);
-		return (data == NULL ? false : data->GetVar() == var);
+		return (data != NULL && data->GetVar().IsOk() ? data->GetVar() == var : false);
 	}
 };
 
-void WatchView::UpdateVars(wxTreeItemId parent, const LuaVarList &vars) {
+void WatchView::DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool isExpand) {
+	scoped_lock lock(m_mutex);
 	// 既存の子アイテムリストで、アイテムの追加・削除時に使います。
 	wxTreeItemIdList children = GetItemChildren(parent);
 
@@ -203,16 +269,14 @@ void WatchView::UpdateVars(wxTreeItemId parent, const LuaVarList &vars) {
 
 		// 子アイテムがあればそれも更新します。
 		if (var.HasFields()) {
-			if (HasChildren(item)) {
-				if (IsExpanded(item)) {
-					LuaVarList childrenVars = m_ctx->LuaGetFields(var);
-					UpdateVars(item, childrenVars);
-				}
+			if (IsExpanded(item)) {
+				BeginUpdateVars(item, var, true);
 			}
-			else {
-				// 開いていないツリーアイテムに
-				// [このアイテムは子を持つよ]記号を出します。
-				AppendItem(item, wxT("$<dummy item for lazy evalution>"));
+			else if (isExpand) {
+				BeginUpdateVars(item, var, false);
+			}
+			else if (!HasChildren(item)) {
+				AppendItem(item, _T("$<item for lazy evalution>"));
 			}
 		}
 		else {
@@ -231,20 +295,17 @@ void WatchView::UpdateVars(wxTreeItemId parent, const LuaVarList &vars) {
 		++it) {
 		Delete(*it);
 	}
+
+	// Set updated mark.
+	WatchViewItemData *data = GetItemData(parent);
+	data->SetUpdateSourceCount(Mediator::Get()->GetUpdateSourceCount());
 }
 
 void WatchView::OnChangedState(wxChangedStateEvent &event) {
 	scoped_lock lock(m_mutex);
 	event.Skip();
 
-	Enable(event.GetValue());
-	/*if (event.GetValue()) {
-		if (IsEnabled() && IsShown()) {
-			UpdateVars(GetRootItem(), GetLuaVarList(0));
-		}
-	}
-	else {
-	}*/
+	Enable(event.IsBreak());
 }
 
 void WatchView::OnUpdateSource(wxSourceLineEvent &event) {
@@ -252,10 +313,7 @@ void WatchView::OnUpdateSource(wxSourceLineEvent &event) {
 	event.Skip();
 
 	if (IsEnabled() && IsShown()) {
-		UpdateVars(GetRootItem(),
-			GetLuaVarList(event.GetLua(), event.GetLevel()));
-		m_lua = event.GetLua();
-		m_level = event.GetLevel();
+		BeginUpdateVars(true);
 	}
 }
 
@@ -264,7 +322,7 @@ void WatchView::OnShow(wxShowEvent &event) {
 	event.Skip();
 
 	if (event.GetShow() && IsEnabled() && IsShown()) {
-		UpdateVars(GetRootItem(), GetLuaVarList(m_lua, m_level));
+		BeginUpdateVars(true);
 	}
 }
 
@@ -272,11 +330,8 @@ void WatchView::OnExpanded(wxTreeEvent &event) {
 	scoped_lock lock(m_mutex);
 	event.Skip();
 
-	wxTreeItemId item = event.GetItem();
-	WatchViewItemData *data = GetItemData(item);
-	if (IsEnabled() && IsShown()) {
-		UpdateVars(item, m_ctx->LuaGetFields(data->GetVar()));
-	}
+	WatchViewItemData *data = GetItemData(event.GetItem());
+	BeginUpdateVars(event.GetItem(), data->GetVar(), true);
 }
 
 void WatchView::OnEndLabelEdit(wxTreeEvent &event) {

@@ -42,16 +42,38 @@ const char *c_configDir =
 #endif
 	;
 
+#include <shlobj.h> // use shell32.lib
+
 namespace lldebug {
+
+static std::string GetConfigDir() {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+	char szPath[_MAX_PATH];
+	LPITEMIDLIST pidl;
+	IMalloc *pMalloc;
+
+	::SHGetMalloc(&pMalloc);
+
+	if (FAILED(::SHGetSpecialFolderLocation(NULL, CSIDL_APPDATA, &pidl))) {
+		pMalloc->Release();
+		return std::string("");
+	}
+
+	::SHGetPathFromIDListA(pidl, szPath);
+	pMalloc->Free(pidl);
+	pMalloc->Release();
+
+	return szPath;
+#else
+#endif
+}
 
 std::string GetConfigFileName(const std::string &filename) {
 	using namespace boost::filesystem;
-#ifdef LLDEBUG_FRAME
-	wxASSERT(!filename.empty());
-	wxString dir = wxStandardPaths().GetUserConfigDir();
-
-	path basePath(wxConvLocal.cWC2MB(dir.c_str()));
+	BOOST_ASSERT(!filename.empty());
+	path basePath(GetConfigDir());
 	path configPath = basePath / c_configDir;
+
 	if (!exists(configPath)) {
 		try {
 			if (!create_directory(configPath)) {
@@ -65,62 +87,6 @@ std::string GetConfigFileName(const std::string &filename) {
 
 	configPath /= filename;
 	return configPath.native_file_string();
-#else
-	return "";
-#endif
-}
-
-Command::Command(Type type)
-	: m_type(type) {
-}
-
-Command::~Command() {
-}
-
-CommandQueue::CommandQueue() {
-}
-
-CommandQueue::~CommandQueue() {
-}
-
-bool CommandQueue::Wait(size_t maxSec) {
-	scoped_lock lock(m_mutex);
-
-	if (m_queue.empty()) {
-		boost::xtime xt;
-		boost::xtime_get(&xt, boost::TIME_UTC);
-		xt.sec += maxSec;
-
-		return m_cond.timed_wait(lock, xt);
-	}
-
-	return true;
-}
-
-const Command &CommandQueue::Get() {
-	scoped_lock lock(m_mutex);
-	return m_queue.front();
-}
-
-int CommandQueue::Push(const Command &cmd) {
-	scoped_lock lock(m_mutex);
-	m_queue.push_back(cmd);
-	m_cond.notify_all();
-	return 0;
-}
-
-int CommandQueue::PushCommand(Command::Type type) {
-	return Push(Command(type));
-}
-
-void CommandQueue::Pop() {
-	scoped_lock lock(m_mutex);
-	m_queue.pop_front();
-}
-
-bool CommandQueue::IsEmpty() {
-	scoped_lock lock(m_mutex);
-	return m_queue.empty();
 }
 
 
@@ -152,6 +118,22 @@ Breakpoint BreakpointList::Find(const std::string &key, int line) {
 	return *it;
 }
 
+Breakpoint BreakpointList::First(const std::string &key) {
+	// Find the breakpoint which has least line number.
+	Breakpoint tmp(key, -1);
+	ImplSet::const_iterator it = m_breakPoints.lower_bound(tmp);
+	if (it == m_breakPoints.end()) {
+		return Breakpoint();
+	}
+
+	// Check weather the keys are same.
+	if (it->GetKey() != key) {
+		return Breakpoint();
+	}
+
+	return *it;
+}
+
 Breakpoint BreakpointList::Next(const Breakpoint &bp) {
 	// Increment the line number and find the next.
 	Breakpoint tmp(bp.GetKey(), bp.GetLine() + 1);
@@ -176,7 +158,10 @@ void BreakpointList::Set(const Breakpoint &bp) {
 #ifdef LLDEBUG_FRAME
 	m_engine->SetBreakpoint(bp);
 #else
-	m_breakPoints.insert(bp);
+	std::pair<ImplSet::iterator,bool> it = m_breakPoints.insert(bp);
+	if (it.second) {
+		m_engine->ChangedBreakpointList(*this);
+	}
 #endif
 }
 
@@ -190,6 +175,7 @@ void BreakpointList::Remove(const Breakpoint &bp) {
 	m_engine->RemoveBreakpoint(bp);
 #else
 	m_breakPoints.erase(it);
+	m_engine->ChangedBreakpointList(*this);
 #endif
 }
 

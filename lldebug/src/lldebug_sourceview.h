@@ -54,6 +54,7 @@ private:
 	void OnChangedState(wxChangedStateEvent &event);
 	void OnUpdateSource(wxSourceLineEvent &event);
 	void OnAddedSource(wxSourceEvent &event);
+	void OnChangedBreakpoints(wxBreakpointEvent &event);
 
 	DECLARE_EVENT_TABLE();
 

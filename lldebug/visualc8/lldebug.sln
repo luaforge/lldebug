@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lldebug_frame", "lldebug_frame\lldebug_frame.vcproj", "{C51E3744-D9D7-4F2D-8C49-508A9FF0630D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcproj", "{3E69284B-92F4-40F8-A510-33B2B8C700F3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C51E3744-D9D7-4F2D-8C49-508A9FF0630D} = {C51E3744-D9D7-4F2D-8C49-508A9FF0630D}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

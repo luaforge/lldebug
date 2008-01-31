@@ -50,7 +50,6 @@ public:
 private:
 	void CreateGUIControls();
 	void OnMenu(wxCommandEvent &event);
-	virtual void OnClose(wxCloseEvent &event);
 
 private:
 	DECLARE_EVENT_TABLE();

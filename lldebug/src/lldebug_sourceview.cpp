@@ -335,17 +335,13 @@ public:
 		// AddTextRaw accepts only the UTF8 string.
 		AddTextRaw(str.c_str());
 
-		//Mediator::Get()->GetBreakpointList();
-		/*for (size_t i = 0; i < m_ctx->GetBreakpointSize(); ++i) {
-			const Breakpoint &bp = m_ctx->GetBreakpoint(i);
-			MarkerAdd(bp.GetLine(), MARKNUM_BREAKPOINT);
-		}*/
-
 		// The title is converted to UTF8.
 		m_key = source.GetKey();
 		m_title = wxConvFromUTF8(source.GetTitle());
 		m_currentLine = -1;
 		m_initialized = true;
+
+		OnChangedBreakpoints();
 	}
 
 	int SetCurrentLine(int line, bool isCurrentRunning = true) {
@@ -391,14 +387,7 @@ public:
 	void ToggleBreakpointFromLine(int line) {
 		scoped_lock lock(m_mutex);
 		line = median(line, 0, GetLineCount());
-		//Mediator::Get()->ToggleBreakpoint(m_key, line);
-
-		/*if (m_ctx->FindBreakpoint(m_key, line) != NULL) {
-			MarkerAdd(line, MARKNUM_BREAKPOINT);
-		}
-		else {
-			MarkerDelete(line, MARKNUM_BREAKPOINT);
-		}*/
+		Mediator::Get()->ToggleBreakpoint(m_key, line);
 	}
 
 	void ToggleBreakpoint() {
@@ -406,6 +395,17 @@ public:
 		int from, to;
 		GetSelection(&from, &to);
 		ToggleBreakpointFromLine(LineFromPosition(to));
+	}
+	
+	void OnChangedBreakpoints() {
+		scoped_lock lock(m_mutex);
+		MarkerDeleteAll(MARKNUM_BREAKPOINT);
+
+		BreakpointList &bps = Mediator::Get()->GetBreakpoints();
+		Breakpoint bp;
+		for (bp = bps.First(GetKey()); bp.IsOk(); bp = bps.Next(bp)) {
+			MarkerAdd(bp.GetLine(), MARKNUM_BREAKPOINT);
+		}
 	}
 
 	void ChangeEnable(bool enable) {
@@ -475,6 +475,7 @@ BEGIN_EVENT_TABLE(SourceView, wxAuiNotebook)
 	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, SourceView::OnChangedState)
 	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, SourceView::OnUpdateSource)
 	EVT_LLDEBUG_ADDED_SOURCE(wxID_ANY, SourceView::OnAddedSource)
+	EVT_LLDEBUG_CHANGED_BREAKPOINTS(wxID_ANY, SourceView::OnChangedBreakpoints)
 END_EVENT_TABLE()
 
 SourceView::SourceView(wxWindow *parent)
@@ -548,14 +549,14 @@ void SourceView::OnChangedState(wxChangedStateEvent &event) {
 	}
 }
 
-/*void SourceView::ToggleBreakpoint() {
+void SourceView::ToggleBreakpoint() {
 	scoped_lock lock(m_mutex);
 	SourceViewPage *page = GetSelected();
 
 	if (page != NULL) {
 		page->ToggleBreakpoint();
 	}
-}*/
+}
 
 void SourceView::OnUpdateSource(wxSourceLineEvent &event) {
 	scoped_lock lock(m_mutex);
@@ -577,6 +578,15 @@ void SourceView::OnAddedSource(wxSourceEvent &event) {
 	scoped_lock lock(m_mutex);
 
 	CreatePage(event.GetSource());
+}
+
+void SourceView::OnChangedBreakpoints(wxBreakpointEvent &event) {
+	scoped_lock lock(m_mutex);
+
+	for (size_t i = 0; i < GetPageCount(); ++i) {
+		SourceViewPage *page = GetPage(i);
+		page->OnChangedBreakpoints();
+	}
 }
 
 }

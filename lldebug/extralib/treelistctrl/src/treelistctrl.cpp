@@ -4,7 +4,7 @@
 // Author:      Robert Roebling
 // Maintainer:  Otto Wyss
 // Created:     01/02/97
-// RCS-ID:      $Id: treelistctrl.cpp,v 1.1 2008-01-09 04:46:22 cielacanth Exp $
+// RCS-ID:      $Id: treelistctrl.cpp,v 1.2 2008-01-31 15:58:07 cielacanth Exp $
 // Copyright:   (c) 2004 Robert Roebling, Julian Smart, Alberto Griggio,
 //              Vadim Zeitlin, Otto Wyss
 // Licence:     wxWindows
@@ -150,7 +150,7 @@ public:
     int GetWidth() const { return m_total_col_width; }
 
     // column manipulation
-    int GetColumnCount() const { return m_columns.GetCount(); }
+    int GetColumnCount() const { return (int)m_columns.GetCount(); }
 
     void AddColumn (const wxTreeListColumnInfo& colInfo);
 
@@ -496,6 +496,11 @@ public:
     // toggles the current state
     void Toggle(const wxTreeItemId& item);
 
+	// stop refreshing
+	void BeginBatch();
+	// restart refreshing
+	void EndBatch();
+
     // remove the selection from currently selected item (if any)
     void Unselect();
     void UnselectAll();
@@ -612,6 +617,7 @@ protected:
     bool                 m_hasFocus;
 public:
     bool                 m_dirty;
+	int                  m_batchCount;
 protected:
     bool                 m_ownsImageListNormal,
                          m_ownsImageListState,
@@ -779,7 +785,7 @@ public:
             m_text[column] = text;
         }else if (column < m_owner->GetColumnCount()) {
             int howmany = m_owner->GetColumnCount();
-            for (int i = m_text.GetCount(); i < howmany; ++i) m_text.Add (wxEmptyString);
+            for (int i = (int)m_text.GetCount(); i < howmany; ++i) m_text.Add (wxEmptyString);
             m_text[column] = text;
         }
     }
@@ -792,7 +798,7 @@ public:
             m_col_images[column] = image;
         }else if (column < m_owner->GetColumnCount()) {
             int howmany = m_owner->GetColumnCount();
-            for (int i = m_col_images.GetCount(); i < howmany; ++i) m_col_images.Add (NO_IMAGE);
+            for (int i = (int)m_col_images.GetCount(); i < howmany; ++i) m_col_images.Add (NO_IMAGE);
             m_col_images[column] = image;
         }
     }
@@ -1674,6 +1680,7 @@ void wxTreeListMainWindow::Init() {
 
     m_hasFocus = false;
     m_dirty = false;
+	m_batchCount = 0;
 
     m_lineHeight = LINEHEIGHT;
     m_indent = MININDENT; // min. indent
@@ -2053,7 +2060,7 @@ wxTreeItemId wxTreeListMainWindow::GetLastChild (const wxTreeItemId& item,
     wxArrayTreeListItems& children = ((wxTreeListItem*) item.m_pItem)->GetChildren();
     // it's ok to cast cookie to long, we never have indices which overflow "void*"
     long *pIndex = ((long*)&cookie);
-    (*pIndex) = children.Count();
+    (*pIndex) = (long)children.Count();
     return (!children.IsEmpty())? wxTreeItemId(children.Last()): wxTreeItemId();
 }
 
@@ -2404,6 +2411,14 @@ void wxTreeListMainWindow::Toggle (const wxTreeItemId& itemId) {
     }else{
         Expand (itemId);
     }
+}
+
+void wxTreeListMainWindow::BeginBatch () {
+	++m_batchCount;
+}
+
+void wxTreeListMainWindow::EndBatch () {
+	--m_batchCount;
 }
 
 void wxTreeListMainWindow::Unselect() {
@@ -3820,8 +3835,9 @@ void wxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
 
     if (!m_dirty) return;
 
-    m_dirty = false;
+	if (m_batchCount > 0) return;
 
+    m_dirty = false;
     CalculatePositions();
     Refresh();
     AdjustMyScrollbars();
@@ -3978,7 +3994,7 @@ void wxTreeListMainWindow::RefreshSelectedUnder (wxTreeListItem *item) {
     }
 
     const wxArrayTreeListItems& children = item->GetChildren();
-    long count = children.GetCount();
+    long count = (long)children.GetCount();
     for (long n = 0; n < count; n++ ) {
         RefreshSelectedUnder (children[n]);
     }
@@ -4461,6 +4477,12 @@ void wxTreeListCtrl::CollapseAndReset(const wxTreeItemId& item)
 
 void wxTreeListCtrl::Toggle(const wxTreeItemId& item)
 { m_main_win->Toggle(item); }
+
+void wxTreeListCtrl::BeginBatch()
+{ m_main_win->BeginBatch(); }
+
+void wxTreeListCtrl::EndBatch()
+{ m_main_win->EndBatch(); }
 
 void wxTreeListCtrl::Unselect()
 { m_main_win->Unselect(); }
