@@ -295,6 +295,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lldebug_vectorstream.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lldebug_watchview.cpp"
 				>
 			</File>

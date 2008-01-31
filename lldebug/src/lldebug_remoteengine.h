@@ -8,6 +8,7 @@
 
 #include "lldebug_sysinfo.h"
 #include "lldebug_luainfo.h"
+#include "lldebug_vectorstream.h"
 
 namespace lldebug {
 
@@ -180,138 +181,6 @@ private:
 	//typedef std::queue<Command_> ReadCommandQueue;
 	//ReadCommandQueue m_readCommandQueue; // commands that were read.
 };
-
-
-template <class Ch, class Tr=std::char_traits<Ch> >
-class basic_vector_istreambuf : public std::basic_streambuf<Ch,Tr> {
-public:
-	explicit basic_vector_istreambuf(const std::vector<Ch> &data)
-		: m_data(data), m_pos(0) {
-		setbuf(0,0); // suppress buffering
-		//setg(&*m_data.begin(), &*m_data.begin(), &*m_data.end());
-	}
-
-	virtual ~basic_vector_istreambuf() {
-	}
-
-protected:
-	virtual std::streampos seekoff(
-		std::streamoff off,
-		std::ios::seek_dir dir,
-		int nMode = std::ios::in | std::ios::out) {
-		return Tr::eof();
-	}
-
-	virtual std::streampos seekpos( 
-		std::streampos pos,
-		int nMode = std::ios::in | std::ios::out) {
-		return Tr::eof();
-	}
-
-	virtual int uflow() {
-        if (m_pos >= m_data.size()) {
-			return Tr::eof();
-		}
-		
-		return Tr::to_int_type(m_data[m_pos++]);
-	}
-
-	virtual int underflow() {
-		if (m_pos >= m_data.size()) {
-			return Tr::eof();
-		}
-		
-		return Tr::to_int_type(m_data[m_pos]);
-	}
-
-private:
-	const std::vector<Ch> &m_data;
-	typename std::vector<Ch>::size_type m_pos;
-};
-
-template <class Ch, class Tr=std::char_traits<Ch> >
-class basic_vector_ostreambuf : public std::basic_streambuf<Ch,Tr> {
-public:
-	explicit basic_vector_ostreambuf() {
-		setbuf(0,0); // suppress buffering
-	}
-
-	virtual ~basic_vector_ostreambuf() {
-	}
-
-	std::vector<Ch> container() {
-		if (m_data.empty() || m_data.back() != 0) {
-			m_data.push_back(0);
-		}
-
-		return m_data;
-	}
-
-protected:
-	virtual std::streampos seekoff(
-		std::streamoff off, 
-		std::ios::seek_dir dir, 
-		int nMode = std::ios::in | std::ios::out) {
-		return Tr::eof();
-	}
-
-	virtual std::streampos seekpos( 
-		std::streampos pos,
-		int nMode = std::ios::in | std::ios::out) {
-		return Tr::eof();
-	}
-
-	virtual int overflow(int c = EOF) {
-		m_data.push_back(Tr::to_char_type(c));
-		return 0;
-	}
-
-private:
-	std::vector<Ch> m_data;
-};
-
-template <class Ch,class Tr=std::char_traits<Ch> >
-class basic_vector_istream : public std::basic_istream<Ch,Tr> {
-public:
-	explicit basic_vector_istream(const CommandData &data) 
-		: std::basic_istream<Ch,Tr>(m_buf = new basic_vector_istreambuf<Ch,Tr>(data)) {
-	}
-
-	~basic_vector_istream() {
-		if (m_buf != NULL) {
-			delete m_buf;
-		}
-	}
-
-private:
-	basic_vector_istreambuf<Ch> *m_buf;
-};
-
-template <class Ch,class Tr=std::char_traits<Ch> >
-class basic_vector_ostream : public std::basic_ostream<Ch,Tr> {
-public:
-	explicit basic_vector_ostream() 
-		: std::basic_ostream<Ch,Tr>(m_buf = new basic_vector_ostreambuf<Ch,Tr>()) {
-	}
-
-	~basic_vector_ostream() {
-		if (m_buf != NULL) {
-			delete m_buf;
-		}
-	}
-
-	std::vector<Ch> container() {
-		return m_buf->container();
-	}
-
-private:
-	basic_vector_ostreambuf<Ch> *m_buf;
-};
-
-
-typedef basic_vector_istream<char> vector_istream;
-typedef basic_vector_ostream<char> vector_ostream;
-
 
 /**
  * @brief Serializer class
