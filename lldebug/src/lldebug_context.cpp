@@ -26,12 +26,10 @@
 
 #include "lldebug_prec.h"
 #include "lldebug_codeconv.h"
+#include "lldebug_serialization.h"
 #include "lldebug_context.h"
 #include "lldebug.h"
 
-#include <boost/functional.hpp>
-#include <boost/archive/xml_oarchive.hpp>
-#include <boost/archive/xml_iarchive.hpp>
 #include <fstream>
 
 #include <shellapi.h>
@@ -490,7 +488,7 @@ void Context::SetState(State state) {
 	}
 }
 
-void Context::CommandCallback(const Command_ &command) {
+void Context::CommandCallback(const Command &command) {
 	scoped_lock lock(m_mutex);
 
 	m_readCommandQueue.push(command);
@@ -501,10 +499,10 @@ int Context::HandleCommand() {
 	scoped_lock lock(m_mutex);
 
 	while (!m_readCommandQueue.empty()) {
-		Command_ command = m_readCommandQueue.front();
+		Command command = m_readCommandQueue.front();
 		m_readCommandQueue.pop();
 
-		switch (command.header.type) {
+		switch (command.GetType()) {
 		case REMOTECOMMANDTYPE_END_CONNECTION:
 			Quit();
 			return -1;
@@ -527,14 +525,14 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_SET_BREAKPOINT:
 			{
 				Breakpoint bp;
-				Serializer::ToValue(command.data, bp);
+				command.GetData().Get_SetBreakpoint(bp);
 				m_breakpoints.Set(bp);
 			}
 			break;
 		case REMOTECOMMANDTYPE_REMOVE_BREAKPOINT:
 			{
 				Breakpoint bp;
-				Serializer::ToValue(command.data, bp);
+				command.GetData().Get_RemoveBreakpoint(bp);
 				m_breakpoints.Remove(bp);
 			}
 			break;
@@ -542,14 +540,14 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST:
 			{
 				LuaVar var;
-				Serializer::ToValue(command.data, var);
+				command.GetData().Get_RequestFieldVarList(var);
 				m_engine.ResponseVarList(command, LuaGetFields(var));
 			}
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST:
 			{
 				LuaStackFrame stackFrame;
-				Serializer::ToValue(command.data, stackFrame);
+				command.GetData().Get_RequestLocalVarList(stackFrame);
 				m_engine.ResponseVarList(command,
 					LuaGetLocals(stackFrame.GetLua().GetState(), stackFrame.GetLevel()));
 			}
@@ -580,7 +578,7 @@ struct UpdateCallback {
 	explicit UpdateCallback() 
 		: cond(new condition) {
 	}
-	void operator()(const Command_ &command) {
+	void operator()(const Command &command) {
 		cond->notify_all();
 	}
 };

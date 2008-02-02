@@ -28,7 +28,6 @@
 #define __LLDEBUG_APPLICATION_H__
 
 #include "lldebug_controls.h"
-#include "lldebug_mediator.h"
 
 namespace lldebug {
 
@@ -40,17 +39,12 @@ public:
 	explicit Application();
 	virtual ~Application();
 
-	MainFrame *GetFrame() {
-		return m_frame;
-	}
-
 public:
 	virtual bool OnInit();
 	virtual int OnExit();
 
 private:
-	Mediator m_mediator;
-	MainFrame *m_frame;
+	Mediator *m_mediator;
 };
 
 }

@@ -27,11 +27,11 @@
 #ifndef __LLDEBUG_CONTROLS_H__
 #define __LLDEBUG_CONTROLS_H__
 
-#include "lldebug_mediator.h"
 #include "lldebug_event.h"
 
 namespace lldebug {
 
+class Mediator;
 class MainFrame;
 class SourceView;
 class InteractView;

@@ -145,7 +145,7 @@ private:
 	virtual int LoadConfig();
 	virtual int SaveConfig();
 	virtual void SetState(State state);
-	virtual void CommandCallback(const Command_ &command);
+	virtual void CommandCallback(const Command &command);
 	virtual int HandleCommand();
 
 	static void SetHook(lua_State *L, bool enable);
@@ -187,7 +187,7 @@ private:
 	BreakpointList m_breakpoints;
 	std::string m_rootFileKey;
 
-	typedef std::queue<Command_> CommandQueue;
+	typedef std::queue<Command> CommandQueue;
 	CommandQueue m_readCommandQueue;
 	boost::condition m_readCommandQueueCond;
 };

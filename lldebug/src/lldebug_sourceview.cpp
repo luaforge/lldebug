@@ -25,7 +25,7 @@
  */
 
 #include "lldebug_prec.h"
-#include "lldebug_sysinfo.h"
+#include "lldebug_mediator.h"
 #include "lldebug_sourceview.h"
 #include "lldebug_langsettings.h"
 #include "wx/wxscintilla.h"

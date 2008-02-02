@@ -35,7 +35,7 @@ namespace lldebug {
 class Application;
 class MainFrame;
 class RemoteEngine;
-class Command_;
+class Command;
 
 /**
  * @brief ‚·‚×‚Ä‚ÌƒNƒ‰ƒX‚É‹¤’Ê‚Ìî•ñ‚ğ•Û‚µ‚Ü‚·B
@@ -50,6 +50,9 @@ public:
 
 	/// Get the ID of the 'lldebug::Context' class.
 	int GetCtxId();
+
+	/// Process the remote command.
+	void OnRemoteCommand(const Command &command);
 
 	/// Get the RemoteEngine object.
 	RemoteEngine *GetEngine() {
@@ -106,10 +109,10 @@ public:
 	}
 
 	/// Get the main frame object.
-	MainFrame *GetFrame() {
+	/*MainFrame *GetFrame() {
 		scoped_lock lock(m_mutex);
 		return m_frame;
-	}
+	}*/
 
 	/// 
 	int GetUpdateSourceCount() {
@@ -128,9 +131,6 @@ private:
 private:
 	friend MainFrame;
 	void SetMainFrame(MainFrame *frame);
-
-private:
-	void RemoteCommandCallback(const Command_ &command);
 
 private:
 	static Mediator *ms_instance;

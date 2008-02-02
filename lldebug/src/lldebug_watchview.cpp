@@ -147,7 +147,7 @@ public:
 		return (data->GetUpdateSourceCount() < Mediator::Get()->GetUpdateSourceCount());
 	}
 
-	void operator()(const Command_ &command, const LuaVarList &vars) {
+	void operator()(const lldebug::Command &command, const LuaVarList &vars) {
 		m_view->DoUpdateVars(m_item, vars, m_isExpand);
 	}
 

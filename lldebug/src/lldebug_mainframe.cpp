@@ -26,6 +26,7 @@
 
 #include "lldebug_prec.h"
 #include "lldebug_remoteengine.h"
+#include "lldebug_mediator.h"
 #include "lldebug_mainframe.h"
 #include "lldebug_sourceview.h"
 #include "lldebug_outputview.h"
@@ -54,6 +55,7 @@ enum {
 };
 
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
+	EVT_IDLE(MainFrame::OnIdle)
 	EVT_MENU(wxID_EXIT, MainFrame::OnMenu)
 
 	EVT_MENU(ID_MENU_BREAK, MainFrame::OnMenu)
@@ -253,6 +255,12 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 	if (m_auiNotebook->GetPageCount() > 0) {
 		m_auiNotebook->SetSelection(m_auiNotebook->GetPageCount() - 1);
 	}
+}
+
+void MainFrame::OnIdle(wxIdleEvent &event) {
+	scoped_lock lock(m_mutex);
+
+	wxLogMessage(wxT("come"));
 }
 
 void MainFrame::OnMenu(wxCommandEvent &event) {

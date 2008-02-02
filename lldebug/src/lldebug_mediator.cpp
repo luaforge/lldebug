@@ -29,8 +29,6 @@
 #include "lldebug_remoteengine.h"
 #include "lldebug_mainframe.h"
 
-#include <boost/functional.hpp>
-
 namespace lldebug {
 
 Mediator *Mediator::ms_instance = NULL;
@@ -40,9 +38,9 @@ Mediator::Mediator()
 	, m_breakpoints(m_engine.get()), m_sourceManager(m_engine.get())
 	, m_updateSourceCount(0) {
 
-	// Set the callback called when the end of the reading commands.
+	// Set the callback function called when the end of the reading commands.
 	CommandCallback callback = boost::bind1st(
-		boost::mem_fn(&Mediator::RemoteCommandCallback), this);
+		boost::mem_fn(&Mediator::OnRemoteCommand), this);
 	m_engine->SetReadCommandCallback(callback);
 }
 
@@ -81,7 +79,7 @@ int Mediator::Initialize(const std::string &hostName, const std::string &portNam
 		: m_mediator(mediator) {
 	}
 
-	void operator()(const Command_ &command) {
+	void operator()(const Command &command) {
 		m_mediator->RemoteCommandCallback(command);
 	}
 
@@ -92,40 +90,51 @@ private:
 void Mediator::SetMainFrame(MainFrame *frame) {
 	scoped_lock lock(m_mutex);
 
+	if (m_frame == frame) {
+		return;
+	}
+
+	// Start or end TCP connection.
+	if (frame != NULL) {
+		m_engine->StartConnection(GetCtxId());
+	}
+	else {
+		m_engine->EndConnection();
+	}
+
 	m_frame = frame;
 }
 
-void Mediator::RemoteCommandCallback(const Command_ &command) {
-	scoped_lock lock(m_mutex);
-	lock.unlock();
+void Mediator::OnRemoteCommand(const Command &command) {
+	//scoped_lock lock(m_mutex);
 
 	// Process remote commands.
-	switch (command.header.type) {
+	switch (command.GetType()) {
 	case REMOTECOMMANDTYPE_END_CONNECTION:
 		wxExit();
 		break;
 
 	case REMOTECOMMANDTYPE_CHANGED_STATE:
-		if (GetFrame() != NULL) {
+		if (m_frame != NULL) {
 			bool isBreak;
-			Serializer::ToValue(command.data, isBreak);
+			command.GetData().Get_ChangedState(isBreak);
 
 			wxChangedStateEvent event(wxEVT_CHANGED_STATE, wxID_ANY, isBreak);
-			GetFrame()->AddPendingDebugEvent(event, m_frame, true);
+			m_frame->AddPendingDebugEvent(event, m_frame, true);
 		}
 		break;
 
 	case REMOTECOMMANDTYPE_UPDATE_SOURCE:
-		if (GetFrame() != NULL) {
+		if (m_frame != NULL) {
 			std::string key;
 			int line, updateSourceCount;
-			Serializer::ToValue(command.data, key, line, updateSourceCount);
+			command.GetData().Get_UpdateSource(key, line, updateSourceCount);
 
 			wxSourceLineEvent event(
 				wxEVT_UPDATE_SOURCE, wxID_ANY,
 				key, line, updateSourceCount);
 			m_updateSourceCount = updateSourceCount;
-			GetFrame()->AddPendingDebugEvent(event, m_frame, true);
+			m_frame->AddPendingDebugEvent(event, m_frame, true);
 			m_engine->ResponseSuccessed(command);
 		}
 		break;
@@ -133,12 +142,12 @@ void Mediator::RemoteCommandCallback(const Command_ &command) {
 	case REMOTECOMMANDTYPE_ADDED_SOURCE:
 		{
 			Source source;
-			Serializer::ToValue(command.data, source);
+			command.GetData().Get_AddedSource(source);
 			m_sourceManager.Add(source);
 
-			if (GetFrame() != NULL) {
+			if (m_frame != NULL) {
 				wxSourceEvent event(wxEVT_ADDED_SOURCE, wxID_ANY, source);
-				GetFrame()->AddPendingDebugEvent(event, m_frame, true);
+				m_frame->AddPendingDebugEvent(event, m_frame, true);
 			}
 		}
 		break;
@@ -146,13 +155,15 @@ void Mediator::RemoteCommandCallback(const Command_ &command) {
 	case REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST:
 		{
 			BreakpointList bps(m_engine.get());
-			std::string str(&command.data[0], command.data.size());
-			Serializer::ToValue(command.data, bps);
-			m_breakpoints = bps;
+			command.GetData().Get_ChangedBreakpointList(bps);
+			{
+				scoped_lock lock(m_mutex);
+				m_breakpoints = bps;
+			}
 
-			if (GetFrame() != NULL) {
+			if (m_frame != NULL) {
 				wxBreakpointEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY, bps);
-				GetFrame()->AddPendingDebugEvent(event, m_frame, true);
+				m_frame->AddPendingDebugEvent(event, m_frame, true);
 			}
 		}
 		break;
@@ -166,7 +177,7 @@ void Mediator::RemoteCommandCallback(const Command_ &command) {
 	case REMOTECOMMANDTYPE_REQUEST_BACKTRACE:
 	case REMOTECOMMANDTYPE_VALUE_VARLIST:
 	case REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST:
-	case REMOTECOMMANDTYPE_VALUE_BACKTRACE:
+	case REMOTECOMMANDTYPE_VALUE_BACKTRACELIST:
 		BOOST_ASSERT(false && "Invalid remote command.");
 		break;
 	}

@@ -25,9 +25,9 @@
  */
 
 #include "lldebug_prec.h"
-#include "lldebug_remoteengine.h"
-#include "lldebug_application.h"
+#include "lldebug_mediator.h"
 #include "lldebug_mainframe.h"
+#include "lldebug_application.h"
 
 IMPLEMENT_APP(lldebug::Application)
 
@@ -38,11 +38,15 @@ int main(int argc, char *argv[]) {
 namespace lldebug {
 
 Application::Application()
-	: m_frame(NULL) {
+	: m_mediator(new Mediator) {
 	SetAppName(wxT("lldebug debugger"));
 }
 
 Application::~Application() {
+	if (m_mediator != NULL) {
+		delete m_mediator;
+		m_mediator = NULL;
+	}
 }
 
 //wxFile file;
@@ -61,7 +65,8 @@ bool Application::OnInit() {
 
 	//::wxExecute(_T("..\\debug\\test.exe"));
 
-	if (m_mediator.Initialize(hostName, portName) != 0) {
+	// Start connecting.
+	if (m_mediator->Initialize(hostName, portName) != 0) {
 		return false;
 	}
 
@@ -69,13 +74,10 @@ bool Application::OnInit() {
 	SetTopWindow(frame);
 	frame->Show();
 
-	wxLogWindow *log = new wxLogWindow(frame, wxT("Logger"), true);
+	wxLogWindow *log = new wxLogWindow(frame, _("Logger"), true);
 	wxLog::SetActiveTarget(log);
 	
-	m_mediator.SetMainFrame(frame);
-	m_frame = frame;
-
-	Mediator::Get()->GetEngine()->StartConnection(m_mediator.GetCtxId());
+	m_mediator->SetMainFrame(frame);
     return true;
 }
 

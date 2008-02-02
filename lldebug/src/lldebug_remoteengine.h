@@ -4,11 +4,8 @@
 #ifndef __LLDEBUG_REMOTEENGINE_H__
 #define __LLDEBUG_REMOTEENGINE_H__
 
-#include <boost/function.hpp>
-
 #include "lldebug_sysinfo.h"
 #include "lldebug_luainfo.h"
-#include "lldebug_vectorstream.h"
 
 namespace lldebug {
 
@@ -45,7 +42,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_REQUEST_BACKTRACE,
 
 	REMOTECOMMANDTYPE_VALUE_VARLIST,
-	REMOTECOMMANDTYPE_VALUE_BACKTRACE,
+	REMOTECOMMANDTYPE_VALUE_BACKTRACELIST,
 	REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST,
 };
 
@@ -59,29 +56,130 @@ struct CommandHeader {
 	boost::uint32_t dataSize;
 };
 
-/// Data type for command.
-typedef std::vector<char> CommandData;
+/**
+ * @brief Data type for command contents.
+ */
+class CommandData {
+public:
+	explicit CommandData();
+	explicit CommandData(const std::vector<char> &data);
+	~CommandData();
+
+	/// Get the size of this data.
+	std::vector<char>::size_type GetSize() const {
+		return m_data.size();
+	}
+
+	/// Get the impl data of command.
+	std::vector<char> &GetImplData() {
+		return m_data;
+	}
+
+	/// Get the impl data of command.
+	const std::vector<char> &GetImplData() const {
+		return m_data;
+	}
+
+public:
+	void Get_ChangedState(bool &isBreak) const;
+	void Set_ChangedState(bool isBreak);
+
+	void Get_UpdateSource(std::string &key, int &line, int &updateSourceCount) const;
+	void Set_UpdateSource(const std::string &key, int line, int updateSourceCount);
+
+	void Get_AddedSource(Source &source) const;
+	void Set_AddedSource(const Source &source);
+
+	void Get_SetBreakpoint(Breakpoint &bp) const;
+	void Set_SetBreakpoint(const Breakpoint &bp);
+
+	void Get_RemoveBreakpoint(Breakpoint &bp) const;
+	void Set_RemoveBreakpoint(const Breakpoint &bp);
+
+	void Get_ChangedBreakpointList(BreakpointList &bps) const;
+	void Set_ChangedBreakpointList(const BreakpointList &bps);
+
+	void Get_RequestFieldVarList(LuaVar &var) const;
+	void Set_RequestFieldVarList(const LuaVar &var);
+
+	void Get_RequestLocalVarList(LuaStackFrame &stackFrame) const;
+	void Set_RequestLocalVarList(const LuaStackFrame &stackFrame);
+
+	void Get_ValueVarList(LuaVarList &vars) const;
+	void Set_ValueVarList(const LuaVarList &vars);
+
+	void Get_ValueBacktraceList(LuaBacktraceList &backtraces) const;
+	void Set_ValueBacktraceList(const LuaBacktraceList &backtraces);
+
+private:
+	std::vector<char> m_data;
+};
 
 /**
  * @brief The command using TCP connection.
  */
-class Command_ {
+class Command {
 public:
-	CommandHeader header;
-	CommandData data;
+	explicit Command();
+	explicit Command(const CommandHeader &header, const CommandData &data);
+	~Command();
+
+	/// Get the type of this command.
+	RemoteCommandType GetType() const {
+		return m_header.type;
+	}
+
+	/// Get the context id.
+	int GetCtxId() const {
+		return m_header.ctxId;
+	}
+
+	/// Get the command id.
+	boost::uint32_t GetCommandId() const {
+		return m_header.commandId;
+	}
+
+	/// Get the size of this data.
+	boost::uint32_t GetDataSize() const {
+		return m_header.dataSize;
+	}
+
+	/// Get the header of this command.
+	CommandHeader &GetHeader() {
+		return m_header;
+	}
+
+	/// Get the const header of this command.
+	const CommandHeader &GetHeader() const {
+		return m_header;
+	}
+
+	/// Get the const data of the command.
+	CommandData &GetData() {
+		return m_data;
+	}
+
+	/// Get the data of the command.
+	const CommandData &GetData() const {
+		return m_data;
+	}
+
+private:
+	CommandHeader m_header;
+	CommandData m_data;
 };
 
 typedef
-	boost::function1<void, const Command_ &>
+	boost::function1<void, const Command &>
 	CommandCallback;
 typedef
-	boost::function2<void, const Command_ &, const LuaVarList &>
+	boost::function2<void, const Command &, const LuaVarList &>
 	LuaVarListCallback;
 typedef
-	boost::function2<void, const Command_ &, const BreakpointList &>
+	boost::function2<void, const Command &, const BreakpointList &>
 	BreakpointListCallback;
 typedef
-	boost::function2<void, const Command_ &, const LuaBacktraceList &>
+	boost::function2<void, const Command &, const LuaBacktraceList &>
 	BacktraceListCallback;
 
 class SocketBase;
@@ -106,8 +204,8 @@ public:
 
 	void SetReadCommandCallback(const CommandCallback &callback);
 
-	void ResponseSuccessed(const Command_ &command);
-	void ResponseFailed(const Command_ &command);
+	void ResponseSuccessed(const Command &command);
+	void ResponseFailed(const Command &command);
 	void StartConnection(int ctxId);
 	void EndConnection();
 
@@ -131,9 +229,9 @@ public:
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
 	void RequestEnvironVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);
-	void ResponseVarList(const Command_ &command, const LuaVarList &vars);
+	void ResponseVarList(const Command &command, const LuaVarList &vars);
 
-	/// Get the id of the Context object.
+	/// Get id of the Context object.
 	int GetCtxId() {
 		scoped_lock lock(m_mutex);
 		return m_ctxId;
@@ -153,11 +251,11 @@ private:
 	void WriteCommand(RemoteCommandType type,
 					  const CommandData &data,
 					  const CommandCallback &callback);
-	void WriteResponse(const Command_ &readCommand,
+	void WriteResponse(const Command &readCommand,
 					   RemoteCommandType type,
 					   const CommandData &data);
-	void handleReadCommand(const Command_ &command);
-	void serviceThread();
+	void HandleReadCommand(const Command &command);
+	void ServiceThread();
 
 private:
 	shared_ptr<thread> m_thread;
@@ -178,73 +276,8 @@ private:
 	typedef std::list<WaitResponseCommand> WaitResponseCommandList;
 	WaitResponseCommandList m_waitResponseCommandList;
 
-	//typedef std::queue<Command_> ReadCommandQueue;
+	//typedef std::queue<Command> ReadCommandQueue;
 	//ReadCommandQueue m_readCommandQueue; // commands that were read.
-};
-
-/**
- * @brief Serializer class
- */
-struct Serializer {
-	template<class T0>
-	static CommandData ToData(const T0 &value0) {
-		vector_ostream stream;
-		serialize_oarchive ar(stream);
-
-		ar << BOOST_SERIALIZATION_NVP(value0);
-		stream.flush();
-		return stream.container();
-	}
-
-	template<class T0, class T1>
-	static CommandData ToData(const T0 &value0, const T1 &value1) {
-		vector_ostream stream;
-		serialize_oarchive ar(stream);
-
-		ar << BOOST_SERIALIZATION_NVP(value0);
-		ar << BOOST_SERIALIZATION_NVP(value1);
-		stream.flush();
-		return stream.container();
-	}
-
-	template<class T0, class T1, class T2>
-	static CommandData ToData(const T0 &value0, const T1 &value1, const T2 &value2) {
-		vector_ostream stream;
-		serialize_oarchive ar(stream);
-
-		ar << BOOST_SERIALIZATION_NVP(value0);
-		ar << BOOST_SERIALIZATION_NVP(value1);
-		ar << BOOST_SERIALIZATION_NVP(value2);
-		stream.flush();
-		return stream.container();
-	}
-
-	template<class T0>
-	static void ToValue(const CommandData &data, T0 &value0) {
-		vector_istream stream(data);
-		serialize_iarchive ar(stream);
-
-		ar >> BOOST_SERIALIZATION_NVP(value0);
-	}
-
-	template<class T0, class T1>
-	static void ToValue(const CommandData &data, T0 &value0, T1 &value1) {
-		vector_istream stream(data);
-		serialize_iarchive ar(stream);
-
-		ar >> BOOST_SERIALIZATION_NVP(value0);
-		ar >> BOOST_SERIALIZATION_NVP(value1);
-	}
-
-	template<class T0, class T1, class T2>
-	static void ToValue(const CommandData &data, T0 &value0, T1 &value1, T2 &value2) {
-		vector_istream stream(data);
-		serialize_iarchive ar(stream);
-
-		ar >> BOOST_SERIALIZATION_NVP(value0);
-		ar >> BOOST_SERIALIZATION_NVP(value1);
-		ar >> BOOST_SERIALIZATION_NVP(value2);
-	}
 };
 
 }

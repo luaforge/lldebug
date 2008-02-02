@@ -33,8 +33,6 @@
 
 namespace lldebug {
 
-class Command_;
-
 /**
  * @brief メインウィンドウです。
  */
@@ -50,6 +48,7 @@ public:
 private:
 	void CreateGUIControls();
 	void OnMenu(wxCommandEvent &event);
+	void OnIdle(wxIdleEvent &event);
 
 private:
 	DECLARE_EVENT_TABLE();

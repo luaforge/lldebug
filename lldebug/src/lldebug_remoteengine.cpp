@@ -3,10 +3,10 @@
 
 #include "lldebug_prec.h"
 #include "lldebug_remoteengine.h"
+#include "lldebug_serialization.h"
 
+#include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/archive/xml_oarchive.hpp>
-#include <boost/archive/xml_iarchive.hpp>
 #include <sstream>
 
 namespace lldebug {
@@ -19,23 +19,16 @@ private:
 	const CommandCallback m_callback;
 	bool m_isConnected;
 
-	struct ReadCommand {
-		CommandHeader header;
-		std::vector<char> data;
-	};
-	
-	typedef std::queue<Command_> WriteCommandQueue;
+	typedef std::queue<Command> WriteCommandQueue;
 	/// This object is handled in one specific thread.
 	WriteCommandQueue m_writeCommandQueue;
 	
 public:
 	/// Write command data.
 	void Write(const CommandHeader &header, const CommandData &data) {
-		Command_ writeCommand;
-		writeCommand.header = header;
-		writeCommand.data = data;
+		Command command(header, data);
 
-		GetService().post(boost::bind(&SocketBase::doWrite, this, writeCommand));
+		GetService().post(boost::bind(&SocketBase::doWrite, this, command));
 	}
 
 	/// Close this socket.
@@ -86,29 +79,30 @@ private:
 	}
 
 	void asyncReadCommand() {
-		shared_ptr<ReadCommand> command(new ReadCommand);
+		shared_ptr<Command> command(new Command);
 
 		boost::asio::async_read(m_socket,
-			boost::asio::buffer(&command->header, sizeof(CommandHeader)),
+			boost::asio::buffer(&command->GetHeader(), sizeof(CommandHeader)),
 			boost::bind(
 				&SocketBase::handleReadCommand, this, command,
 				boost::asio::placeholders::error));
 	}
 
-	void handleReadCommand(shared_ptr<ReadCommand> command,
+	void handleReadCommand(shared_ptr<Command> command,
 						   const boost::system::error_code &error) {
 		if (!error) {
 			// Check that response is OK.
-			if (command->header.ctxId < 0) {
+			if (command->GetCtxId() < 0) {
 				doClose();
 			}
 
 			// Read the command data if exists.
-			if (command->header.dataSize > 0) {
-				command->data.resize(command->header.dataSize);
+			if (command->GetDataSize() > 0) {
+				std::vector<char> &data = command->GetData().GetImplData();
+				data.resize(command->GetDataSize());
 
 				boost::asio::async_read(m_socket,
-					boost::asio::buffer(command->data, command->header.dataSize),
+					boost::asio::buffer(data, command->GetDataSize()),
 					boost::bind(
 						&SocketBase::handleReadData, this, command,
 						boost::asio::placeholders::error));
@@ -123,15 +117,14 @@ private:
 	}
 
 	/// It's called after the end of the command reading.
-	void handleReadData(shared_ptr<ReadCommand> command,
+	void handleReadData(shared_ptr<Command> command,
 						const boost::system::error_code &error) {
 		if (!error) {
-			Command_ cmd;
-			cmd.header = command->header;
-			cmd.data = command->data;
+			assert(command != NULL);
 
-			// m_callback isn't mutable.
-			m_callback(cmd);
+			// m_callback may change.
+			CommandCallback callback = m_callback;
+			callback(*command);
 
 			// Prepare the new command.
 			asyncReadCommand();
@@ -143,11 +136,11 @@ private:
 
 	/// Send the asynchronous write order.
 	/// The memory of the command must be kept somewhere.
-	void asyncWrite(const Command_ &command) {
-		if (command.header.dataSize == 0) {
+	void asyncWrite(const Command &command) {
+		if (command.GetDataSize() == 0) {
 			// Delete the command memory.
 			boost::asio::async_write(m_socket,
-				boost::asio::buffer(&command.header, sizeof(CommandHeader)),
+				boost::asio::buffer(&command.GetHeader(), sizeof(CommandHeader)),
 				boost::bind(
 					&SocketBase::handleWrite, this, true,
 					boost::asio::placeholders::error));
@@ -155,14 +148,14 @@ private:
 		else {
 			// Don't delete the command memory.
 			boost::asio::async_write(m_socket,
-				boost::asio::buffer(&command.header, sizeof(CommandHeader)),
+				boost::asio::buffer(&command.GetHeader(), sizeof(CommandHeader)),
 				boost::bind(
 					&SocketBase::handleWrite, this, false,
 					boost::asio::placeholders::error));
 
 			// Write command data.
 			boost::asio::async_write(m_socket,
-				boost::asio::buffer(command.data, command.header.dataSize),
+				boost::asio::buffer(command.GetData().GetImplData(), command.GetDataSize()),
 				boost::bind(
 					&SocketBase::handleWrite, this, true,
 					boost::asio::placeholders::error));
@@ -172,7 +165,7 @@ private:
 	/// Do the asynchronous writing of the command.
 	/// The command memory must be kept until the end of the writing,
 	/// so there is a write command queue.
-	void doWrite(const Command_ &command) {
+	void doWrite(const Command &command) {
 		bool isProgress = !m_writeCommandQueue.empty();
 		m_writeCommandQueue.push(command);
 
@@ -368,7 +361,7 @@ int RemoteEngine::StartContext(int portNum, int ctxId, int waitSeconds) {
 
 	socket.reset(new ContextSocket(m_ioService,
 		boost::bind(
-			&RemoteEngine::handleReadCommand, this, _1),
+			&RemoteEngine::HandleReadCommand, this, _1),
 			tcp::endpoint(tcp::v4(), portNum)));
 
 	// Start connection.
@@ -407,7 +400,7 @@ int RemoteEngine::StartFrame(const std::string &hostName,
 	// Create socket object.
 	socket.reset(new FrameSocket(m_ioService,
 		boost::bind(
-			&RemoteEngine::handleReadCommand, this, _1),
+			&RemoteEngine::HandleReadCommand, this, _1),
 			tcp::resolver::query(hostName, portName)));
 
 	// Start connection.
@@ -472,7 +465,7 @@ void RemoteEngine::SetThreadActive(bool is) {
 	m_isThreadActive = is;
 
 	if (!m_isThreadActive) {
-		/*Command_ command;
+		/*Command command;
 		command.header.type = REMOTECOMMANDTYPE_END_CONNECTION;
 		command.header.ctxId = m_ctxId;
 		command.header.commandId = 0;
@@ -486,7 +479,7 @@ void RemoteEngine::StartThread() {
 
 	if (!IsThreadActive()) {
 		boost::function0<void> fn
-			= boost::bind(&RemoteEngine::serviceThread, this);
+			= boost::bind(&RemoteEngine::ServiceThread, this);
 		m_thread.reset(new boost::thread(fn));
 	}
 }
@@ -503,7 +496,7 @@ void RemoteEngine::StopThread() {
 	}
 }
 
-void RemoteEngine::serviceThread() {
+void RemoteEngine::ServiceThread() {
 	// If IsThreadActive is true, the thread has already started.
 	if (IsThreadActive()) {
 		return;
@@ -535,7 +528,7 @@ void RemoteEngine::serviceThread() {
 	SetThreadActive(false);
 }
 
-void RemoteEngine::handleReadCommand(const Command_ &command) {
+void RemoteEngine::HandleReadCommand(const Command &command) {
 	scoped_lock lock(m_mutex);
 	bool isResponseCommand = false;
 
@@ -544,8 +537,8 @@ void RemoteEngine::handleReadCommand(const Command_ &command) {
 	while (it != m_waitResponseCommandList.end()) {
 		const CommandHeader &header_ = (*it).header;
 
-		if (command.header.ctxId == header_.ctxId
-			&& command.header.commandId == header_.commandId) {
+		if (command.GetCtxId() == header_.ctxId
+			&& command.GetCommandId() == header_.commandId) {
 			isResponseCommand = true;
 			if (IsThreadActive()) {
 				(*it).response(command);
@@ -557,16 +550,16 @@ void RemoteEngine::handleReadCommand(const Command_ &command) {
 		}
 	}
 
-	switch (command.header.type) {
+	switch (command.GetType()) {
 	case REMOTECOMMANDTYPE_START_CONNECTION:
-		SetCtxId(command.header.ctxId);
+		SetCtxId(command.GetCtxId());
 		return;
 	case REMOTECOMMANDTYPE_END_CONNECTION:
 		SetCtxId(-1);
 		return;
 	default:
 		if (m_ctxId < 0) {
-			SetCtxId(command.header.ctxId);
+			SetCtxId(command.GetCtxId());
 		}
 		break;
 	}
@@ -609,7 +602,7 @@ void RemoteEngine::WriteCommand(RemoteCommandType type,
 	scoped_lock lock(m_mutex);
 	CommandHeader header;
 
-	header = InitCommandHeader(type, data.size());
+	header = InitCommandHeader(type, data.GetSize());
 	m_socket->Write(header, data);
 }
 
@@ -619,13 +612,13 @@ void RemoteEngine::WriteCommand(RemoteCommandType type,
 	scoped_lock lock(m_mutex);
 	WaitResponseCommand wcommand;
 
-	wcommand.header = InitCommandHeader(type, data.size());
+	wcommand.header = InitCommandHeader(type, data.GetSize());
 	wcommand.response = response;
 	m_socket->Write(wcommand.header, data);
 	m_waitResponseCommandList.push_back(wcommand);
 }
 
-void RemoteEngine::WriteResponse(const Command_ &readCommand,
+void RemoteEngine::WriteResponse(const Command &readCommand,
 								 RemoteCommandType type,
 								 const CommandData &data) {
 	scoped_lock lock(m_mutex);
@@ -633,18 +626,18 @@ void RemoteEngine::WriteResponse(const Command_ &readCommand,
 
 	header = InitCommandHeader(
 		type,
-		data.size(),
-		readCommand.header.commandId);
+		data.GetSize(),
+		readCommand.GetCommandId());
 	m_socket->Write(header, data);
 }
 
-void RemoteEngine::ResponseSuccessed(const Command_ &command) {
+void RemoteEngine::ResponseSuccessed(const Command &command) {
 	scoped_lock lock(m_mutex);
 
 	WriteResponse(command, REMOTECOMMANDTYPE_SUCCESSED, CommandData());
 }
 
-void RemoteEngine::ResponseFailed(const Command_ &command) {
+void RemoteEngine::ResponseFailed(const Command &command) {
 	scoped_lock lock(m_mutex);
 
 	WriteResponse(command, REMOTECOMMANDTYPE_FAILED, CommandData());
@@ -671,52 +664,64 @@ void RemoteEngine::EndConnection() {
 
 void RemoteEngine::ChangedState(bool isBreak) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_ChangedState(isBreak);
 	WriteCommand(
 		REMOTECOMMANDTYPE_CHANGED_STATE,
-		Serializer::ToData(isBreak));
+		data);
 }
 
 void RemoteEngine::UpdateSource(const std::string &key, int line, int updateSourceCount, const CommandCallback &response) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_UpdateSource(key, line, updateSourceCount);
 	WriteCommand(
 		REMOTECOMMANDTYPE_UPDATE_SOURCE,
-		Serializer::ToData(key, line, updateSourceCount),
+		data,
 		response);
 }
 
 void RemoteEngine::AddedSource(const Source &source) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_AddedSource(source);
 	WriteCommand(
 		REMOTECOMMANDTYPE_ADDED_SOURCE,
-		Serializer::ToData(source));
+		data);
 }
 
 /// Notify that the breakpoint was set.
 void RemoteEngine::SetBreakpoint(const Breakpoint &bp) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_SetBreakpoint(bp);
 	WriteCommand(
 		REMOTECOMMANDTYPE_SET_BREAKPOINT,
-		Serializer::ToData(bp));
+		data);
 }
 
 void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_RemoveBreakpoint(bp);
 	WriteCommand(
 		REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
-		Serializer::ToData(bp));
+		data);
 }
 
 void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_ChangedBreakpointList(bps);
 	WriteCommand(
 		REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST,
-		Serializer::ToData(bps));
+		data);
 }
 
 void RemoteEngine::Break() {
@@ -766,28 +771,32 @@ struct VarListResponseHandler {
 		: m_callback(callback) {
 	}
 
-	void operator()(const Command_ &command) {
+	void operator()(const Command &command) {
 		LuaVarList vars;
-		Serializer::ToValue(command.data, vars);
+		command.GetData().Get_ValueVarList(vars);
 		m_callback(command, vars);
 	}
 };
 
 void RemoteEngine::RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_RequestFieldVarList(var);
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
-		Serializer::ToData(var),
+		data,
 		VarListResponseHandler(callback));
 }
 
 void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_RequestLocalVarList(stackFrame);
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
-		Serializer::ToData(stackFrame),
+		data,
 		VarListResponseHandler(callback));
 }
 
@@ -827,13 +836,109 @@ void RemoteEngine::RequestStackList(const LuaVarListCallback &callback) {
 		VarListResponseHandler(callback));
 }
 
-void RemoteEngine::ResponseVarList(const Command_ &command, const LuaVarList &vars) {
+void RemoteEngine::ResponseVarList(const Command &command, const LuaVarList &vars) {
 	scoped_lock lock(m_mutex);
+	CommandData data;
 
+	data.Set_ValueVarList(vars);
 	WriteResponse(
 		command,
 		REMOTECOMMANDTYPE_VALUE_VARLIST,
-		Serializer::ToData(vars));
+		data);
+}
+
+
+/*-----------------------------------------------------------------*/
+CommandData::CommandData() {
+}
+
+CommandData::CommandData(const std::vector<char> &data)
+	: m_data(data) {
+}
+
+CommandData::~CommandData() {
+}
+Command::Command() {
+}
+
+Command::Command(const CommandHeader &header, const CommandData &data)
+	: m_header(header), m_data(data) {
+}
+
+Command::~Command() {
+}
+
+void CommandData::Get_ChangedState(bool &isBreak) const {
+	Serializer::ToValue(m_data, isBreak);
+}
+
+void CommandData::Set_ChangedState(bool isBreak) {
+	m_data = Serializer::ToData(isBreak);
+}
+
+void CommandData::Get_UpdateSource(std::string &key, int &line,
+								   int &updateSourceCount) const {
+	Serializer::ToValue(m_data, key, line, updateSourceCount);
+}
+void CommandData::Set_UpdateSource(const std::string &key, int line,
+								   int updateSourceCount) {
+	m_data = Serializer::ToData(key, line, updateSourceCount);
+}
+
+void CommandData::Get_AddedSource(Source &source) const {
+	Serializer::ToValue(m_data, source);
+}
+void CommandData::Set_AddedSource(const Source &source) {
+	m_data = Serializer::ToData(source);
+}
+
+void CommandData::Get_SetBreakpoint(Breakpoint &bp) const {
+	Serializer::ToValue(m_data, bp);
+}
+void CommandData::Set_SetBreakpoint(const Breakpoint &bp) {
+	m_data = Serializer::ToData(bp);
+}
+
+void CommandData::Get_RemoveBreakpoint(Breakpoint &bp) const {
+	Serializer::ToValue(m_data, bp);
+}
+void CommandData::Set_RemoveBreakpoint(const Breakpoint &bp) {
+	m_data = Serializer::ToData(bp);
+}
+
+void CommandData::Get_ChangedBreakpointList(BreakpointList &bps) const {
+	Serializer::ToValue(m_data, bps);
+}
+void CommandData::Set_ChangedBreakpointList(const BreakpointList &bps) {
+	m_data = Serializer::ToData(bps);
+}
+
+void CommandData::Get_RequestFieldVarList(LuaVar &var) const {
+	Serializer::ToValue(m_data, var);
+}
+void CommandData::Set_RequestFieldVarList(const LuaVar &var) {
+	m_data = Serializer::ToData(var);
+}
+
+void CommandData::Get_RequestLocalVarList(LuaStackFrame &stackFrame) const {
+	Serializer::ToValue(m_data, stackFrame);
+}
+void CommandData::Set_RequestLocalVarList(const LuaStackFrame &stackFrame) {
+	m_data = Serializer::ToData(stackFrame);
+}
+
+void CommandData::Get_ValueVarList(LuaVarList &vars) const {
+	Serializer::ToValue(m_data, vars);
+}
+void CommandData::Set_ValueVarList(const LuaVarList &vars) {
+	m_data = Serializer::ToData(vars);
+}
+
+void CommandData::Get_ValueBacktraceList(LuaBacktraceList &backtraces) const {
+	Serializer::ToValue(m_data, backtraces);
+}
+void CommandData::Set_ValueBacktraceList(const LuaBacktraceList &backtraces) {
+	m_data = Serializer::ToData(backtraces);
 }
 
 }

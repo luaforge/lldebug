@@ -27,6 +27,17 @@
 #include "lldebug_prec.h"
 #include "lldebug_outputview.h"
 
+/*#include <wx/frame.h>
+#include <wx/textctrl.h>
+#include <wx/treectrl.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/menu.h>
+#include <wx/file.h>
+#include <wx/filename.h>
+#include <wx/stdpaths.h>
+*/
+
 namespace lldebug {
 
 BEGIN_EVENT_TABLE(OutputView, wxTextCtrl)

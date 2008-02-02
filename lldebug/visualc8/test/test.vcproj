@@ -242,11 +242,19 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\src\lldebug_serialization.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\src\lldebug_sysinfo.cpp"
 			>
 		</File>
 		<File
 			RelativePath="..\..\src\lldebug_sysinfo.h"
+			>
+		</File>
+		<File
+			RelativePath="..\..\src\lldebug_vectorstream.h"
 			>
 		</File>
 		<File

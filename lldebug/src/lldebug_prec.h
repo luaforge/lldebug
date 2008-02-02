@@ -37,34 +37,12 @@
 #define BOOST_SYSTEM_NO_LIB
 #define NOMINMAX
 #define _WIN32_WINDOWS 0x400
-#include "boost/asio.hpp"
+#include "boost/asio/io_service.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
 #include <boost/thread.hpp>
 #include <boost/functional.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/xml_oarchive.hpp>
-#include <boost/archive/xml_iarchive.hpp>
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/nvp.hpp>
-#include <boost/serialization/version.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/list.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/set.hpp>
-#include <boost/serialization/shared_ptr.hpp>
-
-#if defined(_MSC_VER)
-#define snprintf _snprintf
-#endif
-
-#define LLDEBUG_MEMBER_NVP(name) \
-	boost::serialization::make_nvp( \
-		BOOST_STRINGIZE(name), BOOST_PP_CAT(m_, name))
 
 namespace lldebug {
 	using boost::shared_ptr;
@@ -73,12 +51,6 @@ namespace lldebug {
 	using boost::shared_polymorphic_cast;
 	using boost::shared_polymorphic_downcast;
 	using boost::static_pointer_cast;
-	using boost::weak_ptr;
-
-	//typedef boost::archive::binary_oarchive serialize_oarchive;
-	//typedef boost::archive::binary_iarchive serialize_iarchive;
-	typedef boost::archive::xml_oarchive serialize_oarchive;
-	typedef boost::archive::xml_iarchive serialize_iarchive;
 
 	using boost::thread;
 	using boost::condition;
@@ -93,32 +65,20 @@ namespace lldebug {
 	}
 }
 
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
+
+#define LLDEBUG_MEMBER_NVP(name) \
+	boost::serialization::make_nvp( \
+		BOOST_STRINGIZE(name), BOOST_PP_CAT(m_, name))
 
 #ifdef LLDEBUG_FRAME
 
+#include <wx/wxprec.h>
+
 #ifndef WX_PRECOMP
 	#include <wx/wx.h>
-	#include <wx/frame.h>
-#else
-	#include <wx/wxprec.h>
-#endif
-
-#include <wx/textctrl.h>
-#include <wx/treectrl.h>
-#include <wx/sizer.h>
-#include <wx/panel.h>
-#include <wx/menu.h>
-#include <wx/file.h>
-#include <wx/filename.h>
-#include <wx/stdpaths.h>
-#include <wx/log.h>
-
-#ifdef LLDEBUG_BUILD_DLL
-    #define WXDLLIMPEXP_LLDEBUG WXEXPORT
-#elif defined(WXUSINGDLL)
-    #define WXDLLIMPEXP_LLDEBUG WXIMPORT
-#else // not making nor using DLL
-    #define WXDLLIMPEXP_LLDEBUG
 #endif
 
 namespace lldebug {
