@@ -1,0 +1,7 @@
+* encoding problem
+* need to refactor the RemoteEngine class
+* consider 'lldebug_serialization.h'
+* error message and log message
+* edit and save file
+* break, restart, and exit
+* backtrace
