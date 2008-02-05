@@ -32,6 +32,15 @@ namespace lldebug {
 std::string GetConfigFileName(const std::string &filename);
 
 /**
+ * @brief The type of the log message.
+ */
+enum LogType {
+	LOGTYPE_MESSAGE, ///< Normal message.
+	LOGTYPE_WARNING, ///< Warning message.
+	LOGTYPE_ERROR, ///< Error message.
+};
+
+/**
  * @brief デバッガのブレイクポイントオブジェクトです。
  */
 class Breakpoint {
@@ -200,11 +209,14 @@ public:
 	explicit SourceManager(RemoteEngine *engine);
 	~SourceManager();
 
-	/// Get the source list.
-	std::list<Source> GetList();
-
 	/// Get the source infomation from key.
 	const Source *Get(const std::string &key);
+
+	/// Get the string source by the first part of the key.
+	const Source *GetString(const std::string &key);
+
+	/// Get the string source
+	std::list<Source> GetList();
 
 	/// Add a source.
 	int Add(const std::string &key);

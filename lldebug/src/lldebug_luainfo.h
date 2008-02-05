@@ -131,6 +131,11 @@ public:
 		return m_lua;
 	}
 
+	/// Get the const lua state object.
+	const LuaHandle &GetLua() const {
+		return m_lua;
+	}
+
 	/// Get the level of the local stack frame.
 	int GetLevel() const {
 		return m_level;

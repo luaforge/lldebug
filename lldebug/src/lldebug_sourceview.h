@@ -51,10 +51,11 @@ private:
 	void CreatePage(const Source &source);
 
 private:
-	void OnChangedState(wxChangedStateEvent &event);
-	void OnUpdateSource(wxSourceLineEvent &event);
-	void OnAddedSource(wxSourceEvent &event);
-	void OnChangedBreakpoints(wxBreakpointEvent &event);
+	void OnChangedState(wxDebugEvent &event);
+	void OnUpdateSource(wxDebugEvent &event);
+	void OnAddedSource(wxDebugEvent &event);
+	void OnChangedBreakpoints(wxDebugEvent &event);
+	void OnShowSourceLine(wxDebugEvent &event);
 
 	DECLARE_EVENT_TABLE();
 

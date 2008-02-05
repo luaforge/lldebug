@@ -248,6 +248,20 @@ const Source *SourceManager::Get(const std::string &key) {
 	return &(it->second);
 }
 
+const Source *SourceManager::GetString(const std::string &key) {
+	scoped_lock lock(m_mutex);
+	std::list<Source> result;
+
+	ImplMap::iterator it;
+	for (it = m_sourceMap.begin(); it != m_sourceMap.end(); ++it) {
+		if (it->second.GetKey().find(key) == 0) {
+			return &(it->second);
+		}
+	}
+
+	return NULL;
+}
+
 static string_array split(std::istream &stream) {
 	string_array array;
 	char buffer[2048];
@@ -291,7 +305,7 @@ int SourceManager::Add(const std::string &key) {
 	else {
 		// ソースがテキストの場合は長すぎる可能性があるので、タイトルを別に作成します。
 		std::stringstream title;
-		title << "<string" << m_textCounter++ << ">";
+		title << "[string " << m_textCounter++ << "]";
 		title.flush();
 
 		std::stringstream sstream(key);

@@ -152,6 +152,7 @@ void MainFrame::CreateGUIControls() {
 	m_auiManager->Update();
 	SetIcon(wxNullIcon);
 	SetAutoLayout(true);
+	Layout();
 	Center();
 }
 
@@ -259,8 +260,6 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 
 void MainFrame::OnIdle(wxIdleEvent &event) {
 	scoped_lock lock(m_mutex);
-
-	wxLogMessage(wxT("come"));
 }
 
 void MainFrame::OnMenu(wxCommandEvent &event) {

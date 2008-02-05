@@ -42,6 +42,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 #include <boost/functional.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/serialization/serialization.hpp>
 
 namespace lldebug {

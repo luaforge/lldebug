@@ -158,9 +158,10 @@ Context *Context::Create() {
 Context::Context()
 	: m_id(0), m_lua(NULL)
 	, m_state(STATE_INITIAL), m_updateSourceCount(0)
-	, m_breakpoints(&m_engine), m_sourceManager(&m_engine) {
+	, m_engine(new RemoteEngine)
+	, m_sourceManager(&*m_engine), m_breakpoints(&*m_engine) {
 
-	m_engine.SetReadCommandCallback(
+	m_engine->SetReadCommandCallback(
 		boost::bind1st(boost::mem_fn(&Context::CommandCallback), this));
 	m_id = ms_idCounter++;
 }
@@ -179,7 +180,7 @@ int Context::CreateDebuggerFrame() {
 		return -1;
 	}*/
 
-	if (m_engine.StartContext(51123, m_id, 20) != 0) {
+	if (m_engine->StartContext(51123, m_id, 20) != 0) {
 		return -1;
 	}
 
@@ -214,13 +215,14 @@ int Context::Initialize() {
 }
 
 Context::~Context() {
-	scoped_lock lock(m_mutex);
-
 	SaveConfig();
 	
-	if (m_engine.IsConnected()) {
-		m_engine.EndConnection();
+	if (m_engine->IsConnected()) {
+		m_engine->EndConnection();
 	}
+	m_engine.reset();
+
+	scoped_lock lock(m_mutex);
 
 	if (m_lua != NULL) {
 		lua_close(m_lua);
@@ -287,18 +289,27 @@ int Context::LoadConfig() {
 	scoped_lock lock(m_mutex);
 	scoped_locale scoped;
 
-	std::string filename = TransformKey(m_rootFileKey);
-	std::string path = GetConfigFileName(filename + ".xml");
-	std::ifstream ifs;
+	try {
+		std::string filename = TransformKey(m_rootFileKey);
+		std::string path = GetConfigFileName(filename + ".xml");
+		std::ifstream ifs;
+		ifs.open(path.c_str(), std::ios::in);
+		if (!ifs.is_open()) {
+			return -1;
+		}
 
-	ifs.open(path.c_str(), std::ios::in);
-	if (!ifs.is_open()) {
-		return -1;
+		boost::archive::xml_iarchive ar(ifs);
+		BreakpointList bps(&*m_engine);
+		ar & BOOST_SERIALIZATION_NVP(bps);
+
+		// set values
+		m_breakpoints = bps;
+		m_engine->ChangedBreakpointList(m_breakpoints);
+	}
+	catch (std::exception &) {
+		OutputError("Couldn't open the config file.");
 	}
 
-	boost::archive::xml_iarchive ar(ifs);
-	ar & LLDEBUG_MEMBER_NVP(breakpoints);
-	m_engine.ChangedBreakpointList(m_breakpoints);
 	return 0;
 }
 
@@ -306,15 +317,22 @@ int Context::SaveConfig() {
 	scoped_lock lock(m_mutex);
 	scoped_locale scoped;
 
-	std::string filename = TransformKey(m_rootFileKey);
-	std::string path = GetConfigFileName(filename + ".xml");
-	std::ofstream ofs(path.c_str());
-	if (!ofs.is_open()) {
-		return -1;
+	try {
+		std::string filename = TransformKey(m_rootFileKey);
+		std::string path = GetConfigFileName(filename + ".xml");
+		std::ofstream ofs;
+		ofs.open(path.c_str(), std::ios::out);
+		if (!ofs.is_open()) {
+			return -1;
+		}
+
+		boost::archive::xml_oarchive ar(ofs);
+		ar & LLDEBUG_MEMBER_NVP(breakpoints);
+	}
+	catch (std::exception &) {
+		OutputError("Couldn't save the config file.");
 	}
 
-	boost::archive::xml_oarchive ar(ofs);
-	ar & LLDEBUG_MEMBER_NVP(breakpoints);
 	return 0;
 }
 
@@ -329,26 +347,95 @@ Context *Context::Find(lua_State *L) {
 void Context::Quit() {
 	scoped_lock lock(m_mutex);
 
-	m_engine.EndConnection();
+	m_engine->EndConnection();
 	SetState(STATE_QUIT);
 }
 
-void Context::Output(const std::string &str) {
+void Context::OutputLuaError(const char *cstr) {
 	scoped_lock lock(m_mutex);
 
-	(void)str;
-	//m_frame->Output(str);
+	if (cstr == NULL) {
+		return;
+	}
+
+	// FILENAME:LINE:str...
+	std::string str = cstr;
+	std::string key;
+	int line;
+	bool found = false;
+	std::string::size_type pos, prevPos = 0;
+	while ((prevPos = str.find(':', prevPos)) != str.npos) {
+		pos = prevPos;
+
+		// parse line number
+		line = 0;
+		while (++pos < str.length()) {
+			char c = str[pos];
+
+			if (c < '0' || '9' < c) {
+				break;
+			}
+			line = line * 10 + (c - '0');
+		}
+
+		// If there is ':', parse is success.
+		if (pos < str.length() && str[pos] == ':') {
+			found = true;
+			break;
+		}
+
+		// str[prevPos] is ':', so advance prevPos.
+		++prevPos;
+	}
+
+	// source is file, key:line: str...
+	// source is string, [string "***"]:line: str...
+	//               ,or [string "***..."]:line: str...
+	// If found is true, str[prevPos] is first ':', str[pos] is second ':'.
+	if (found) {
+		std::string filename = str.substr(0, prevPos);
+		const char *beginStr = "[string \"";
+		const char *endStr = "\"]";
+
+		// If source is string, key is manipulated and may be shorten.
+		if (filename.find(beginStr) == 0 &&
+			filename.rfind(endStr) == filename.length() - strlen(endStr)) {
+			filename = filename.substr(
+				strlen(beginStr),
+				filename.length() - strlen(beginStr) - strlen(endStr));
+
+			// If key is "***...", "..." must be removed.
+			if (filename.rfind("...") == filename.length() - 3) {
+				filename = filename.substr(0, filename.length() - 3);
+			}
+ 
+			// Replace key if any.
+			const Source *source = m_sourceManager.GetString(filename);
+			if (source != NULL) {
+				key = source->GetKey();
+				str = str.substr(std::min(pos + 2, str.length())); // skip ": "
+			}
+		}
+		else {
+			key = std::string("@") + filename;
+			str = str.substr(std::min(pos + 2, str.length())); // skip ": "
+		}
+	}
+
+	// If parse is success, str, filename, and line are modified correctly.
+	m_engine->OutputLog(LOGTYPE_ERROR, str, key, line);
 }
 
-void Context::OutputF(const char *fmt, ...) {
-	char buffer[512];
-	va_list vlist;
+void Context::OutputLog(const std::string &str) {
+	scoped_lock lock(m_mutex);
 
-	va_start(vlist, fmt);
-	vsnprintf(buffer, sizeof(buffer), fmt, vlist);
-	va_end(vlist);
+	m_engine->OutputLog(LOGTYPE_MESSAGE, str, "", -1);
+}
 
-	Output(buffer);
+void Context::OutputError(const std::string &str) {
+	scoped_lock lock(m_mutex);
+
+	m_engine->OutputLog(LOGTYPE_ERROR, str, "", -1);
 }
 
 void Context::BeginCoroutine(lua_State *L) {
@@ -418,7 +505,7 @@ void Context::SetState(State state) {
 		switch (state) {
 		case STATE_BREAK:
 			m_state = state;
-			m_engine.ChangedState(true);
+			m_engine->ChangedState(true);
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
@@ -435,7 +522,7 @@ void Context::SetState(State state) {
 		switch (state) {
 		case STATE_NORMAL:
 			m_state = state;
-			m_engine.ChangedState(false);
+			m_engine->ChangedState(false);
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
@@ -541,47 +628,37 @@ int Context::HandleCommand() {
 			{
 				LuaVar var;
 				command.GetData().Get_RequestFieldVarList(var);
-				m_engine.ResponseVarList(command, LuaGetFields(var));
+				m_engine->ResponseVarList(command, LuaGetFields(var));
 			}
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST:
 			{
 				LuaStackFrame stackFrame;
 				command.GetData().Get_RequestLocalVarList(stackFrame);
-				m_engine.ResponseVarList(command,
+				m_engine->ResponseVarList(command,
 					LuaGetLocals(stackFrame.GetLua().GetState(), stackFrame.GetLevel()));
 			}
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
-			m_engine.ResponseVarList(command, LuaGetFields(TABLETYPE_GLOBAL));
+			m_engine->ResponseVarList(command, LuaGetFields(TABLETYPE_GLOBAL));
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST:
-			m_engine.ResponseVarList(command, LuaGetFields(TABLETYPE_REGISTRY));
+			m_engine->ResponseVarList(command, LuaGetFields(TABLETYPE_REGISTRY));
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST:
-			m_engine.ResponseVarList(command, LuaGetFields(TABLETYPE_ENVIRON));
+			m_engine->ResponseVarList(command, LuaGetFields(TABLETYPE_ENVIRON));
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_STACKLIST:
-			m_engine.ResponseVarList(command, LuaGetStack());
+			m_engine->ResponseVarList(command, LuaGetStack());
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_BACKTRACE:
-			//m_engine.ResponseBacktrace(command, LuaGetBacktrace());
+			//m_engine->ResponseBacktrace(command, LuaGetBacktrace());
 			break;
 		}
 	}
 
 	return 0;
 }
-
-struct UpdateCallback {
-	shared_ptr<condition> cond;
-	explicit UpdateCallback() 
-		: cond(new condition) {
-	}
-	void operator()(const Command &command) {
-		cond->notify_all();
-	}
-};
 
 void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	scoped_lock lock(m_mutex);
@@ -640,7 +717,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	State prevState = STATE_NORMAL;
 	for (;;) {
 		// handle event and message queue
-		if (HandleCommand() != 0 || !m_engine.IsConnected()) {
+		if (HandleCommand() != 0 || !m_engine->IsConnected()) {
 			luaL_error(L, "quited");
 			return;
 		}
@@ -653,11 +730,13 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 			if (prevState != STATE_BREAK) {
 				m_sourceManager.Add(ar->source);
 
-				UpdateCallback update;
-				m_engine.UpdateSource(
+				BooleanCallbackWaiter waiter;
+				m_engine->UpdateSource(
 					ar->source, ar->currentline,
-					++m_updateSourceCount, update);
-				update.cond->wait(lock);
+					++m_updateSourceCount, waiter);
+				lock.unlock();
+				waiter.Wait();
+				lock.lock();
 			}
 			prevState = m_state;
 
@@ -778,8 +857,13 @@ int Context::LuaInitialize(lua_State *L) {
 int Context::LoadFile(const char *filename) {
 	scoped_lock lock(m_mutex);
 
+	if (filename == NULL) {
+		return -1;
+	}
+
 	if (luaL_loadfile(m_lua, filename) != 0) {
-		printf("%s\n", lua_tostring(m_lua, -1));
+		m_sourceManager.Add(std::string("@") + filename);
+		OutputLuaError(lua_tostring(m_lua, -1));
 		return -1;
 	}
 
@@ -790,13 +874,20 @@ int Context::LoadFile(const char *filename) {
 		LoadConfig();
 	}
 
+	m_sourceManager.Add(std::string("@") + filename);
 	return 0;
 }
 
 int Context::LoadString(const char *str) {
 	scoped_lock lock(m_mutex);
+	
+	if (str == NULL) {
+		return -1;
+	}
 
 	if (luaL_loadstring(m_lua, str) != 0) {
+		m_sourceManager.Add(str);
+		OutputLuaError(lua_tostring(m_lua, -1));
 		return -1;
 	}
 
@@ -806,6 +897,7 @@ int Context::LoadString(const char *str) {
 		LoadConfig();
 	}
 
+	m_sourceManager.Add(str);
 	return 0;
 }
 

@@ -31,75 +31,52 @@
 
 namespace lldebug {
 
-class wxChangedStateEvent : public wxEvent {
+class wxDebugEvent : public wxEvent {
 public:
-	explicit wxChangedStateEvent(wxEventType type, int winid,
-								 bool isBreak)
+	/// ChangedBreakpointList event
+	explicit wxDebugEvent(wxEventType type, int winid)
+		: wxEvent(winid, type) {
+	}
+
+	/// ChangedState event
+	explicit wxDebugEvent(wxEventType type, int winid,
+						  bool isBreak)
 		: wxEvent(winid, type), m_isBreak(isBreak) {
 	}
 
-	virtual ~wxChangedStateEvent() {
-	}
-
-	/// Is state breaking (stop running) ?
-	bool IsBreak() const {
-		return m_isBreak;
-	}
-
-	virtual wxEvent *Clone() const {
-		return new wxChangedStateEvent(*this);
-	}
-
-private:
-	bool m_isBreak;
-};
-
-
-class wxSourceLineEvent : public wxEvent {
-public:
-	explicit wxSourceLineEvent(wxEventType type, int winid,
-							   const std::string &key, int line,
-							   int updateSourceCount)
+	/// UpdateSource event
+	explicit wxDebugEvent(wxEventType type, int winid,
+						  const std::string &key, int line,
+						  int updateSourceCount)
 		: wxEvent(winid, type), m_key(key), m_line(line)
 		, m_updateSourceCount(m_updateSourceCount) {
 	}
 
-	virtual ~wxSourceLineEvent() {
+	/// ShowSourceLine event
+	explicit wxDebugEvent(wxEventType type, int winid,
+						  const std::string &key, int line)
+		: wxEvent(winid, type), m_key(key), m_line(line) {
 	}
 
-	/// Get identifier key of the source file.
-	const std::string &GetKey() const {
-		return m_key;
-	}
-
-	/// Get the number of line.
-	int GetLine() const {
-		return m_line;
-	}
-
-	/// Get the count of 'update source'.
-	int GetUpdateSourceCount() const {
-		return m_updateSourceCount;
-	}
-
-	virtual wxEvent *Clone() const {
-		return new wxSourceLineEvent(*this);
-	}
-
-private:
-	std::string m_key;
-	int m_line;
-	int m_updateSourceCount;
-};
-
-class wxSourceEvent : public wxEvent {
-public:
-	explicit wxSourceEvent(wxEventType type, int winid,
-						   const Source &source)
+	/// AddedSource event
+	explicit wxDebugEvent(wxEventType type, int winid,
+						  const Source &source)
 		: wxEvent(winid, type), m_source(source) {
 	}
 
-	virtual ~wxSourceEvent() {
+	/// OutputLog and OutputError event
+	explicit wxDebugEvent(wxEventType type, int winid,
+						  LogType logType, const wxString &str,
+						  const std::string &key, int line)
+		: wxEvent(winid, type), m_str(str)
+		, m_key(key), m_line(line), m_logType(logType) {
+	}
+
+	virtual ~wxDebugEvent() {
+	}
+
+	virtual wxEvent *Clone() const {
+		return new wxDebugEvent(*this);
 	}
 
 	/// Get source object.
@@ -107,58 +84,67 @@ public:
 		return m_source;
 	}
 
-	virtual wxEvent *Clone() const {
-		return new wxSourceEvent(*this);
+	/// Get the string object.
+	const wxString &GetStr() const {
+		return m_str;
+	}
+
+	/// Get the number of line.
+	int GetLine() const {
+		return m_line;
+	}
+
+	/// Get identifier key of the source file.
+	const std::string &GetKey() const {
+		return m_key;
+	}
+
+	/// Get the log type.
+	LogType GetLogType() const {
+		return m_logType;
+	}
+
+	/// Get the count of 'update source'.
+	int GetUpdateSourceCount() const {
+		return m_updateSourceCount;
+	}
+
+	/// Is state breaking (stop running) ?
+	bool IsBreak() const {
+		return m_isBreak;
 	}
 
 private:
 	Source m_source;
+	wxString m_str;
+	std::string m_key;
+	int m_line;
+	LogType m_logType;
+	int m_updateSourceCount;
+	bool m_isBreak;
 };
-
-class wxBreakpointEvent : public wxEvent {
-public:
-	explicit wxBreakpointEvent(wxEventType type, int winid,
-							   const BreakpointList &breakpoints)
-		: wxEvent(winid, type), m_breakpoints(breakpoints) {
-	}
-
-	virtual ~wxBreakpointEvent() {
-	}
-
-	/// Get breakpoint object.
-	BreakpointList &GetBreakpoints() {
-		return m_breakpoints;
-	}
-
-	virtual wxEvent *Clone() const {
-		return new wxBreakpointEvent(*this);
-	}
-
-private:
-	BreakpointList m_breakpoints;
-};
-
 
 BEGIN_DECLARE_EVENT_TYPES()
 DECLARE_EVENT_TYPE(wxEVT_CHANGED_STATE, 2652)
 DECLARE_EVENT_TYPE(wxEVT_UPDATE_SOURCE, 2653)
 DECLARE_EVENT_TYPE(wxEVT_ADDED_SOURCE, 2654)
 DECLARE_EVENT_TYPE(wxEVT_CHANGED_BREAKPOINTS, 2655)
+DECLARE_EVENT_TYPE(wxEVT_OUTPUT_LOG, 2656)
+DECLARE_EVENT_TYPE(wxEVT_SHOW_SOURCELINE, 2657)
 END_DECLARE_EVENT_TYPES()
 
-typedef void (wxEvtHandler::*wxChangedStateEventFunction)(wxChangedStateEvent &);
-typedef void (wxEvtHandler::*wxSourceLineEventFunction)(wxSourceLineEvent &);
-typedef void (wxEvtHandler::*wxSourceEventFunction)(wxSourceEvent &);
-typedef void (wxEvtHandler::*wxBreakpointEventFunction)(wxBreakpointEvent &);
+typedef void (wxEvtHandler::*wxDebugEventFunction)(wxDebugEvent &);
 
 #if !wxCHECK_VERSION(2, 5, 0)
 #define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxChangedStateEventFunction)&fn, (wxObject *)NULL),
 #define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxSourceLineEventFunction)&fn, (wxObject *)NULL),
 #else
-#define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxChangedStateEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxSourceLineEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxSourceEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxBreakpointEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_OUTPUT_LOG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_OUTPUT_LOG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_SHOW_SOURCELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_SHOW_SOURCELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #endif
 
 }

@@ -90,6 +90,19 @@ struct Serializer {
 		return stream.container();
 	}
 
+	template<class T0, class T1, class T2, class T3>
+	static container_type ToData(const T0 &value0, const T1 &value1, const T2 &value2, const T3 &value3) {
+		vector_ostream stream;
+		serialize_oarchive ar(stream);
+
+		ar << BOOST_SERIALIZATION_NVP(value0);
+		ar << BOOST_SERIALIZATION_NVP(value1);
+		ar << BOOST_SERIALIZATION_NVP(value2);
+		ar << BOOST_SERIALIZATION_NVP(value3);
+		stream.flush();
+		return stream.container();
+	}
+
 	template<class T0>
 	static void ToValue(const container_type &data, T0 &value0) {
 		vector_istream stream(data);
@@ -115,6 +128,17 @@ struct Serializer {
 		ar >> BOOST_SERIALIZATION_NVP(value0);
 		ar >> BOOST_SERIALIZATION_NVP(value1);
 		ar >> BOOST_SERIALIZATION_NVP(value2);
+	}
+
+	template<class T0, class T1, class T2, class T3>
+	static void ToValue(const container_type &data, T0 &value0, T1 &value1, T2 &value2, T3 &value3) {
+		vector_istream stream(data);
+		serialize_iarchive ar(stream);
+
+		ar >> BOOST_SERIALIZATION_NVP(value0);
+		ar >> BOOST_SERIALIZATION_NVP(value1);
+		ar >> BOOST_SERIALIZATION_NVP(value2);
+		ar >> BOOST_SERIALIZATION_NVP(value3);
 	}
 };
 

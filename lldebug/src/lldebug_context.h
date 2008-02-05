@@ -64,8 +64,9 @@ public:
 	virtual void Quit();
 
 	/// 文字列をウィンドウに出力します。
-	void Output(const std::string &str);
-	void OutputF(const char *fmt, ...);
+	void OutputLuaError(const char *str);
+	void OutputError(const std::string &str);
+	void OutputLog(const std::string &str);
 
 	int LoadFile(const char *filename);
 	int LoadString(const char *str);
@@ -182,7 +183,7 @@ private:
 	CoroutineList m_coroutines;
 	CoroutineInfo m_stepinfo;
 
-	RemoteEngine m_engine;
+	shared_ptr<RemoteEngine> m_engine;
 	SourceManager m_sourceManager;
 	BreakpointList m_breakpoints;
 	std::string m_rootFileKey;

@@ -105,6 +105,13 @@ void Mediator::SetMainFrame(MainFrame *frame) {
 	m_frame = frame;
 }
 
+void Mediator::ShowSourceLine(const std::string &key, int line) {
+	scoped_lock lock(m_mutex);
+
+	wxDebugEvent event(wxEVT_SHOW_SOURCELINE, wxID_ANY, key, line);
+	m_frame->AddPendingDebugEvent(event, m_frame, true);
+}
+
 void Mediator::OnRemoteCommand(const Command &command) {
 	//scoped_lock lock(m_mutex);
 
@@ -119,7 +126,7 @@ void Mediator::OnRemoteCommand(const Command &command) {
 			bool isBreak;
 			command.GetData().Get_ChangedState(isBreak);
 
-			wxChangedStateEvent event(wxEVT_CHANGED_STATE, wxID_ANY, isBreak);
+			wxDebugEvent event(wxEVT_CHANGED_STATE, wxID_ANY, isBreak);
 			m_frame->AddPendingDebugEvent(event, m_frame, true);
 		}
 		break;
@@ -130,7 +137,7 @@ void Mediator::OnRemoteCommand(const Command &command) {
 			int line, updateSourceCount;
 			command.GetData().Get_UpdateSource(key, line, updateSourceCount);
 
-			wxSourceLineEvent event(
+			wxDebugEvent event(
 				wxEVT_UPDATE_SOURCE, wxID_ANY,
 				key, line, updateSourceCount);
 			m_updateSourceCount = updateSourceCount;
@@ -146,7 +153,7 @@ void Mediator::OnRemoteCommand(const Command &command) {
 			m_sourceManager.Add(source);
 
 			if (m_frame != NULL) {
-				wxSourceEvent event(wxEVT_ADDED_SOURCE, wxID_ANY, source);
+				wxDebugEvent event(wxEVT_ADDED_SOURCE, wxID_ANY, source);
 				m_frame->AddPendingDebugEvent(event, m_frame, true);
 			}
 		}
@@ -162,9 +169,22 @@ void Mediator::OnRemoteCommand(const Command &command) {
 			}
 
 			if (m_frame != NULL) {
-				wxBreakpointEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY, bps);
+				wxDebugEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY);
 				m_frame->AddPendingDebugEvent(event, m_frame, true);
 			}
+		}
+		break;
+
+	case REMOTECOMMANDTYPE_OUTPUT_LOG:
+		if (m_frame != NULL) {
+			LogType logType;
+			std::string str, key;
+			int line;
+			command.GetData().Get_OutputLog(logType, str, key, line);
+
+			wxDebugEvent event(wxEVT_OUTPUT_LOG, wxID_ANY,
+				logType, wxConvFromUTF8(str), key, line);
+			m_frame->AddPendingDebugEvent(event, m_frame, true);
 		}
 		break;
 

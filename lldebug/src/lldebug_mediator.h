@@ -51,6 +51,9 @@ public:
 	/// Get the ID of the 'lldebug::Context' class.
 	int GetCtxId();
 
+	/// Focus the specified file and line.
+	void ShowSourceLine(const std::string &key, int line);
+
 	/// Process the remote command.
 	void OnRemoteCommand(const Command &command);
 
@@ -108,13 +111,19 @@ public:
 		m_breakpoints.Toggle(key, line);
 	}
 
-	/// Get the main frame object.
-	/*MainFrame *GetFrame() {
+	/// Get the stack frame for the local vars.
+	const LuaStackFrame &GetStackFrame() {
 		scoped_lock lock(m_mutex);
-		return m_frame;
-	}*/
+		return m_stackFrame;
+	}
 
-	/// 
+	/// Set the stack frame for the local vars.
+	void SetStackFrame(const LuaStackFrame &stackFrame) {
+		scoped_lock lock(m_mutex);
+		m_stackFrame = stackFrame;
+	}
+
+	/// Get the count of 'UpdateSource'.
 	int GetUpdateSourceCount() {
 		scoped_lock lock(m_mutex);
 		return m_updateSourceCount;

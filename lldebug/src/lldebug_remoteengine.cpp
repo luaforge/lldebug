@@ -98,11 +98,12 @@ private:
 
 			// Read the command data if exists.
 			if (command->GetDataSize() > 0) {
-				std::vector<char> &data = command->GetData().GetImplData();
-				data.resize(command->GetDataSize());
+				command->ResizeData();
 
 				boost::asio::async_read(m_socket,
-					boost::asio::buffer(data, command->GetDataSize()),
+					boost::asio::buffer(
+						command->GetImplData(),
+						command->GetDataSize()),
 					boost::bind(
 						&SocketBase::handleReadData, this, command,
 						boost::asio::placeholders::error));
@@ -155,7 +156,7 @@ private:
 
 			// Write command data.
 			boost::asio::async_write(m_socket,
-				boost::asio::buffer(command.GetData().GetImplData(), command.GetDataSize()),
+				boost::asio::buffer(command.GetImplData(), command.GetDataSize()),
 				boost::bind(
 					&SocketBase::handleWrite, this, true,
 					boost::asio::placeholders::error));
@@ -485,6 +486,10 @@ void RemoteEngine::StartThread() {
 }
 
 void RemoteEngine::StopThread() {
+	if (IsConnected()) {
+		EndConnection();
+	}
+
 	if (IsThreadActive()) {
 		SetThreadActive(false);
 	}
@@ -539,11 +544,15 @@ void RemoteEngine::HandleReadCommand(const Command &command) {
 
 		if (command.GetCtxId() == header_.ctxId
 			&& command.GetCommandId() == header_.commandId) {
-			isResponseCommand = true;
-			if (IsThreadActive()) {
-				(*it).response(command);
-			}
+			CommandCallback response = (*it).response;
 			it = m_waitResponseCommandList.erase(it);
+			isResponseCommand = true;
+
+			if (IsThreadActive()) {
+				lock.unlock();
+				response(command);
+				lock.lock();
+			}
 		}
 		else {
 			++it;
@@ -764,6 +773,16 @@ void RemoteEngine::StepReturn() {
 		CommandData());
 }
 
+void RemoteEngine::OutputLog(LogType type, const std::string &str, const std::string &key, int line) {
+	scoped_lock lock(m_mutex);
+	CommandData data;
+
+	data.Set_OutputLog(type, str, key, line);
+	WriteCommand(
+		REMOTECOMMANDTYPE_OUTPUT_LOG,
+		data);
+}
+
 struct VarListResponseHandler {
 	LuaVarListCallback m_callback;
 
@@ -858,6 +877,7 @@ CommandData::CommandData(const std::vector<char> &data)
 
 CommandData::~CommandData() {
 }
+
 Command::Command() {
 }
 
@@ -913,6 +933,13 @@ void CommandData::Set_ChangedBreakpointList(const BreakpointList &bps) {
 	m_data = Serializer::ToData(bps);
 }
 
+void CommandData::Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const {
+	Serializer::ToValue(m_data, type, str, key, line);
+}
+void CommandData::Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line) {
+	m_data = Serializer::ToData(type, str, key, line);
+}
+
 void CommandData::Get_RequestFieldVarList(LuaVar &var) const {
 	Serializer::ToValue(m_data, var);
 }
@@ -939,6 +966,50 @@ void CommandData::Get_ValueBacktraceList(LuaBacktraceList &backtraces) const {
 }
 void CommandData::Set_ValueBacktraceList(const LuaBacktraceList &backtraces) {
 	m_data = Serializer::ToData(backtraces);
+}
+
+
+/*-----------------------------------------------------------------*/
+struct BooleanCallbackWaiter::Impl {
+	explicit Impl()
+		: responsed(false), successed(false) {
+	}
+
+	condition cond;
+	mutex mutex;
+	bool responsed;
+	bool successed;
+};
+
+BooleanCallbackWaiter::BooleanCallbackWaiter()
+	: impl(new Impl) {
+}
+
+BooleanCallbackWaiter::~BooleanCallbackWaiter() {
+}
+
+void BooleanCallbackWaiter::operator()(const Command &command) {
+	scoped_lock lock(impl->mutex);
+
+	if (!impl->responsed) {
+		if (command.GetType() == REMOTECOMMANDTYPE_SUCCESSED) {
+			impl->successed = true;
+		}
+
+		impl->responsed = true;
+		impl->cond.notify_all();
+	}
+}
+
+bool BooleanCallbackWaiter::Wait() {
+	scoped_lock lock(impl->mutex);
+
+	if (impl->responsed) {
+		return impl->successed;
+	}
+
+	impl->cond.wait(lock);
+	return impl->successed;
 }
 
 }

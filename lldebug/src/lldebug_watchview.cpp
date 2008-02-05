@@ -301,14 +301,14 @@ void WatchView::DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool i
 	data->SetUpdateSourceCount(Mediator::Get()->GetUpdateSourceCount());
 }
 
-void WatchView::OnChangedState(wxChangedStateEvent &event) {
+void WatchView::OnChangedState(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	Enable(event.IsBreak());
 }
 
-void WatchView::OnUpdateSource(wxSourceLineEvent &event) {
+void WatchView::OnUpdateSource(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 	event.Skip();
 

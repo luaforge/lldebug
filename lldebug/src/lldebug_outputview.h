@@ -28,27 +28,32 @@
 #define __LLDEBUG_OUTPUTVIEW_H__
 
 #include "lldebug_controls.h"
+#include "wx/wxscintilla.h"
 
 namespace lldebug {
 
 /**
- * @brief ソースコードを表示するコントロールです。
+ * @brief Window showing log and error message.
  */
-class OutputView : public wxTextCtrl {
+class OutputView : public wxPanel {
 public:
 	explicit OutputView(wxWindow *parent);
 	virtual ~OutputView();
 
-	void Output();
+	void OutputLog(LogType type, const wxString &str, const std::string &key, int line);
 
 private:
 	void CreateGUIControls();
-	//void OnOutput(wx);
+	void OnSize(wxSizeEvent &event);
+	void OnOutputLog(wxDebugEvent &event);
 
 	DECLARE_EVENT_TABLE();
 
 private:
 	mutex m_mutex;
+
+	class InnerTextCtrl;
+	InnerTextCtrl *m_text;
 };
 
 }

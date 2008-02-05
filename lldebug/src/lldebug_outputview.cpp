@@ -25,28 +25,132 @@
  */
 
 #include "lldebug_prec.h"
+#include "lldebug_mediator.h"
 #include "lldebug_outputview.h"
-
-/*#include <wx/frame.h>
-#include <wx/textctrl.h>
-#include <wx/treectrl.h>
-#include <wx/sizer.h>
-#include <wx/panel.h>
-#include <wx/menu.h>
-#include <wx/file.h>
-#include <wx/filename.h>
-#include <wx/stdpaths.h>
-*/
 
 namespace lldebug {
 
-BEGIN_EVENT_TABLE(OutputView, wxTextCtrl)
+class OutputView::InnerTextCtrl : public wxScintilla {
+private:
+	enum {
+		MARGIN_INFO = 1,
+		MARKNUM_ERROR = 1,
+	};
+
+	struct ViewData {
+		std::string key;
+		int line;
+	};
+	typedef std::map<int, ViewData> DataMap;
+	DataMap m_dataMap;
+
+	mutex m_mutex;
+
+	DECLARE_EVENT_TABLE();
+
+public:
+	explicit InnerTextCtrl(wxWindow *parent)
+		: wxScintilla(parent, wxID_ANY) {
+		CreateGUIControls();
+	}
+
+	virtual ~InnerTextCtrl() {
+	}
+
+	void CreateGUIControls() {
+		scoped_lock lock(m_mutex);
+
+		SetReadOnly(true);
+		SetViewEOL(false);
+		SetWrapMode(wxSCI_WRAP_NONE);
+		SetEdgeMode(wxSCI_EDGE_NONE);
+		SetViewWhiteSpace(wxSCI_WS_INVISIBLE);
+		SetLexer(wxSCI_LEX_NULL);
+
+		MarkerDefine(MARKNUM_ERROR, wxSCI_MARK_ARROWS);
+		MarkerSetForeground(MARKNUM_ERROR, wxColour(_T("RED")));
+
+		StyleSetForeground(wxSCI_STYLE_DEFAULT,
+			wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE));
+		SetMarginType(MARGIN_INFO, wxSCI_MARGIN_FORE);
+		SetMarginWidth(MARGIN_INFO, 16);
+		SetMarginSensitive(MARGIN_INFO, false);
+		SetMarginMask(MARGIN_INFO, (1 << MARKNUM_ERROR));
+
+		SetLayoutCache(wxSCI_CACHE_PAGE);
+	}
+
+	/// Add raw text that is std::string.
+	void AddTextRawStd(const std::string &str) {
+		scoped_lock lock(m_mutex);
+
+		if (str.empty()) {
+			return;
+		}
+
+		AddTextRaw(str.c_str());
+	}
+
+	void OutputLog(LogType type, const wxString &str, const std::string &key, int line) {
+		scoped_lock lock(m_mutex);
+
+		if (!key.empty()) {
+			ViewData data;
+			data.key = key;
+			data.line = line;
+			m_dataMap[GetLineCount() - 1] = data;
+		}
+
+		MarkerAdd(GetLineCount() - 1, MARKNUM_ERROR);
+		SetReadOnly(false);
+		if (!key.empty()) {
+			const Source *source = Mediator::Get()->GetSource(key);
+			AddTextRawStd(source->GetTitle());
+			AddTextRaw("(");
+			AddTextRawStd(boost::lexical_cast<std::string>(line));
+			AddTextRaw("): ");
+		}
+		AddText(str);
+		AddTextRaw("\n");
+		SetReadOnly(true);
+	}
+
+	void OnDClick(wxScintillaEvent &event) {
+		scoped_lock lock(m_mutex);
+		//event.Skip();
+
+		// Out of selectable range.
+		if (event.GetPosition() < 0) {
+			return;
+		}
+
+		// Goto the specified source line.
+		int line = LineFromPosition(event.GetPosition());
+		DataMap::iterator it = m_dataMap.find(line);
+		if (it != m_dataMap.end()) {
+			const ViewData &data = it->second;
+			Mediator::Get()->ShowSourceLine(data.key, data.line);
+
+			SetSelection(
+				PositionFromLine(line),
+				GetLineEndPosition(line));
+		}
+	}
+};
+
+BEGIN_EVENT_TABLE(OutputView::InnerTextCtrl, wxScintilla)
+	EVT_SCI_DOUBLECLICK(wxID_ANY, OutputView::InnerTextCtrl::OnDClick)
+END_EVENT_TABLE()
+
+
+/*-----------------------------------------------------------------*/
+BEGIN_EVENT_TABLE(OutputView, wxListBox)
+	EVT_SIZE(OutputView::OnSize)
+	EVT_LLDEBUG_OUTPUT_LOG(wxID_ANY, OutputView::OnOutputLog)
 END_EVENT_TABLE()
 
 OutputView::OutputView(wxWindow *parent)
-	: wxTextCtrl(parent, ID_OUTPUTVIEW, wxT("output")
-		, wxPoint(0,0), wxSize(400,300)
-		, wxTE_READONLY | wxTE_MULTILINE | wxVSCROLL) {
+	: wxPanel(parent, ID_OUTPUTVIEW, wxPoint(0, 0), wxSize(100, 200)) {
 	CreateGUIControls();
 }
 
@@ -55,6 +159,27 @@ OutputView::~OutputView() {
 
 void OutputView::CreateGUIControls() {
 	scoped_lock lock(m_mutex);
+
+	m_text = new InnerTextCtrl(this);
+}
+
+void OutputView::OnSize(wxSizeEvent &event) {
+	scoped_lock lock(m_mutex);
+
+	m_text->SetSize(GetClientSize());
+}
+
+void OutputView::OutputLog(LogType logType, const wxString &str, const std::string &key, int line) {
+	scoped_lock lock(m_mutex);
+
+	wxDebugEvent event(wxEVT_OUTPUT_LOG, GetId(), logType, str, key, line);
+	ProcessEvent(event);
+}
+
+void OutputView::OnOutputLog(wxDebugEvent &event) {
+	scoped_lock lock(m_mutex);
+
+	m_text->OutputLog(event.GetLogType(), event.GetStr(), event.GetKey(), event.GetLine());
 }
 
 }

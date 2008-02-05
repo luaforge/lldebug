@@ -23,15 +23,16 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_UPDATE_SOURCE,
 	REMOTECOMMANDTYPE_ADDED_SOURCE,
 
+	REMOTECOMMANDTYPE_SET_BREAKPOINT,
+	REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
+	REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST,
+
 	REMOTECOMMANDTYPE_BREAK,
 	REMOTECOMMANDTYPE_RESUME,
 	REMOTECOMMANDTYPE_STEPINTO,
 	REMOTECOMMANDTYPE_STEPOVER,
 	REMOTECOMMANDTYPE_STEPRETURN,
-
-	REMOTECOMMANDTYPE_SET_BREAKPOINT,
-	REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
-	REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST,
+	REMOTECOMMANDTYPE_OUTPUT_LOG,
 
 	REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
@@ -99,6 +100,9 @@ public:
 	void Get_ChangedBreakpointList(BreakpointList &bps) const;
 	void Set_ChangedBreakpointList(const BreakpointList &bps);
 
+	void Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const;
+	void Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line);
+
 	void Get_RequestFieldVarList(LuaVar &var) const;
 	void Set_RequestFieldVarList(const LuaVar &var);
 
@@ -164,6 +168,21 @@ public:
 		return m_data;
 	}
 
+	/// Get the const impl data of the command data.
+	std::vector<char> &GetImplData() {
+		return m_data.GetImplData();
+	}
+
+	/// Get the const impl data of the command data.
+	const std::vector<char> &GetImplData() const {
+		return m_data.GetImplData();
+	}
+
+	/// Resize the impl data.
+	void ResizeData() {
+		m_data.GetImplData().resize(m_header.dataSize);
+	}
+
 private:
 	CommandHeader m_header;
 	CommandData m_data;
@@ -222,6 +241,8 @@ public:
 	void StepInto();
 	void StepOver();
 	void StepReturn();
+
+	void OutputLog(LogType type, const std::string &str, const std::string &key, int line);
 	
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
 	void RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
@@ -278,6 +299,24 @@ private:
 
 	//typedef std::queue<Command> ReadCommandQueue;
 	//ReadCommandQueue m_readCommandQueue; // commands that were read.
+};
+
+/**
+ * @brief This class must share all fields.
+ */
+struct BooleanCallbackWaiter {
+	explicit BooleanCallbackWaiter();
+	~BooleanCallbackWaiter();
+
+	/// This method is called from RemoteEngine.
+	void operator()(const Command &command);
+
+	/// Wait reponse.
+	bool Wait();
+
+private:
+	struct Impl;
+	shared_ptr<Impl> impl; ///< shared object
 };
 
 }

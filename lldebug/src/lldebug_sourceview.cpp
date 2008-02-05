@@ -86,11 +86,9 @@ private:
 		SetViewWhiteSpace(false ? wxSCI_WS_VISIBLEALWAYS : wxSCI_WS_INVISIBLE);
 		SetOvertype(false);
 		SetReadOnly(false);
+		//SetEncoding();
 		SetWrapMode(true ? wxSCI_WRAP_WORD : wxSCI_WRAP_NONE);
 
-		StyleSetForeground(wxSCI_STYLE_DEFAULT,
-			wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE));
-		StyleSetBackground(wxSCI_STYLE_DEFAULT, wxColour(wxT("WHITE")));
 		StyleSetForeground(wxSCI_STYLE_LINENUMBER, wxColour(wxT("BLACK")));
 		StyleSetBackground(wxSCI_STYLE_LINENUMBER, wxColour(wxT("WHITE")));
 
@@ -139,7 +137,7 @@ private:
 
 		// initialize settings
 		wxFont font(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL,
-			false, wxT("MS Gothic"));
+					false, wxT("MS Gothic"));
         int keywordnr = 0;
 		for (size_t i = 0; s_stylePrefs[i].style != STYLE_END; ++i) {
 			const StyleInfo &curType = s_stylePrefs[i];
@@ -165,6 +163,8 @@ private:
         }
 
 		// debug info
+		StyleSetForeground(wxSCI_STYLE_DEFAULT,
+			wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE));
 		SetMarginType(MARGIN_DEBUG, wxSCI_MARGIN_FORE);
 		SetMarginWidth(MARGIN_DEBUG, 16);
 		SetMarginSensitive(MARGIN_DEBUG, true);
@@ -172,6 +172,7 @@ private:
 			(1 << MARKNUM_BREAKPOINT) | (1 << MARKNUM_RUNNING) | (1 << MARKNUM_BACKTRACE));
 
 		// set margin as unused
+		//StyleSetBackground(wxSCI_STYLE_DEFAULT, wxColour(wxT("WHITE")));
 		SetMarginType(MARGIN_DIVIDER, wxSCI_MARGIN_BACK);
 		SetMarginWidth(MARGIN_DIVIDER, 4);
 		SetMarginSensitive(MARGIN_DIVIDER, false);
@@ -202,7 +203,7 @@ private:
 		SetXCaretPolicy(wxSCI_CARET_EVEN | wxSCI_VISIBLE_STRICT | wxSCI_CARET_SLOP, 1);
 		SetYCaretPolicy(wxSCI_CARET_EVEN | wxSCI_VISIBLE_STRICT | wxSCI_CARET_SLOP, 1);
 
-		SetHotspotActiveUnderline(true);
+		//SetHotspotActiveUnderline(true);
 
 		// set spaces and indention
 		SetTabWidth(4);
@@ -305,10 +306,6 @@ private:
 		//CallTipShow(pos, event.GetText());
 	}
 
-	/*void OnChangedBreakpointList(wxNotifyEvent &event) {
-		scoped_lock lock(m_mutex);
-	}*/
-
 public:
 	const std::string &GetKey() const {
 		return m_key;
@@ -335,9 +332,12 @@ public:
 		// AddTextRaw accepts only the UTF8 string.
 		AddTextRaw(str.c_str());
 
+		SetReadOnly(source.GetPath().empty());
+
 		// The title is converted to UTF8.
 		m_key = source.GetKey();
 		m_title = wxConvFromUTF8(source.GetTitle());
+		m_path = wxConvFromUTF8(source.GetPath());
 		m_currentLine = -1;
 		m_initialized = true;
 
@@ -346,7 +346,7 @@ public:
 
 	int SetCurrentLine(int line, bool isCurrentRunning = true) {
 		scoped_lock lock(m_mutex);
-		wxASSERT((line < 0) || (0 <= line && line < GetLineCount()));
+		wxASSERT((line < 0) || (0 < line && line <= GetLineCount()));
 
 		if (isCurrentRunning && m_currentLine >= 0) {
 			MarkerDelete(m_currentLine, MARKNUM_RUNNING);
@@ -360,7 +360,8 @@ public:
 		}
 
 		// 現在の行を設定します。
-		if (line >= 0) {
+		if (line > 0) {
+			--line;
 			EnsureVisible(line);
 			int pos = PositionFromLine(line);
 			SetSelection(pos, pos);
@@ -380,7 +381,6 @@ public:
 			m_markedLine = line;
 		}
 
-		SetFocus();
 		return 0;
 	}
 
@@ -395,6 +395,18 @@ public:
 		int from, to;
 		GetSelection(&from, &to);
 		ToggleBreakpointFromLine(LineFromPosition(to));
+	}
+
+	void SetLineSelection(int line) {
+		scoped_lock lock(m_mutex);
+
+		if (line <= 0) {
+			return;
+		}
+
+		SetSelection(
+			PositionFromLine(line - 1),
+			GetLineEndPosition(line - 1));
 	}
 	
 	void OnChangedBreakpoints() {
@@ -418,8 +430,11 @@ public:
 
 	void SaveSource() {
 		scoped_lock lock(m_mutex);
-		string_array array;
+		if (m_path.IsEmpty()) {
+			return;
+		}
 
+		string_array array;
 		for (int i = 0; i < GetLineCount(); ++i) {
 			wxCharBuffer cbuffer = GetLineRaw(i);
 			std::string buffer = (cbuffer != NULL ? cbuffer.data() : "");
@@ -438,12 +453,12 @@ public:
 			array.push_back(buffer);
 		}
 
-		// Erase the last line if it has newline only.
+		// Erase the last line if it is newline only.
 		if (!array.empty() && array.back().empty()) {
 			array.pop_back();
 		}
 
-//		m_ctx->SaveSource(m_key, array);
+		//SaveFile(m_path);
 		ChangeModified(false);
 	}
 
@@ -455,6 +470,7 @@ private:
 
 	std::string m_key;
 	wxString m_title;
+	wxString m_path;
 	int m_currentLine;
 	int m_markedLine;
 
@@ -476,6 +492,7 @@ BEGIN_EVENT_TABLE(SourceView, wxAuiNotebook)
 	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, SourceView::OnUpdateSource)
 	EVT_LLDEBUG_ADDED_SOURCE(wxID_ANY, SourceView::OnAddedSource)
 	EVT_LLDEBUG_CHANGED_BREAKPOINTS(wxID_ANY, SourceView::OnChangedBreakpoints)
+	EVT_LLDEBUG_SHOW_SOURCELINE(wxID_ANY, SourceView::OnShowSourceLine)
 END_EVENT_TABLE()
 
 SourceView::SourceView(wxWindow *parent)
@@ -539,7 +556,7 @@ void SourceView::CreatePage(const Source &source) {
 	AddPage(page, page->GetTitle(), true);
 }
 
-void SourceView::OnChangedState(wxChangedStateEvent &event) {
+void SourceView::OnChangedState(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 
 	// 実行中は使えないようにします。
@@ -558,34 +575,48 @@ void SourceView::ToggleBreakpoint() {
 	}
 }
 
-void SourceView::OnUpdateSource(wxSourceLineEvent &event) {
+void SourceView::OnUpdateSource(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 	
-	size_t i = FindPageFromKey(event.GetKey());
-	if (i == wxNOT_FOUND) {
-		//wxASSERT(false);
-		return;
+	for (size_t i = 0; i < GetPageCount(); ++i) {
+		SourceViewPage *page = GetPage(i);
+
+		if (page->GetKey() == event.GetKey()) {
+			page->SetCurrentLine(event.GetLine());
+			SetSelection(i);
+		}
+		else {
+			page->SetCurrentLine(-1);
+		}
 	}
-
-	SourceViewPage *page = GetPage(i);
-	SetSelection(i);
-
-	// Base line of GetLine is 1.
-	page->SetCurrentLine(event.GetLine() - 1);
 }
 
-void SourceView::OnAddedSource(wxSourceEvent &event) {
+void SourceView::OnAddedSource(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 
 	CreatePage(event.GetSource());
 }
 
-void SourceView::OnChangedBreakpoints(wxBreakpointEvent &event) {
+void SourceView::OnChangedBreakpoints(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 		page->OnChangedBreakpoints();
+	}
+}
+
+void SourceView::OnShowSourceLine(wxDebugEvent &event) {
+	scoped_lock lock(m_mutex);
+
+	for (size_t i = 0; i < GetPageCount(); ++i) {
+		SourceViewPage *page = GetPage(i);
+
+		if (page->GetKey() == event.GetKey()) {
+			page->SetLineSelection(event.GetLine());
+			SetSelection(i);
+			break;
+		}
 	}
 }
 

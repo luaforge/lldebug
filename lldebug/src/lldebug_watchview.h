@@ -69,8 +69,8 @@ private:
 	void DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool isExpand);
 
 private:
-	void OnChangedState(wxChangedStateEvent &event);
-	void OnUpdateSource(wxSourceLineEvent &event);
+	void OnChangedState(wxDebugEvent &event);
+	void OnUpdateSource(wxDebugEvent &event);
 	void OnShow(wxShowEvent &event);
 	void OnExpanded(wxTreeEvent &event);
 	void OnEndLabelEdit(wxTreeEvent &event);
