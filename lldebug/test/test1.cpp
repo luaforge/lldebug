@@ -37,7 +37,9 @@ int init_state(lua_State *L) {
 		}
 	}
 
-	printf("%s\n", lua_tostring(L, -1));
+	if (lua_isstring(L, -1)) {
+		printf("%s\n", lua_tostring(L, -1));
+	}
 	return -1;
 }
 
@@ -49,6 +51,26 @@ int main(int argc, char **argv) {
 	}
 
 	init_state(L);
+
+	if (lldebug_loadstring(L,
+		"function dtest()\n"
+		"end\n"
+		"function test2()\n"
+		"end\n"
+		"while 1 do\n"
+		"  print(\"test\")\n"
+		"end\n"
+		"return 1 + 2 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4"
+		) != 0) {
+		//return 0;
+	}
+
+	if (lldebug_loadstring(L,
+		"return"
+		) != 0) {
+		//return 0;
+	}
+	//while (1) ;
 
 	if (lua_pcall(L, 0, 0, 0) != 0) {
 		printf("%s\n", lua_tostring(L, -1));
