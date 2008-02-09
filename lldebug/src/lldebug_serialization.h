@@ -27,8 +27,8 @@
 #ifndef __LLDEBUG_SERIALIZATION__
 #define __LLDEBUG_SERIALIZATION__
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -46,10 +46,10 @@
 
 namespace lldebug {
 
-//typedef boost::archive::binary_oarchive serialize_oarchive;
-//typedef boost::archive::binary_iarchive serialize_iarchive;
-typedef boost::archive::xml_oarchive serialize_oarchive;
-typedef boost::archive::xml_iarchive serialize_iarchive;
+//typedef boost::archive::xml_oarchive serialize_oarchive;
+//typedef boost::archive::xml_iarchive serialize_iarchive;
+typedef boost::archive::text_oarchive serialize_oarchive;
+typedef boost::archive::text_iarchive serialize_iarchive;
 
 typedef std::vector<char> container_type;
 

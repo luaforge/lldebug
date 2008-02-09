@@ -45,10 +45,7 @@ Mediator::Mediator()
 }
 
 Mediator::~Mediator() {
-	if (m_engine != NULL && m_engine->IsConnected()) {
-		m_engine->EndConnection();
-	}
-
+	m_engine.reset();
 	ms_instance = NULL;
 }
 
@@ -95,44 +92,54 @@ void Mediator::SetMainFrame(MainFrame *frame) {
 	}
 
 	// Start or end TCP connection.
-	if (frame != NULL) {
+/*	if (frame != NULL) {
 		m_engine->StartConnection(GetCtxId());
 	}
 	else {
 		m_engine->EndConnection();
-	}
+	}*/
 
 	m_frame = frame;
 }
 
-void Mediator::ShowSourceLine(const std::string &key, int line) {
-	scoped_lock lock(m_mutex);
+void Mediator::FocusErrorLine(const std::string &key, int line) {
+	MainFrame *frame = GetFrame();
 
-	wxDebugEvent event(wxEVT_SHOW_SOURCELINE, wxID_ANY, key, line);
-	m_frame->AddPendingDebugEvent(event, m_frame, true);
+	wxDebugEvent event(wxEVT_FOCUS_ERRORLINE, wxID_ANY, key, line);
+	frame->AddPendingDebugEvent(event, frame, true);
+}
+
+void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
+	MainFrame *frame = GetFrame();
+
+	wxDebugEvent event(wxEVT_FOCUS_BACKTRACELINE, wxID_ANY, bt);
+	frame->AddPendingDebugEvent(event, frame, true);
 }
 
 void Mediator::OnRemoteCommand(const Command &command) {
+	MainFrame *frame = GetFrame();
 	//scoped_lock lock(m_mutex);
 
 	// Process remote commands.
 	switch (command.GetType()) {
 	case REMOTECOMMANDTYPE_END_CONNECTION:
-		wxExit();
+		if (frame != NULL) {
+			frame->Close(true);
+		}
 		break;
 
 	case REMOTECOMMANDTYPE_CHANGED_STATE:
-		if (m_frame != NULL) {
+		if (frame != NULL) {
 			bool isBreak;
 			command.GetData().Get_ChangedState(isBreak);
 
 			wxDebugEvent event(wxEVT_CHANGED_STATE, wxID_ANY, isBreak);
-			m_frame->AddPendingDebugEvent(event, m_frame, true);
+			frame->AddPendingDebugEvent(event, frame, true);
 		}
 		break;
 
 	case REMOTECOMMANDTYPE_UPDATE_SOURCE:
-		if (m_frame != NULL) {
+		if (frame != NULL) {
 			std::string key;
 			int line, updateSourceCount;
 			command.GetData().Get_UpdateSource(key, line, updateSourceCount);
@@ -141,7 +148,7 @@ void Mediator::OnRemoteCommand(const Command &command) {
 				wxEVT_UPDATE_SOURCE, wxID_ANY,
 				key, line, updateSourceCount);
 			m_updateSourceCount = updateSourceCount;
-			m_frame->AddPendingDebugEvent(event, m_frame, true);
+			frame->AddPendingDebugEvent(event, frame, true);
 			m_engine->ResponseSuccessed(command);
 		}
 		break;
@@ -152,9 +159,9 @@ void Mediator::OnRemoteCommand(const Command &command) {
 			command.GetData().Get_AddedSource(source);
 			m_sourceManager.Add(source);
 
-			if (m_frame != NULL) {
+			if (frame != NULL) {
 				wxDebugEvent event(wxEVT_ADDED_SOURCE, wxID_ANY, source);
-				m_frame->AddPendingDebugEvent(event, m_frame, true);
+				frame->AddPendingDebugEvent(event, frame, true);
 			}
 		}
 		break;
@@ -168,15 +175,15 @@ void Mediator::OnRemoteCommand(const Command &command) {
 				m_breakpoints = bps;
 			}
 
-			if (m_frame != NULL) {
+			if (frame != NULL) {
 				wxDebugEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY);
-				m_frame->AddPendingDebugEvent(event, m_frame, true);
+				frame->AddPendingDebugEvent(event, frame, true);
 			}
 		}
 		break;
 
 	case REMOTECOMMANDTYPE_OUTPUT_LOG:
-		if (m_frame != NULL) {
+		if (frame != NULL) {
 			LogType logType;
 			std::string str, key;
 			int line;
@@ -184,7 +191,7 @@ void Mediator::OnRemoteCommand(const Command &command) {
 
 			wxDebugEvent event(wxEVT_OUTPUT_LOG, wxID_ANY,
 				logType, wxConvFromUTF8(str), key, line);
-			m_frame->AddPendingDebugEvent(event, m_frame, true);
+			frame->AddPendingDebugEvent(event, frame, true);
 		}
 		break;
 

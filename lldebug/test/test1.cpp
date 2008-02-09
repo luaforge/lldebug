@@ -18,7 +18,7 @@ const char *c_filename = "test.lua";
 
 int init_state(lua_State *L) {
 	const char *s_dirlist[] = {
-		"./"
+		"./",
 		"../",
 		"./test/",
 		"../test/",
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
 	init_state(L);
 
-	if (lldebug_loadstring(L,
+	/*if (lldebug_loadstring(L,
 		"function dtest()\n"
 		"end\n"
 		"function test2()\n"
@@ -63,13 +63,13 @@ int main(int argc, char **argv) {
 		"return 1 + 2 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4"
 		) != 0) {
 		//return 0;
-	}
+	}*/
 
-	if (lldebug_loadstring(L,
+	/*if (lldebug_loadstring(L,
 		"return"
 		) != 0) {
 		//return 0;
-	}
+	}*/
 	//while (1) ;
 
 	if (lua_pcall(L, 0, 0, 0) != 0) {

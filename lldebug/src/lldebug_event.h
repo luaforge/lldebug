@@ -28,20 +28,33 @@
 #define __LLDEBUG_EVENT_H__
 
 #include "lldebug_sysinfo.h"
+#include "lldebug_luainfo.h"
 
 namespace lldebug {
+
+BEGIN_DECLARE_EVENT_TYPES()
+DECLARE_EVENT_TYPE(wxEVT_CHANGED_STATE, 2652)
+DECLARE_EVENT_TYPE(wxEVT_UPDATE_SOURCE, 2653)
+DECLARE_EVENT_TYPE(wxEVT_ADDED_SOURCE, 2654)
+DECLARE_EVENT_TYPE(wxEVT_CHANGED_BREAKPOINTS, 2655)
+DECLARE_EVENT_TYPE(wxEVT_OUTPUT_LOG, 2656)
+DECLARE_EVENT_TYPE(wxEVT_FOCUS_ERRORLINE, 2658)
+DECLARE_EVENT_TYPE(wxEVT_FOCUS_BACKTRACELINE, 2659)
+END_DECLARE_EVENT_TYPES()
 
 class wxDebugEvent : public wxEvent {
 public:
 	/// ChangedBreakpointList event
 	explicit wxDebugEvent(wxEventType type, int winid)
 		: wxEvent(winid, type) {
+		wxASSERT(type == wxEVT_CHANGED_BREAKPOINTS);
 	}
 
 	/// ChangedState event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  bool isBreak)
 		: wxEvent(winid, type), m_isBreak(isBreak) {
+		wxASSERT(type == wxEVT_CHANGED_STATE);
 	}
 
 	/// UpdateSource event
@@ -50,26 +63,37 @@ public:
 						  int updateSourceCount)
 		: wxEvent(winid, type), m_key(key), m_line(line)
 		, m_updateSourceCount(m_updateSourceCount) {
+		wxASSERT(type == wxEVT_UPDATE_SOURCE);
 	}
 
-	/// ShowSourceLine event
+	/// FocusErrorLine event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  const std::string &key, int line)
 		: wxEvent(winid, type), m_key(key), m_line(line) {
+		wxASSERT(type == wxEVT_FOCUS_ERRORLINE);
+	}
+
+	/// FocusBacktraceLine event
+	explicit wxDebugEvent(wxEventType type, int winid,
+						  const LuaBacktrace &bt)
+		: wxEvent(winid, type), m_backtrace(bt) {
+		wxASSERT(type == wxEVT_FOCUS_BACKTRACELINE);
 	}
 
 	/// AddedSource event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  const Source &source)
 		: wxEvent(winid, type), m_source(source) {
+		wxASSERT(type == wxEVT_ADDED_SOURCE);
 	}
 
-	/// OutputLog and OutputError event
+	/// OutputLog event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  LogType logType, const wxString &str,
 						  const std::string &key, int line)
 		: wxEvent(winid, type), m_str(str)
 		, m_key(key), m_line(line), m_logType(logType) {
+		wxASSERT(type == wxEVT_OUTPUT_LOG);
 	}
 
 	virtual ~wxDebugEvent() {
@@ -116,6 +140,7 @@ public:
 
 private:
 	Source m_source;
+	LuaBacktrace m_backtrace;
 	wxString m_str;
 	std::string m_key;
 	int m_line;
@@ -123,15 +148,6 @@ private:
 	int m_updateSourceCount;
 	bool m_isBreak;
 };
-
-BEGIN_DECLARE_EVENT_TYPES()
-DECLARE_EVENT_TYPE(wxEVT_CHANGED_STATE, 2652)
-DECLARE_EVENT_TYPE(wxEVT_UPDATE_SOURCE, 2653)
-DECLARE_EVENT_TYPE(wxEVT_ADDED_SOURCE, 2654)
-DECLARE_EVENT_TYPE(wxEVT_CHANGED_BREAKPOINTS, 2655)
-DECLARE_EVENT_TYPE(wxEVT_OUTPUT_LOG, 2656)
-DECLARE_EVENT_TYPE(wxEVT_SHOW_SOURCELINE, 2657)
-END_DECLARE_EVENT_TYPES()
 
 typedef void (wxEvtHandler::*wxDebugEventFunction)(wxDebugEvent &);
 
@@ -144,7 +160,8 @@ typedef void (wxEvtHandler::*wxDebugEventFunction)(wxDebugEvent &);
 #define EVT_LLDEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_OUTPUT_LOG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_OUTPUT_LOG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_SHOW_SOURCELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_SHOW_SOURCELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_FOCUS_ERRORLINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_FOCUS_ERRORLINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_LLDEBUG_FOCUS_BACKTRACELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_FOCUS_BACKTRACELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #endif
 
 }

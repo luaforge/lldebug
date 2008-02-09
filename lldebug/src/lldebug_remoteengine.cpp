@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <sstream>
+#include <fstream>
 
 namespace lldebug {
 
@@ -15,8 +16,8 @@ using boost::asio::ip::tcp;
 
 class SocketBase {
 private:
+	RemoteEngine *m_engine;
 	boost::asio::ip::tcp::socket m_socket;
-	const CommandCallback m_callback;
 	bool m_isConnected;
 
 	typedef std::queue<Command> WriteCommandQueue;
@@ -45,6 +46,11 @@ public:
 		return m_isConnected;
 	}
 
+	/// Get the remote engine.
+	RemoteEngine *GetEngine() {
+		return m_engine;
+	}
+
 	/// Get the io_service object.
 	boost::asio::io_service &GetService() {
 		return m_socket.io_service();
@@ -55,16 +61,9 @@ public:
 		return m_socket;
 	}
 
-	/// Get the callback.
-	CommandCallback GetCallback() {
-		return m_callback;
-	}
-
 protected:
-	SocketBase(boost::asio::io_service &ioService,
-			   const CommandCallback &callback)
-		: m_socket(ioService), m_callback(callback)
-		, m_isConnected(false) {
+	SocketBase(RemoteEngine *engine, boost::asio::io_service &ioService)
+		: m_engine(engine), m_socket(ioService), m_isConnected(false) {
 	}
 
 	virtual ~SocketBase() {
@@ -122,10 +121,7 @@ private:
 						const boost::system::error_code &error) {
 		if (!error) {
 			assert(command != NULL);
-
-			// m_callback may change.
-			CommandCallback callback = m_callback;
-			callback(*command);
+			m_engine->HandleReadCommand(*command);
 
 			// Prepare the new command.
 			asyncReadCommand();
@@ -138,6 +134,26 @@ private:
 	/// Send the asynchronous write order.
 	/// The memory of the command must be kept somewhere.
 	void asyncWrite(const Command &command) {
+		if (command.GetDataSize() != 0) {
+			static int s_num =
+#ifdef LLDEBUG_FRAME
+			0;
+#else
+			1;
+#endif
+			const char *filedir = "E:\\programs\\develop\\lldebug\\visualc8\\log";
+			char filename[512];
+			if (command.GetCommandId() != 0) {
+				snprintf(filename, sizeof(filename), "%s\\log%05d.txt", filedir, command.GetCommandId());
+			}
+			else {
+				snprintf(filename, sizeof(filename), "%s\\log_%05d.txt", filedir, s_num+=2);
+			}
+			std::ofstream fp(filename);
+			fp << command.ToString().c_str();
+			fp.close();
+		}
+
 		if (command.GetDataSize() == 0) {
 			// Delete the command memory.
 			boost::asio::async_write(m_socket,
@@ -207,10 +223,10 @@ private:
 	tcp::acceptor m_acceptor;
 
 public:
-	explicit ContextSocket(boost::asio::io_service &ioService,
-						 const CommandCallback &callback,
-						 tcp::endpoint endpoint)
-		: SocketBase(ioService, callback)
+	explicit ContextSocket(RemoteEngine *engine,
+						   boost::asio::io_service &ioService,
+						   tcp::endpoint endpoint)
+		: SocketBase(engine, ioService)
 		, m_acceptor(ioService, endpoint) {
 	}
 
@@ -270,10 +286,10 @@ private:
 	tcp::resolver::iterator m_endpointIterator;
 
 public:
-	explicit FrameSocket(boost::asio::io_service &ioService,
-						   const CommandCallback &callback,
-						   tcp::resolver::query query)
-		: SocketBase(ioService, callback) {
+	explicit FrameSocket(RemoteEngine *engine,
+						 boost::asio::io_service &ioService,
+						 tcp::resolver::query query)
+		: SocketBase(engine, ioService) {
 		tcp::resolver resolver(ioService);
 		m_endpointIterator = resolver.resolve(query);
 	}
@@ -360,10 +376,9 @@ int RemoteEngine::StartContext(int portNum, int ctxId, int waitSeconds) {
 	boost::xtime_get(&xt, boost::TIME_UTC);
 	xt.sec += waitSeconds;
 
-	socket.reset(new ContextSocket(m_ioService,
-		boost::bind(
-			&RemoteEngine::HandleReadCommand, this, _1),
-			tcp::endpoint(tcp::v4(), portNum)));
+	socket.reset(new ContextSocket(
+		this, m_ioService,
+		tcp::endpoint(tcp::v4(), portNum)));
 
 	// Start connection.
 	if (socket->Start(waitSeconds) != 0) {
@@ -373,7 +388,7 @@ int RemoteEngine::StartContext(int portNum, int ctxId, int waitSeconds) {
 	StartThread();
 	m_commandIdCounter = 1;
 	m_socket = boost::shared_static_cast<SocketBase>(socket);
-	StartConnection(ctxId);
+	DoStartConnection(ctxId);
 
 	// Wait for START_CONNECTION and ctxId value.
 	if (m_ctxId < 0) {
@@ -399,10 +414,10 @@ int RemoteEngine::StartFrame(const std::string &hostName,
 	xt.sec += waitSeconds;
 
 	// Create socket object.
-	socket.reset(new FrameSocket(m_ioService,
-		boost::bind(
-			&RemoteEngine::HandleReadCommand, this, _1),
-			tcp::resolver::query(hostName, portName)));
+	socket.reset(new FrameSocket(
+		this,
+		m_ioService,
+		tcp::resolver::query(hostName, portName)));
 
 	// Start connection.
 	if (socket->Start(waitSeconds) != 0) {
@@ -459,35 +474,74 @@ bool RemoteEngine::IsThreadActive() {
 void RemoteEngine::SetThreadActive(bool is) {
 	scoped_lock lock(m_mutex);
 
-	if (m_isThreadActive == is) {
-		return;
-	}
-
 	m_isThreadActive = is;
+}
 
-	if (!m_isThreadActive) {
-		/*Command command;
-		command.header.type = REMOTECOMMANDTYPE_END_CONNECTION;
-		command.header.ctxId = m_ctxId;
-		command.header.commandId = 0;
-		command.header.dataSize = 0;
-		m_readCommandCallback(command);*/
+void RemoteEngine::DoStartConnection(int ctxId) {
+	scoped_lock lock(m_mutex);
+	CommandHeader header;
+
+	header = InitCommandHeader(
+		REMOTECOMMANDTYPE_START_CONNECTION,
+		0, 0);
+	header.ctxId = ctxId;
+	m_socket->Write(header, CommandData());
+}
+
+void RemoteEngine::DoEndConnection() {
+	scoped_lock lock(m_mutex);
+
+	WriteCommand(
+		REMOTECOMMANDTYPE_END_CONNECTION,
+		CommandData());
+}
+/*
+void RemoteEngine::DoEndConnection() {
+	CommandHeader header;
+
+	header.type = REMOTECOMMANDTYPE_END_CONNECTION;
+	header.ctxId = m_ctxId;
+	header.commandId = 0;
+	header.dataSize = 0;
+	HandleReadCommand(Command(header, CommandData()));
+}*/
+
+template<class Fn1>
+class binderobj {
+public:
+	typedef typename Fn1::result_type result_type;
+
+	explicit binderobj(const Fn1 &func, const typename Fn1::argument_type &left)
+		: m_op(func), m_value(left) {
 	}
+
+	result_type operator()() const {
+		return m_op(m_value);
+	}
+
+protected:
+	Fn1 m_op;	// the functor to apply
+	typename Fn1::argument_type m_value;	// the left operand
+};
+
+template<class Fn1, class Ty>
+inline binderobj<Fn1> bindobj(const Fn1 &op, const Ty &arg) {
+	return binderobj<Fn1>(op, arg);
 }
 
 void RemoteEngine::StartThread() {
 	scoped_lock lock(m_mutex);
 
 	if (!IsThreadActive()) {
-		boost::function0<void> fn
-			= boost::bind(&RemoteEngine::ServiceThread, this);
+		boost::function0<void> fn = bindobj(
+			std::mem_fun(&RemoteEngine::ServiceThread), this);
 		m_thread.reset(new boost::thread(fn));
 	}
 }
 
 void RemoteEngine::StopThread() {
 	if (IsConnected()) {
-		EndConnection();
+		DoEndConnection();
 	}
 
 	if (IsThreadActive()) {
@@ -515,6 +569,7 @@ void RemoteEngine::ServiceThread() {
 				m_ioService.poll_one();
 			}
 
+			// If there is no work, exit this thread.
 			if (!IsThreadActive() && m_ioService.poll_one() == 0) {
 				break;
 			}
@@ -562,10 +617,10 @@ void RemoteEngine::HandleReadCommand(const Command &command) {
 	switch (command.GetType()) {
 	case REMOTECOMMANDTYPE_START_CONNECTION:
 		SetCtxId(command.GetCtxId());
-		return;
+		break;
 	case REMOTECOMMANDTYPE_END_CONNECTION:
 		SetCtxId(-1);
-		return;
+		break;
 	default:
 		if (m_ctxId < 0) {
 			SetCtxId(command.GetCtxId());
@@ -650,25 +705,6 @@ void RemoteEngine::ResponseFailed(const Command &command) {
 	scoped_lock lock(m_mutex);
 
 	WriteResponse(command, REMOTECOMMANDTYPE_FAILED, CommandData());
-}
-
-void RemoteEngine::StartConnection(int ctxId) {
-	scoped_lock lock(m_mutex);
-	CommandHeader header;
-
-	header = InitCommandHeader(
-		REMOTECOMMANDTYPE_START_CONNECTION,
-		0, 0);
-	header.ctxId = ctxId;
-	m_socket->Write(header, CommandData());
-}
-
-void RemoteEngine::EndConnection() {
-	scoped_lock lock(m_mutex);
-
-	WriteCommand(
-		REMOTECOMMANDTYPE_END_CONNECTION,
-		CommandData());
 }
 
 void RemoteEngine::ChangedState(bool isBreak) {

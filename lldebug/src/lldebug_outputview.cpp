@@ -65,19 +65,20 @@ public:
 		SetWrapMode(wxSCI_WRAP_NONE);
 		SetEdgeMode(wxSCI_EDGE_NONE);
 		SetViewWhiteSpace(wxSCI_WS_INVISIBLE);
+		SetLayoutCache(wxSCI_CACHE_PAGE);
 		SetLexer(wxSCI_LEX_NULL);
 
+		/// Setup the selectable error marker.
 		MarkerDefine(MARKNUM_ERROR, wxSCI_MARK_ARROWS);
 		MarkerSetForeground(MARKNUM_ERROR, wxColour(_T("RED")));
 
+		// Setup the infomation margin.
 		StyleSetForeground(wxSCI_STYLE_DEFAULT,
 			wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE));
 		SetMarginType(MARGIN_INFO, wxSCI_MARGIN_FORE);
 		SetMarginWidth(MARGIN_INFO, 16);
 		SetMarginSensitive(MARGIN_INFO, false);
 		SetMarginMask(MARGIN_INFO, (1 << MARKNUM_ERROR));
-
-		SetLayoutCache(wxSCI_CACHE_PAGE);
 	}
 
 	/// Add raw text that is std::string.
@@ -91,6 +92,7 @@ public:
 		AddTextRaw(str.c_str());
 	}
 
+	/// Output log.
 	void OutputLog(LogType type, const wxString &str, const std::string &key, int line) {
 		scoped_lock lock(m_mutex);
 
@@ -101,7 +103,10 @@ public:
 			m_dataMap[GetLineCount() - 1] = data;
 		}
 
-		MarkerAdd(GetLineCount() - 1, MARKNUM_ERROR);
+		if (type == LOGTYPE_ERROR && !key.empty()) {
+			MarkerAdd(GetLineCount() - 1, MARKNUM_ERROR);
+		}
+
 		SetReadOnly(false);
 		if (!key.empty()) {
 			const Source *source = Mediator::Get()->GetSource(key);
@@ -124,12 +129,12 @@ public:
 			return;
 		}
 
-		// Goto the specified source line.
+		// Goto the specify source line.
 		int line = LineFromPosition(event.GetPosition());
 		DataMap::iterator it = m_dataMap.find(line);
 		if (it != m_dataMap.end()) {
 			const ViewData &data = it->second;
-			Mediator::Get()->ShowSourceLine(data.key, data.line);
+			Mediator::Get()->FocusErrorLine(data.key, data.line);
 
 			SetSelection(
 				PositionFromLine(line),

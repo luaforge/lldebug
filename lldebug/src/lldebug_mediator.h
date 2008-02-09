@@ -51,8 +51,11 @@ public:
 	/// Get the ID of the 'lldebug::Context' class.
 	int GetCtxId();
 
-	/// Focus the specified file and line.
-	void ShowSourceLine(const std::string &key, int line);
+	/// Focus the error line.
+	void FocusErrorLine(const std::string &key, int line);
+
+	/// Focus the backtrace.
+	void FocusBacktraceLine(const LuaBacktrace &bt);
 
 	/// Process the remote command.
 	void OnRemoteCommand(const Command &command);
@@ -61,6 +64,12 @@ public:
 	RemoteEngine *GetEngine() {
 		scoped_lock lock(m_mutex);
 		return m_engine.get();
+	}
+
+	/// Get the main frame.
+	MainFrame *GetFrame() {
+		scoped_lock lock(m_mutex);
+		return m_frame;
 	}
 
 	/// Get the BreakpointList object.

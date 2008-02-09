@@ -54,8 +54,8 @@ private:
 	void OnChangedState(wxDebugEvent &event);
 	void OnUpdateSource(wxDebugEvent &event);
 	void OnAddedSource(wxDebugEvent &event);
-	void OnChangedBreakpoints(wxDebugEvent &event);
-	void OnShowSourceLine(wxDebugEvent &event);
+	void OnFocusErrorLine(wxDebugEvent &event);
+	void OnFocusBacktraceLine(wxDebugEvent &event);
 
 	DECLARE_EVENT_TABLE();
 

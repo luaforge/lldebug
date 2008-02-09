@@ -81,6 +81,16 @@ public:
 		return m_data;
 	}
 
+	/// Get string for debug.
+	std::string ToString() const {
+		if (m_data.empty()) {
+			return std::string("");
+		}
+		else {
+			return std::string(&*m_data.begin(), m_data.size());
+		}
+	}
+
 public:
 	void Get_ChangedState(bool &isBreak) const;
 	void Set_ChangedState(bool isBreak);
@@ -183,6 +193,11 @@ public:
 		m_data.GetImplData().resize(m_header.dataSize);
 	}
 
+	/// Get string for debug.
+	std::string ToString() const {
+		return m_data.ToString();
+	}
+
 private:
 	CommandHeader m_header;
 	CommandData m_data;
@@ -225,8 +240,6 @@ public:
 
 	void ResponseSuccessed(const Command &command);
 	void ResponseFailed(const Command &command);
-	void StartConnection(int ctxId);
-	void EndConnection();
 
 	void ChangedState(bool isBreak);
 	void UpdateSource(const std::string &key, int line, int updateSourceCount, const CommandCallback &response);
@@ -263,6 +276,8 @@ private:
 	void SetThreadActive(bool is);
 	void StartThread();
 	void StopThread();
+	void DoStartConnection(int ctxId);
+	void DoEndConnection();
 	void SetCtxId(int ctxId);
 	CommandHeader InitCommandHeader(RemoteCommandType type,
 									size_t dataSize,
@@ -277,6 +292,8 @@ private:
 					   const CommandData &data);
 	void HandleReadCommand(const Command &command);
 	void ServiceThread();
+
+	friend class SocketBase;
 
 private:
 	shared_ptr<thread> m_thread;
@@ -302,7 +319,9 @@ private:
 };
 
 /**
- * @brief This class must share all fields.
+ * @brief Waiting for the boolean response command (success or failed).
+ * 
+ * This class must share all fields.
  */
 struct BooleanCallbackWaiter {
 	explicit BooleanCallbackWaiter();

@@ -2,7 +2,11 @@
 -- 日本語表示
 --
 
+--require "E:\\programs\\develop\\lldebug\\test\\strict"
+--require "strict"
+
 debug = require "debug"
+require "table"
 
 function t()
   if 0 == 0 then
@@ -14,6 +18,19 @@ function t()
   t(i - 1)
 end
 
+function f1(e)
+  setfenv(1,e)
+  print(a)
+end
+function f2(f)
+  a=123
+  local e1 = getfenv(0)
+  e1 = getfenv(1)
+  e1 = getfenv(2)
+  f(getfenv(0))
+end
+f2(f1) 
+
 function g(i)
   while true do
     print(i)
@@ -22,13 +39,23 @@ function g(i)
   end
 end
 
-local co
+local mt = getfenv(g)
+setfenv(g,
+  setmetatable({},
+  {__index = function(t, key)
+   print("__index "..key)
+   return mt[key]
+  end}
+  )
+)
+
+local co = nil
 local function f(i)
   if co == nil then
     co = coroutine.create(g)
   end
 
-  function inner()
+  local function inner()
     local test = {x = function() end}
 	  --print(test)
   end
@@ -39,7 +66,7 @@ local function f(i)
   inner()
 end
 
-local tab = {[0] = "テスト", deep = {x=coroutine.create(f)}}
+tab = {[0] = "テスト", deep = {x=coroutine.create(f)}}
 tab.tt = tab
 local i = 0
 local str = [[テストデソ]]

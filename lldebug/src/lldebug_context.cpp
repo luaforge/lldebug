@@ -216,10 +216,6 @@ int Context::Initialize() {
 
 Context::~Context() {
 	SaveConfig();
-	
-	if (m_engine->IsConnected()) {
-		m_engine->EndConnection();
-	}
 	m_engine.reset();
 
 	scoped_lock lock(m_mutex);
@@ -347,7 +343,6 @@ Context *Context::Find(lua_State *L) {
 void Context::Quit() {
 	scoped_lock lock(m_mutex);
 
-	m_engine->EndConnection();
 	SetState(STATE_QUIT);
 }
 
@@ -1232,6 +1227,30 @@ int Context::LuaEval(const std::string &str, lua_State *L) {
 
 #define LEVEL_MAX	1024	/* maximum size of the stack */
 
+static std::string MakeFuncName(lua_Debug *ar) {
+	std::string name;
+
+	if (*ar->namewhat != '\0') { /* is there a name? */
+		name = ConvToUTF8(ar->name);
+	}
+	else {
+		if (*ar->what == 'm') { /* main? */
+			name = "main_chunk";
+		}
+		else if (*ar->what == 'C' || *ar->what == 't') {
+			name = std::string("?");  /* C function or tail call */
+		}
+		else {
+			std::stringstream stream;
+			stream << "no name [defined <" << ar->short_src << ":" << ar->linedefined << ">]";
+			stream.flush();
+			name = stream.str();
+		}
+	}
+
+	return name;
+}
+
 LuaBacktraceList Context::LuaGetBacktrace() {
 	scoped_lock lock(m_mutex);
 	LuaBacktraceList array;
@@ -1260,26 +1279,7 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 				sourceTitle = source->GetTitle();
 			}
 
-			std::string name;
-
-	if (*ar.namewhat != '\0') { /* is there a name? */
-		name = ConvToUTF8(ar.name);
-	}
-	else {
-		if (*ar.what == 'm') { /* main? */
-			name = "main chunk";
-		}
-		else if (*ar.what == 'C' || *ar.what == 't') {
-			name = std::string("?");  /* C function or tail call */
-		}
-		else {
-			std::stringstream stream;
-			stream << "no name [defined <" << ar.short_src << ":" << ar.linedefined << ">]";
-			stream.flush();
-			name = stream.str();
-		}
-	}
-
+			std::string name = MakeFuncName(&ar);
 			array.push_back(LuaBacktrace(L1, name, ar.source, sourceTitle, ar.currentline, level));
 		}
 	}
