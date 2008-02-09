@@ -34,7 +34,7 @@ namespace lldebug {
 class Mediator;
 class MainFrame;
 class SourceView;
-class InteractView;
+class InteractiveView;
 class WatchView;
 class TracebackView;
 
@@ -45,7 +45,7 @@ enum {
 	ID_WINDOWHOLDER,
 	ID_SOURCEVIEW,
 	ID_OUTPUTVIEW,
-	ID_INTERACTVIEW,
+	ID_INTERACTIVEVIEW,
 	ID_LOCALWATCHVIEW,
 	ID_GLOBALWATCHVIEW,
 	ID_REGISTRYWATCHVIEW,

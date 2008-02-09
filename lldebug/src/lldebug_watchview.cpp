@@ -179,14 +179,15 @@ void WatchView::BeginUpdateVars(bool isExpand) {
 		Mediator::Get()->GetEngine()->RequestLocalVarList(
 			LuaStackFrame(LuaHandle(), 0), callback);
 		break;
+	case TYPE_ENVIRONWATCH:
+		Mediator::Get()->GetEngine()->RequestEnvironVarList(
+			LuaStackFrame(LuaHandle(), 0), callback);
+		break;
 	case TYPE_GLOBALWATCH:
 		Mediator::Get()->GetEngine()->RequestGlobalVarList(callback);
 		break;
 	case TYPE_REGISTRYWATCH:
 		Mediator::Get()->GetEngine()->RequestRegistryVarList(callback);
-		break;
-	case TYPE_ENVIRONWATCH:
-		Mediator::Get()->GetEngine()->RequestEnvironVarList(callback);
 		break;
 	case TYPE_STACKWATCH:
 		Mediator::Get()->GetEngine()->RequestStackList(callback);

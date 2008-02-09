@@ -33,6 +33,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_STEPOVER,
 	REMOTECOMMANDTYPE_STEPRETURN,
 	REMOTECOMMANDTYPE_OUTPUT_LOG,
+	REMOTECOMMANDTYPE_EVAL,
 
 	REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
@@ -113,11 +114,17 @@ public:
 	void Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const;
 	void Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line);
 
+	void Get_Eval(std::string &str) const;
+	void Set_Eval(const std::string &str);
+
 	void Get_RequestFieldVarList(LuaVar &var) const;
 	void Set_RequestFieldVarList(const LuaVar &var);
 
 	void Get_RequestLocalVarList(LuaStackFrame &stackFrame) const;
 	void Set_RequestLocalVarList(const LuaStackFrame &stackFrame);
+
+	void Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const;
+	void Set_RequestEnvironVarList(const LuaStackFrame &stackFrame);
 
 	void Get_ValueVarList(LuaVarList &vars) const;
 	void Set_ValueVarList(const LuaVarList &vars);
@@ -256,12 +263,13 @@ public:
 	void StepReturn();
 
 	void OutputLog(LogType type, const std::string &str, const std::string &key, int line);
+	void Eval(const std::string &str);
 	
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
 	void RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
+	void RequestEnvironVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
 	void RequestGlobalVarList(const LuaVarListCallback &callback);
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
-	void RequestEnvironVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);
 	void ResponseVarList(const Command &command, const LuaVarList &vars);
 

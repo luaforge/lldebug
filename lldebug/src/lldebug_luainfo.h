@@ -30,7 +30,11 @@
 namespace lldebug {
 
 #ifndef LLDEBUG_FRAME
+/// Convert the lua object placed idx to string.
 std::string LuaToString(lua_State *L, int idx);
+
+/// Get the original name of the lua function.
+std::string LuaMakeFuncName(lua_Debug *ar);
 #endif
 
 /**

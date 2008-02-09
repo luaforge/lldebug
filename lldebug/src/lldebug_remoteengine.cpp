@@ -819,6 +819,15 @@ void RemoteEngine::OutputLog(LogType type, const std::string &str, const std::st
 		data);
 }
 
+void RemoteEngine::Eval(const std::string &str) {
+	CommandData data;
+
+	data.Set_Eval(str);
+	WriteCommand(
+		REMOTECOMMANDTYPE_EVAL,
+		data);
+}
+
 struct VarListResponseHandler {
 	LuaVarListCallback m_callback;
 
@@ -855,6 +864,16 @@ void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame, const Lu
 		VarListResponseHandler(callback));
 }
 
+void RemoteEngine::RequestEnvironVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback) {
+	CommandData data;
+
+	data.Set_RequestLocalVarList(stackFrame);
+	WriteCommand(
+		REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
+		data,
+		VarListResponseHandler(callback));
+}
+
 void RemoteEngine::RequestGlobalVarList(const LuaVarListCallback &callback) {
 	scoped_lock lock(m_mutex);
 
@@ -869,15 +888,6 @@ void RemoteEngine::RequestRegistryVarList(const LuaVarListCallback &callback) {
 
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
-		CommandData(),
-		VarListResponseHandler(callback));
-}
-
-void RemoteEngine::RequestEnvironVarList(const LuaVarListCallback &callback) {
-	scoped_lock lock(m_mutex);
-
-	WriteCommand(
-		REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
 		CommandData(),
 		VarListResponseHandler(callback));
 }
@@ -976,6 +986,13 @@ void CommandData::Set_OutputLog(LogType type, const std::string &str, const std:
 	m_data = Serializer::ToData(type, str, key, line);
 }
 
+void CommandData::Get_Eval(std::string &str) const {
+	Serializer::ToValue(m_data, str);
+}
+void CommandData::Set_Eval(const std::string &str) {
+	m_data = Serializer::ToData(str);
+}
+
 void CommandData::Get_RequestFieldVarList(LuaVar &var) const {
 	Serializer::ToValue(m_data, var);
 }
@@ -987,6 +1004,13 @@ void CommandData::Get_RequestLocalVarList(LuaStackFrame &stackFrame) const {
 	Serializer::ToValue(m_data, stackFrame);
 }
 void CommandData::Set_RequestLocalVarList(const LuaStackFrame &stackFrame) {
+	m_data = Serializer::ToData(stackFrame);
+}
+
+void CommandData::Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const {
+	Serializer::ToValue(m_data, stackFrame);
+}
+void CommandData::Set_RequestEnvironVarList(const LuaStackFrame &stackFrame) {
 	m_data = Serializer::ToData(stackFrame);
 }
 

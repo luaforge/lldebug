@@ -89,6 +89,30 @@ std::string LuaToString(lua_State *L, int idx) {
 
 	return (ascii ? str : ConvToUTF8(str));
 }
+
+std::string LuaMakeFuncName(lua_Debug *ar) {
+	std::string name;
+
+	if (*ar->namewhat != '\0') { /* is there a name? */
+		name = ConvToUTF8(ar->name);
+	}
+	else {
+		if (*ar->what == 'm') { /* main? */
+			name = "main_chunk";
+		}
+		else if (*ar->what == 'C' || *ar->what == 't') {
+			name = std::string("?");  /* C function or tail call */
+		}
+		else {
+			std::stringstream stream;
+			stream << "no name [defined <" << ar->short_src << ":" << ar->linedefined << ">]";
+			stream.flush();
+			name = stream.str();
+		}
+	}
+
+	return name;
+}
 #endif
 
 
@@ -114,16 +138,18 @@ LuaVar::LuaVar(const LuaHandle &lua, VarRootType type, int level)
 	m_value = "root table";
 }
 
-LuaVar::LuaVar(shared_ptr<LuaVar> parent, const std::string &name, int valueIdx)
-	: m_lua(parent->m_lua), m_rootType(parent->m_rootType), m_level(parent->m_level)
-	, m_parent(parent), m_name(name), m_hasFields(false) {
+LuaVar::LuaVar(shared_ptr<LuaVar> parent, const std::string &name,
+			   int valueIdx)
+	: m_lua(parent->m_lua), m_rootType(parent->m_rootType)
+	, m_level(parent->m_level), m_parent(parent), m_name(name)
+	, m_hasFields(false) {
 	m_valueType = lua_type(m_lua.GetState(), valueIdx);
 	m_value = LuaToString(m_lua.GetState(), valueIdx);
 }
 
 LuaVar::LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx)
-	: m_lua(parent->m_lua), m_rootType(parent->m_rootType), m_level(parent->m_level)
-	, m_parent(parent), m_hasFields(false) {
+	: m_lua(parent->m_lua), m_rootType(parent->m_rootType)
+	, m_level(parent->m_level), m_parent(parent), m_hasFields(false) {
 	m_name = LuaToString(m_lua.GetState(), keyIdx);
 	m_valueType = lua_type(m_lua.GetState(), valueIdx);
 	m_value = LuaToString(m_lua.GetState(), valueIdx);

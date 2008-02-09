@@ -38,7 +38,6 @@ class MainFrame;
 enum TableType {
 	TABLETYPE_GLOBAL,
 	TABLETYPE_REGISTRY,
-	TABLETYPE_ENVIRON,
 };
 
 class Context {
@@ -67,6 +66,7 @@ public:
 	void OutputLuaError(const char *str);
 	void OutputError(const std::string &str);
 	void OutputLog(const std::string &str);
+	void OutputLog(LogType type, const std::string &str);
 
 	int LoadFile(const char *filename);
 	int LoadString(const char *str);
@@ -75,6 +75,7 @@ public:
 	void LuaOpenLibs(lua_State *L);
 
 	LuaVarList LuaGetLocals(lua_State *L, int level);
+	LuaVarList LuaGetEnviron(lua_State *L, int level);
 	LuaVarList LuaGetFields(TableType type);
 	LuaVarList LuaGetFields(const LuaVar &var);
 	LuaStackList LuaGetStack();
@@ -160,6 +161,10 @@ private:
 	void EndCoroutine(lua_State *L);
 
 private:
+	int LuaIndexForEval(lua_State *L);
+	int LuaNewindexForEval(lua_State *L);
+
+private:
 	class ContextManager;
 	static shared_ptr<ContextManager> ms_manager;
 	static int ms_idCounter;
@@ -169,6 +174,7 @@ private:
 	lua_State *m_lua;
 	State m_state;
 	int m_updateSourceCount;
+	bool m_isMustUpdate;
 
 	/// lua_State *ごとの関数呼び出し回数を記録することで
 	/// ステップオーバーを安全に実装します。
@@ -198,22 +204,32 @@ private:
  */
 class Context::scoped_lua {
 public:
+	explicit scoped_lua(lua_State *L)
+		: m_L(L), m_top(-1), m_n(-1), m_npop(0) {
+		m_oldhook = (lua_gethook(L) != NULL);
+		Context::SetHook(L, false);
+	}
+
 	explicit scoped_lua(lua_State *L, int n, int npop = 0)
-		: m_L(L), m_npop(npop) {
-		m_pos = lua_gettop(L) + n;
+		: m_L(L), m_n(n), m_npop(npop) {
+		m_top = lua_gettop(L);
 		m_oldhook = (lua_gethook(L) != NULL);
 		Context::SetHook(L, false);
 	}
 
 	~scoped_lua() {
 		Context::SetHook(m_L, m_oldhook);
-		//wxASSERT(m_pos == lua_gettop(m_L));
+		if (m_top >= 0) assert(m_top + m_n == lua_gettop(m_L));
 		lua_pop(m_L, m_npop);
+	}
+
+	void reset_stackn(int n) {
+		m_n = n;
 	}
 
 private:
 	lua_State *m_L;
-	int m_pos;
+	int m_top, m_n;
 	int m_npop;
 	bool m_oldhook;
 };

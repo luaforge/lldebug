@@ -30,7 +30,7 @@
 #include "lldebug_mainframe.h"
 #include "lldebug_sourceview.h"
 #include "lldebug_outputview.h"
-//#include "lldebug_interactview.h"
+#include "lldebug_interactiveview.h"
 #include "lldebug_watchview.h"
 //#include "lldebug_backtraceview.h"
 
@@ -51,7 +51,7 @@ enum {
 	ID_MENU_SHOW_WATCH,
 	ID_MENU_SHOW_STACKWATCH,
 	ID_MENU_SHOW_BACKTRACEVIEW,
-	ID_MENU_SHOW_INTERACTVIEW,
+	ID_MENU_SHOW_INTERACTIVEVIEW,
 };
 
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
@@ -72,7 +72,7 @@ BEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	EVT_MENU(ID_MENU_SHOW_WATCH, MainFrame::OnMenu)
 	EVT_MENU(ID_MENU_SHOW_STACKWATCH, MainFrame::OnMenu)
 	EVT_MENU(ID_MENU_SHOW_BACKTRACEVIEW, MainFrame::OnMenu)
-	EVT_MENU(ID_MENU_SHOW_INTERACTVIEW, MainFrame::OnMenu)
+	EVT_MENU(ID_MENU_SHOW_INTERACTIVEVIEW, MainFrame::OnMenu)
 END_EVENT_TABLE()
 
 MainFrame::MainFrame()
@@ -110,12 +110,12 @@ void MainFrame::CreateGUIControls() {
 		.CentrePane().Floatable(false).PaneBorder(false));
 
 	ShowDebugWindow(ID_OUTPUTVIEW);
-	ShowDebugWindow(ID_INTERACTVIEW);
+	ShowDebugWindow(ID_INTERACTIVEVIEW);
 	ShowDebugWindow(ID_GLOBALWATCHVIEW);
 	ShowDebugWindow(ID_REGISTRYWATCHVIEW);
-	//ShowDebugWindow(ID_ENVIRONWATCHVIEW);
+	ShowDebugWindow(ID_ENVIRONWATCHVIEW);
 	ShowDebugWindow(ID_STACKWATCHVIEW);
-	//ShowDebugWindow(ID_WATCHVIEW);
+	ShowDebugWindow(ID_WATCHVIEW);
 	ShowDebugWindow(ID_BACKTRACEVIEW);
 	ShowDebugWindow(ID_LOCALWATCHVIEW);
 
@@ -131,7 +131,7 @@ void MainFrame::CreateGUIControls() {
 	viewMenu->Append(ID_MENU_SHOW_WATCH, _("&Watch"));
 	viewMenu->Append(ID_MENU_SHOW_STACKWATCH, _("&StackWatch"));
 	viewMenu->Append(ID_MENU_SHOW_BACKTRACEVIEW, _("&BacktraceView"));
-	viewMenu->Append(ID_MENU_SHOW_INTERACTVIEW, _("&InteractView"));
+	viewMenu->Append(ID_MENU_SHOW_INTERACTIVEVIEW, _("&InteractiveView"));
 	
 	wxMenu *debugMenu = new wxMenu;
 	debugMenu->Append(ID_MENU_BREAK, _("&Break\tShift+Pause"));
@@ -208,11 +208,11 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 	}
 
 	switch (wintypeid) {
-	/*case ID_INTERACTVIEW:
+	case ID_INTERACTIVEVIEW:
 		m_auiNotebook->AddPage(
-			new InteractView(m_ctx, this),
-			_("InteractView"));
-		break;*/
+			new InteractiveView(this),
+			_("InteractiveView"));
+		break;
 	case ID_OUTPUTVIEW:
 		m_auiNotebook->AddPage(
 			new OutputView(this),
@@ -222,6 +222,11 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 		m_auiNotebook->AddPage(
 			new WatchView(this, WatchView::TYPE_LOCALWATCH),
 			_("LocalWatch"));
+		break;
+	case ID_ENVIRONWATCHVIEW:
+		m_auiNotebook->AddPage(
+			new WatchView(this, WatchView::TYPE_ENVIRONWATCH),
+			_("EnvironWatch"));
 		break;
 	case ID_GLOBALWATCHVIEW:
 		m_auiNotebook->AddPage(
@@ -309,8 +314,8 @@ void MainFrame::OnMenu(wxCommandEvent &event) {
 	case ID_MENU_SHOW_BACKTRACEVIEW:
 		ShowDebugWindow(ID_BACKTRACEVIEW);
 		break;
-	case ID_MENU_SHOW_INTERACTVIEW:
-		ShowDebugWindow(ID_INTERACTVIEW);
+	case ID_MENU_SHOW_INTERACTIVEVIEW:
+		ShowDebugWindow(ID_INTERACTIVEVIEW);
 		break;
 	}
 }

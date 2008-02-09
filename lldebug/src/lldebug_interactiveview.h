@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __LLDEBUG_INTERACTVIEW_H__
-#define __LLDEBUG_INTERACTVIEW_H__
+#ifndef __LLDEBUG_INTERACTIVEVIEW_H__
+#define __LLDEBUG_INTERACTIVEVIEW_H__
 
 #include "lldebug_controls.h"
 
@@ -34,23 +34,22 @@ namespace lldebug {
 /**
  * @brief ソースコードを表示するコントロールです。
  */
-class InteractView : public wxPanel {
+class InteractiveView : public wxPanel {
 public:
-	explicit InteractView(Context *ctx, wxWindow *parent);
-	virtual ~InteractView();
+	explicit InteractiveView(wxWindow *parent);
+	virtual ~InteractiveView();
 
 	void Run();
 
 private:
 	void CreateGUIControls();
-	void OnChangedState(wxChangedStateEvent &event);
+	void OnChangedState(wxDebugEvent &event);
+	void OnOutputLog(wxDebugEvent &event);
 
 	DECLARE_EVENT_TABLE();
 
 private:
 	mutex m_mutex;
-	Context *m_ctx;
-
 	wxTextCtrl *m_text;
 
 	class TextInput;

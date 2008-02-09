@@ -10,8 +10,7 @@ require "table"
 
 function t()
   if 0 == 0 then
-    --print(debug.traceback("msg"))
-    callstack()
+    print(debug.traceback("msg"))
     return
   end
 
@@ -39,16 +38,6 @@ function g(i)
   end
 end
 
-local mt = getfenv(g)
-setfenv(g,
-  setmetatable({},
-  {__index = function(t, key)
-   print("__index "..key)
-   return mt[key]
-  end}
-  )
-)
-
 local co = nil
 local function f(i)
   if co == nil then
@@ -73,5 +62,6 @@ local str = [[テストデソ]]
 while 1 do
   print(i, str)
   f(i)
+  print(x)
   i = i + 1
 end

@@ -207,6 +207,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lldebug_interactiveview.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\lldebug_interactiveview.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lldebug_langsettings.cpp"
 				>
 			</File>

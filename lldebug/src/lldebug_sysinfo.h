@@ -38,6 +38,7 @@ enum LogType {
 	LOGTYPE_MESSAGE, ///< Normal message.
 	LOGTYPE_WARNING, ///< Warning message.
 	LOGTYPE_ERROR, ///< Error message.
+	LOGTYPE_INTERACTIVE, ///< For InteractiveView message.
 };
 
 /**
