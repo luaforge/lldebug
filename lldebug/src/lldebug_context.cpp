@@ -348,15 +348,12 @@ void Context::Quit() {
 	SetState(STATE_QUIT);
 }
 
-void Context::OutputLuaError(const char *cstr) {
+/// Parse the lua error that forat is like 'FILENAME:LINE:str...'.
+std::string Context::ParseLuaError(const std::string &str, std::string &key_,
+								   int &line_, bool &isDummyFunc_) {
 	scoped_lock lock(m_mutex);
 
-	if (cstr == NULL) {
-		return;
-	}
-
 	// FILENAME:LINE:str...
-	std::string str = cstr;
 	bool found = false;
 	int line;
 	std::string::size_type pos, prevPos = 0;
@@ -388,11 +385,14 @@ void Context::OutputLuaError(const char *cstr) {
 	// source is string, [string "***"]:line: str...
 	//               ,or [string "***..."]:line: str...
 	// If found is true, str[prevPos] is first ':', str[pos] is second ':'.
-	std::string key;
 	if (found) {
 		std::string filename = str.substr(0, prevPos);
 		const char *beginStr = "[string \"";
 		const char *endStr = "\"]";
+
+		// msg is what is removed filename and line from str.
+		std::string msg =
+			str.substr(std::min(pos + 2, str.length())); // skip ": "
 
 		// If source is string, key is manipulated and may be shorten.
 		if (filename.find(beginStr) == 0 &&
@@ -409,41 +409,65 @@ void Context::OutputLuaError(const char *cstr) {
 			// Replace key if any.
 			const Source *source = m_sourceManager.GetString(filename);
 			if (source != NULL) {
-				key = source->GetKey();
-				str = str.substr(std::min(pos + 2, str.length())); // skip ": "
+				key_ = source->GetKey();
+				line_ = line;
+				isDummyFunc_ = false;
+				return msg;
 			}
 			else if (filename == DUMMY_FUNCNAME) {
-				str = str.substr(std::min(pos + 2, str.length())); // skip ": "
-				m_engine->OutputLog(LOGTYPE_INTERACTIVE, str, key, line);
-				return;
+				key_ = "";
+				line_ = -1;
+				isDummyFunc_ = true;
+				return msg;
 			}
 		}
 		else {
-			key = std::string("@") + filename;
-			str = str.substr(std::min(pos + 2, str.length())); // skip ": "
+			key_ = std::string("@") + filename;
+			line_ = line;
+			isDummyFunc_ = false;
+			return msg;
 		}
 	}
 
-	// If parse is success, str, filename, and line are modified correctly.
-	m_engine->OutputLog(LOGTYPE_ERROR, str, key, line);
+	// Come here when str can't be parsed or filename is invalid.
+	key_ = "";
+	line_ = -1;
+	isDummyFunc_ = false;
+	return str;
 }
 
 void Context::OutputLog(LogType type, const std::string &str) {
 	scoped_lock lock(m_mutex);
+	std::string key;
+	int line;
+	bool isDummyFunc;
 
-	m_engine->OutputLog(type, str, "", -1);
+	std::string msg = ParseLuaError(str, key, line, isDummyFunc);
+	assert(!isDummyFunc);
+//		m_engine->OutputLog(LOGTYPE_INTERACTIVE, str, key, line);
+	m_engine->OutputLog(type, str, key, line);
+}
+
+void Context::OutputLuaError(const char *str) {
+	scoped_lock lock(m_mutex);
+
+	if (str == NULL) {
+		return;
+	}
+
+	OutputLog(LOGTYPE_ERROR, str);
 }
 
 void Context::OutputLog(const std::string &str) {
 	scoped_lock lock(m_mutex);
 
-	m_engine->OutputLog(LOGTYPE_MESSAGE, str, "", -1);
+	OutputLog(LOGTYPE_MESSAGE, str);
 }
 
 void Context::OutputError(const std::string &str) {
 	scoped_lock lock(m_mutex);
 
-	m_engine->OutputLog(LOGTYPE_ERROR, str, "", -1);
+	OutputLog(LOGTYPE_ERROR, str);
 }
 
 void Context::BeginCoroutine(lua_State *L) {
@@ -621,7 +645,8 @@ int Context::HandleCommand() {
 			{
 				std::string str;
 				command.GetData().Get_Eval(str);
-				LuaEval(str);
+				std::string error = LuaEval(str);
+				m_engine->ResponseString(command, error);
 			}
 			break;
 
@@ -884,7 +909,7 @@ public:
 		str += "]";
 
 		// Output log to InteractiveView.
-		ctx->OutputLog(LOGTYPE_INTERACTIVE, str);
+		ctx->m_engine->OutputInteractiveView(str);
 		return 0;
 	}
 };
@@ -1214,8 +1239,7 @@ static int LuaIterateFieldsOfVar(shared_ptr<LuaVar> var,
 	return it.iterate();
 }
 
-struct get_fields_callback : iiterate_callback
-	{
+struct get_fields_callback : iiterate_callback {
 	shared_ptr<LuaVar> var;
 	LuaVarList result;
 	explicit get_fields_callback(shared_ptr<LuaVar> var_)
@@ -1302,94 +1326,79 @@ LuaStackList Context::LuaGetStack() {
 	return LuaGetFieldsOfVar(var);
 }
 
-/// Get the value of the local variable.
-static int LuaGetValueLocal(lua_State *L, int level,
-							const std::string &target,
-							bool checkEnv) {
-	Context::scoped_lua scoped(L, 1);
-	const char *cname;
+/**
+ * @brief variable finder
+ */
+struct variable_finder : iiterate_callback {
+	lua_State *L;
+	std::string target;
+	int nilpos;
+	bool replaced;
+
+	explicit variable_finder(lua_State *L_, const std::string &target_)
+		: L(L_), target(target_), replaced(false) {
+		lua_pushnil(L); // for replace
+		nilpos = lua_gettop(L);
+	}
+
+	~variable_finder() {
+		if (!replaced) {
+			lua_remove(L, nilpos);
+		}
+	}
+
+	virtual int on_callback(lua_State *L, const std::string &name, int valueIdx) {
+		if (target == name) {
+			lua_pushvalue(L, valueIdx);
+			lua_replace(L, nilpos); // replace valueIdx with nil
+			replaced = true;
+			return 0xffff;
+		}
+
+		return 0;
+	}
+	};
+
+static void list_local_funcname(lua_State *L) {
 	lua_Debug ar;
 
-	if (lua_getstack(L, level, &ar) == 0) {
-		// The stack level don't exist.
-		scoped.reset_stackn(0);
-		return -1;
+	for (int level = 0; lua_getstack(L, level, &ar) != 0; ++level) {
+		lua_getinfo(L, "Snl", &ar);
+		std::string fname = LuaMakeFuncName(&ar);
+		printf("level %d: %s\n", level, fname.c_str());
 	}
-
-	// Check the local value. (1 is the initial value)
-	for (int i = 1; (cname = lua_getlocal(L, &ar, i)) != NULL; ++i) {
-		if (target == cname) {
-			return 0;
-		}
-		lua_pop(L, 1); // Eliminate the local value.
 	}
-
-	// Get the local function.
-	if (lua_getinfo(L, "f", &ar) != 0) {
-		int funcpos = lua_gettop(L);
-
-		// Check the upvalue.
-		for (int i = 1; (cname = lua_getupvalue(L, -1, i)) != NULL; ++i) {
-			if (target == cname) {
-				lua_remove(L, funcpos); // Eliminate the local function.
-				return 0; // find !
-			}
-			lua_pop(L, 1); // Eliminate the upvalue.
-		}
-
-		// Check the environment of the function.
-		if (checkEnv) {
-			lua_getfenv(L, funcpos); // Push the environment table.
-			int tableIdx = lua_gettop(L);
-
-			lua_pushnil(L); // first key
-			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
-				// key index: -2, value index: -1
-				std::string name = LuaToString(L, -2);
-				if (target == name) {
-					lua_replace(L, funcpos); // Exchange funcpos and value.
-					lua_settop(L, funcpos);
-					return 0;
-				}
-
-				// eliminate the value index and pushed value and key index
-				lua_pop(L, 1);
-			}
-			lua_pop(L, 1); // Eliminate the environment table.local function.
-		}
-
-		lua_pop(L, 1); // Eliminate the local function.
-	}
-
-	scoped.reset_stackn(0);
-	return -1;
-}
 
 int Context::LuaIndexForEval(lua_State *L) {
 	scoped_lock lock(m_mutex);
 	scoped_lua scoped(L, 1);
 
+	//list_local_funcname(L);
+
 	if (!lua_isstring(L, 2)) {
 		lua_pushnil(L);
 		return 1;
 	}
-
 	std::string target(lua_tostring(L, 2));
-
-	/*lua_getstack(L, 1, &ar);
-	lua_getinfo(L, "Snl", &ar);
-	std::string fname = LuaMakeFuncName(&ar);*/
 
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
 	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
 	// level 3: current running function
-	if (LuaGetValueLocal(L, 1, target, false) == 0) {
-		return 1;
+	{
+		variable_finder finder(L, target);
+		field_iterator it(&finder);
+		if (it.iterate_locals(L, 1, true, true, false) == 0xffff) {
+			return 1;
+		}
 	}
 
-	if (LuaGetValueLocal(L, 3, target, true) == 0) {
-		return 1;
+	{
+		variable_finder finder(L, target);
+		field_iterator it(&finder);
+		if (it.iterate_locals(L, 3, true, true, true) == 0xffff) {
+			return 1;
+		}
 	}
 
 	lua_pushnil(L);
@@ -1470,7 +1479,7 @@ static int LuaSetValueLocal(lua_State *L, int level,
 	}
 
 	return -1;
-}
+	}
 
 int Context::LuaNewindexForEval(lua_State *L) {
 	scoped_lock lock(m_mutex);
@@ -1493,26 +1502,13 @@ int Context::LuaNewindexForEval(lua_State *L) {
 		return 0;
 	}
 
-	// Create the new variable on global.
-	/*lua_pushvalue(L, LUA_GLOBALSINDEX);
-	lua_pushvalue(L, 2);
-	lua_pushvalue(L, 3);
-	lua_settable(L, -3);
-	lua_pop(L, 1);*/
-
-	std::string msg;
-	msg = "The variable of '";
-	msg += target;
-	msg += "' was created on global scope.";
-	OutputLog(LOGTYPE_INTERACTIVE, msg);
 	return 0;
 }
 
 /**
  * @brief string reader for LuaEval.
  */
-struct string_reader
-	{
+struct string_reader {
 	std::string str;
 	int state;
 
@@ -1553,44 +1549,46 @@ struct string_reader
 	}
 	};
 
-int Context::LuaEval(const std::string &str, lua_State *L) {
+std::string Context::LuaEval(const std::string &str, lua_State *L) {
 	L = (L == NULL ? GetLua() : L);
 	scoped_lock lock(m_mutex);
 	scoped_lua scoped(L, 0);
+	std::string key;
+	int line;
+	bool isDummyFunc;
 
 	// Load string using lua_load.
 	// (existence of luaL_loadstring depends on the lua version)
 	string_reader reader(str);
 	if (lua_load(L, string_reader::exec, &reader, DUMMY_FUNCNAME) != 0) {
-		OutputLuaError(lua_tostring(L, -1));
+		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);
-		return -1;
+		return ParseLuaError(error, key, line, isDummyFunc);
 	}
 
 	// Do execute !
 	if (lua_pcall(L, 0, 0, 0) != 0) {
-		OutputLuaError(lua_tostring(L, -1));
+		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);
-		return -1;
+		return ParseLuaError(error, key, line, isDummyFunc);
 	}
 
 	m_isMustUpdate = true;
-	return 0;
+	return std::string("");
 }
 
 LuaBacktraceList Context::LuaGetBacktrace() {
-	const int LEVEL_MAX = 1024;	/* maximum size of the stack */
+	const int LEVEL_MAX = 1024;	// maximum size of the stack
 	scoped_lock lock(m_mutex);
 	LuaBacktraceList array;
 	
-	for (CoroutineList::reverse_iterator it = m_coroutines.rbegin();
-		it != m_coroutines.rend();
-		++it) {
+	CoroutineList::reverse_iterator it;
+	for (it = m_coroutines.rbegin(); it != m_coroutines.rend(); ++it) {
 		lua_State *L1 = it->L;
 		scoped_lua scoped(L1, 0);
 		lua_Debug ar;
 
-		/* level 0 may be this own function */
+		// level 0 may be this own function
 		for (int level = 0; lua_getstack(L1, level, &ar); ++level) {
 			if (level > LEVEL_MAX) {
 				assert(false && "stack size is too many");
@@ -1599,8 +1597,8 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 
 			lua_getinfo(L1, "Snl", &ar);
 
-			// ソースタイトルはバックトレースを表示するときに絶対使われるので
-			// ここで値を設定してしまいます。
+			// Source title is also set,
+			// because is is used when backtrace is shown.
 			std::string sourceTitle;
 			const Source *source = GetSource(ar.source);
 			if (source != NULL) {

@@ -195,6 +195,17 @@ void Mediator::OnRemoteCommand(const Command &command) {
 		}
 		break;
 
+	case REMOTECOMMANDTYPE_OUTPUT_INTERACTIVEVIEW:
+		if (frame != NULL) {
+			std::string str;
+			command.GetData().Get_OutputInteractiveView(str);
+
+			wxDebugEvent event(wxEVT_OUTPUT_INTERACTIVEVIEW, wxID_ANY,
+				wxConvFromUTF8(str));
+			frame->AddPendingDebugEvent(event, frame, true);
+		}
+		break;
+
 	case REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:

@@ -63,6 +63,8 @@ public:
 	virtual void Quit();
 
 	/// 文字列をウィンドウに出力します。
+	std::string ParseLuaError(const std::string &cstr, std::string &key_,
+							  int &line_, bool &isDummyFunc);
 	void OutputLuaError(const char *str);
 	void OutputError(const std::string &str);
 	void OutputLog(const std::string &str);
@@ -80,7 +82,7 @@ public:
 	LuaVarList LuaGetFields(const LuaVar &var);
 	LuaStackList LuaGetStack();
 	LuaBacktraceList LuaGetBacktrace();
-	int LuaEval(const std::string &str, lua_State *L = NULL);
+	std::string LuaEval(const std::string &str, lua_State *L=NULL);
 
 	/// コンテキストのＩＤを取得します。
 	int GetId() const {

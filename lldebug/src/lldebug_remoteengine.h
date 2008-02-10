@@ -33,6 +33,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_STEPOVER,
 	REMOTECOMMANDTYPE_STEPRETURN,
 	REMOTECOMMANDTYPE_OUTPUT_LOG,
+	REMOTECOMMANDTYPE_OUTPUT_INTERACTIVEVIEW,
 	REMOTECOMMANDTYPE_EVAL,
 
 	REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
@@ -43,6 +44,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_REQUEST_STACKLIST,
 	REMOTECOMMANDTYPE_REQUEST_BACKTRACE,
 
+	REMOTECOMMANDTYPE_VALUE_STRING,
 	REMOTECOMMANDTYPE_VALUE_VARLIST,
 	REMOTECOMMANDTYPE_VALUE_BACKTRACELIST,
 	REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST,
@@ -114,6 +116,9 @@ public:
 	void Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const;
 	void Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line);
 
+	void Get_OutputInteractiveView(std::string &str) const;
+	void Set_OutputInteractiveView(const std::string &str);
+
 	void Get_Eval(std::string &str) const;
 	void Set_Eval(const std::string &str);
 
@@ -125,6 +130,9 @@ public:
 
 	void Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const;
 	void Set_RequestEnvironVarList(const LuaStackFrame &stackFrame);
+
+	void Get_ValueString(std::string &str) const;
+	void Set_ValueString(const std::string &str);
 
 	void Get_ValueVarList(LuaVarList &vars) const;
 	void Set_ValueVarList(const LuaVarList &vars);
@@ -214,6 +222,9 @@ typedef
 	boost::function1<void, const Command &>
 	CommandCallback;
 typedef
+	boost::function2<void, const Command &, const std::string &>
+	StringCallback;
+typedef
 	boost::function2<void, const Command &, const LuaVarList &>
 	LuaVarListCallback;
 typedef
@@ -263,7 +274,8 @@ public:
 	void StepReturn();
 
 	void OutputLog(LogType type, const std::string &str, const std::string &key, int line);
-	void Eval(const std::string &str);
+	void OutputInteractiveView(const std::string &str);
+	void Eval(const std::string &str, const StringCallback &callback);
 	
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
 	void RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
@@ -271,7 +283,10 @@ public:
 	void RequestGlobalVarList(const LuaVarListCallback &callback);
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);
+
+	void ResponseString(const Command &command, const std::string &str);
 	void ResponseVarList(const Command &command, const LuaVarList &vars);
+	void ResponseBacktraceList(const Command &command, const LuaBacktraceList &backtraces);
 
 	/// Get id of the Context object.
 	int GetCtxId() {

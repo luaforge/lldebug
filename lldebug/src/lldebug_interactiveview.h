@@ -39,12 +39,13 @@ public:
 	explicit InteractiveView(wxWindow *parent);
 	virtual ~InteractiveView();
 
-	void Run();
+	void OutputLog(const wxString &str);
 
 private:
 	void CreateGUIControls();
 	void OnChangedState(wxDebugEvent &event);
-	void OnOutputLog(wxDebugEvent &event);
+	void OnOutputInteractiveView(wxDebugEvent &event);
+	void Run();
 
 	DECLARE_EVENT_TABLE();
 
@@ -53,9 +54,11 @@ private:
 	wxTextCtrl *m_text;
 
 	class TextInput;
+	friend class TextInput;
 	TextInput *m_input;
 
 	class RunButton;
+	friend class RunButton;
 	RunButton *m_run;
 };
 

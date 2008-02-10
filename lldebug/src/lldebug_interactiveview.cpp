@@ -92,7 +92,7 @@ END_EVENT_TABLE()
 /*-----------------------------------------------------------------*/
 BEGIN_EVENT_TABLE(InteractiveView, wxPanel)
 	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, InteractiveView::OnChangedState)
-	EVT_LLDEBUG_OUTPUT_LOG(wxID_ANY, InteractiveView::OnOutputLog)
+	EVT_LLDEBUG_OUTPUT_INTERACTIVEVIEW(wxID_ANY, InteractiveView::OnOutputInteractiveView)
 END_EVENT_TABLE()
 
 InteractiveView::InteractiveView(wxWindow *parent)
@@ -133,21 +133,55 @@ void InteractiveView::OnChangedState(wxDebugEvent &event) {
 	Enable(event.IsBreak());
 }
 
-void InteractiveView::OnOutputLog(wxDebugEvent &event) {
+void InteractiveView::OutputLog(const wxString &str) {
 	scoped_lock lock(m_mutex);
 
-	if (event.GetLogType() != LOGTYPE_INTERACTIVE) {
-		return;
-	}
+	wxDebugEvent event(
+		wxEVT_OUTPUT_INTERACTIVEVIEW,
+		GetId(), str);
+	AddPendingEvent(event);
+}
+
+void InteractiveView::OnOutputInteractiveView(wxDebugEvent &event) {
+	scoped_lock lock(m_mutex);
 
 	m_text->AppendText(_T("\n"));
 	m_text->AppendText(event.GetStr());
 }
 
+/**
+ * @brief 
+ */
+struct EvalResponseHandler {
+	InteractiveView *m_view;
+	bool m_isVar;
+
+	explicit EvalResponseHandler(InteractiveView *view, bool isVar)
+		: m_view(view), m_isVar(isVar) {
+	}
+
+	void operator()(const Command &command, const std::string &str) {
+		if (m_isVar) {
+			if (!str.empty()) {
+				m_view->OutputLog(wxConvFromUTF8(str));
+			}
+		}
+		else {
+			if (str.empty()) {
+				m_view->OutputLog(_T("success"));
+			}
+			else {
+				m_view->OutputLog(wxConvFromUTF8(str));
+			}
+		}
+	}
+	};
+
 void InteractiveView::Run() {
 	scoped_lock lock(m_mutex);
 	wxString str = m_input->GetValue().Strip(wxString::both);
 	std::string evalstr;
+	bool isVar = false;
 
 	// There is nothing to do.
 	if (str.IsEmpty()) {
@@ -162,12 +196,16 @@ void InteractiveView::Run() {
 		evalstr = "lldebug_output_interactive(";
 		evalstr += wxConvToUTF8(stripped);
 		evalstr += ")";
+		isVar = true;
 	}
 	else {
 		evalstr = wxConvToUTF8(str);
+		isVar = false;
 	}
 
-	Mediator::Get()->GetEngine()->Eval(evalstr);
+	Mediator::Get()->GetEngine()->Eval(
+		evalstr,
+		EvalResponseHandler(this, isVar));
 
 	m_text->AppendText(_T("\n"));
 	m_text->AppendText(_T("> "));

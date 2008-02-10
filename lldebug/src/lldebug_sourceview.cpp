@@ -590,7 +590,11 @@ void SourceView::OnUpdateSource(wxDebugEvent &event) {
 
 		if (page->GetKey() == event.GetKey()) {
 			page->FocusCurrentLine(event.GetLine());
-			SetSelection(i);
+
+			// GetSelection is to avoid moving the focus carelessly.
+			if (i != GetSelection()) {
+				SetSelection(i);
+			}
 		}
 		else {
 			page->FocusCurrentLine(-1);

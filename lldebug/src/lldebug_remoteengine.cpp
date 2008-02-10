@@ -696,19 +696,14 @@ void RemoteEngine::WriteResponse(const Command &readCommand,
 }
 
 void RemoteEngine::ResponseSuccessed(const Command &command) {
-	scoped_lock lock(m_mutex);
-
 	WriteResponse(command, REMOTECOMMANDTYPE_SUCCESSED, CommandData());
 }
 
 void RemoteEngine::ResponseFailed(const Command &command) {
-	scoped_lock lock(m_mutex);
-
 	WriteResponse(command, REMOTECOMMANDTYPE_FAILED, CommandData());
 }
 
 void RemoteEngine::ChangedState(bool isBreak) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_ChangedState(isBreak);
@@ -718,7 +713,6 @@ void RemoteEngine::ChangedState(bool isBreak) {
 }
 
 void RemoteEngine::UpdateSource(const std::string &key, int line, int updateSourceCount, const CommandCallback &response) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_UpdateSource(key, line, updateSourceCount);
@@ -729,7 +723,6 @@ void RemoteEngine::UpdateSource(const std::string &key, int line, int updateSour
 }
 
 void RemoteEngine::AddedSource(const Source &source) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_AddedSource(source);
@@ -740,7 +733,6 @@ void RemoteEngine::AddedSource(const Source &source) {
 
 /// Notify that the breakpoint was set.
 void RemoteEngine::SetBreakpoint(const Breakpoint &bp) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_SetBreakpoint(bp);
@@ -750,7 +742,6 @@ void RemoteEngine::SetBreakpoint(const Breakpoint &bp) {
 }
 
 void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_RemoveBreakpoint(bp);
@@ -760,7 +751,6 @@ void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
 }
 
 void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_ChangedBreakpointList(bps);
@@ -770,47 +760,36 @@ void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
 }
 
 void RemoteEngine::Break() {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_BREAK,
 		CommandData());
 }
 
 void RemoteEngine::Resume() {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_RESUME,
 		CommandData());
 }
 
 void RemoteEngine::StepInto() {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_STEPINTO,
 		CommandData());
 }
 
 void RemoteEngine::StepOver() {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_STEPOVER,
 		CommandData());
 }
 
 void RemoteEngine::StepReturn() {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_STEPRETURN,
 		CommandData());
 }
 
 void RemoteEngine::OutputLog(LogType type, const std::string &str, const std::string &key, int line) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_OutputLog(type, str, key, line);
@@ -819,15 +798,45 @@ void RemoteEngine::OutputLog(LogType type, const std::string &str, const std::st
 		data);
 }
 
-void RemoteEngine::Eval(const std::string &str) {
+void RemoteEngine::OutputInteractiveView(const std::string &str) {
+	CommandData data;
+
+	data.Set_OutputInteractiveView(str);
+	WriteCommand(
+		REMOTECOMMANDTYPE_OUTPUT_INTERACTIVEVIEW,
+		data);
+}
+
+/**
+ * @brief Handle the response string.
+ */
+struct StringResponseHandler {
+	StringCallback m_callback;
+
+	explicit StringResponseHandler(const StringCallback &callback)
+		: m_callback(callback) {
+	}
+
+	void operator()(const Command &command) {
+		std::string str;
+		command.GetData().Get_ValueString(str);
+		m_callback(command, str);
+	}
+};
+
+void RemoteEngine::Eval(const std::string &str, const StringCallback &callback) {
 	CommandData data;
 
 	data.Set_Eval(str);
 	WriteCommand(
 		REMOTECOMMANDTYPE_EVAL,
-		data);
+		data,
+		StringResponseHandler(callback));
 }
 
+/**
+ * @brief Handle the response VarList.
+ */
 struct VarListResponseHandler {
 	LuaVarListCallback m_callback;
 
@@ -843,7 +852,6 @@ struct VarListResponseHandler {
 };
 
 void RemoteEngine::RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_RequestFieldVarList(var);
@@ -854,7 +862,6 @@ void RemoteEngine::RequestFieldsVarList(const LuaVar &var, const LuaVarListCallb
 }
 
 void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_RequestLocalVarList(stackFrame);
@@ -875,8 +882,6 @@ void RemoteEngine::RequestEnvironVarList(const LuaStackFrame &stackFrame, const 
 }
 
 void RemoteEngine::RequestGlobalVarList(const LuaVarListCallback &callback) {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
 		CommandData(),
@@ -884,8 +889,6 @@ void RemoteEngine::RequestGlobalVarList(const LuaVarListCallback &callback) {
 }
 
 void RemoteEngine::RequestRegistryVarList(const LuaVarListCallback &callback) {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
 		CommandData(),
@@ -893,22 +896,40 @@ void RemoteEngine::RequestRegistryVarList(const LuaVarListCallback &callback) {
 }
 
 void RemoteEngine::RequestStackList(const LuaVarListCallback &callback) {
-	scoped_lock lock(m_mutex);
-
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_STACKLIST,
 		CommandData(),
 		VarListResponseHandler(callback));
 }
 
+void RemoteEngine::ResponseString(const Command &command, const std::string &str) {
+	CommandData data;
+
+	data.Set_ValueString(str);
+	WriteResponse(
+		command,
+		REMOTECOMMANDTYPE_VALUE_STRING,
+		data);
+}
+
+
 void RemoteEngine::ResponseVarList(const Command &command, const LuaVarList &vars) {
-	scoped_lock lock(m_mutex);
 	CommandData data;
 
 	data.Set_ValueVarList(vars);
 	WriteResponse(
 		command,
 		REMOTECOMMANDTYPE_VALUE_VARLIST,
+		data);
+}
+
+void RemoteEngine::ResponseBacktraceList(const Command &command, const LuaBacktraceList &backtraces) {
+	CommandData data;
+
+	data.Set_ValueBacktraceList(backtraces);
+	WriteResponse(
+		command,
+		REMOTECOMMANDTYPE_VALUE_BACKTRACELIST,
 		data);
 }
 
@@ -986,6 +1007,13 @@ void CommandData::Set_OutputLog(LogType type, const std::string &str, const std:
 	m_data = Serializer::ToData(type, str, key, line);
 }
 
+void CommandData::Get_OutputInteractiveView(std::string &str) const {
+	Serializer::ToValue(m_data, str);
+}
+void CommandData::Set_OutputInteractiveView(const std::string &str) {
+	m_data = Serializer::ToData(str);
+}
+
 void CommandData::Get_Eval(std::string &str) const {
 	Serializer::ToValue(m_data, str);
 }
@@ -1012,6 +1040,13 @@ void CommandData::Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const {
 }
 void CommandData::Set_RequestEnvironVarList(const LuaStackFrame &stackFrame) {
 	m_data = Serializer::ToData(stackFrame);
+}
+
+void CommandData::Get_ValueString(std::string &str) const {
+	Serializer::ToValue(m_data, str);
+}
+void CommandData::Set_ValueString(const std::string &str) {
+	m_data = Serializer::ToData(str);
 }
 
 void CommandData::Get_ValueVarList(LuaVarList &vars) const {

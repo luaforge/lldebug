@@ -96,10 +96,6 @@ public:
 	void OutputLog(LogType type, const wxString &str, const std::string &key, int line) {
 		scoped_lock lock(m_mutex);
 
-		if (type == LOGTYPE_INTERACTIVE) {
-			return;
-		}
-
 		if (!key.empty()) {
 			ViewData data;
 			data.key = key;
