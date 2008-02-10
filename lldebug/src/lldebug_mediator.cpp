@@ -65,39 +65,8 @@ int Mediator::Initialize(const std::string &hostName, const std::string &portNam
 	return 0;
 }
 
-/**
- * @brief Calling the frame->RemoteCommandCallback function.
- * 
- * This class is same as 'boost::bind(&MainFrame::XXX, frame, _1)',
- * but boost.bind consumes too much compile time.
- */
-/*struct RemoteCommandHandler {
-	explicit RemoteCommandHandler(Mediator *mediator)
-		: m_mediator(mediator) {
-	}
-
-	void operator()(const Command &command) {
-		m_mediator->RemoteCommandCallback(command);
-	}
-
-private:
-	Mediator *m_mediator;
-};*/
-
 void Mediator::SetMainFrame(MainFrame *frame) {
 	scoped_lock lock(m_mutex);
-
-	if (m_frame == frame) {
-		return;
-	}
-
-	// Start or end TCP connection.
-/*	if (frame != NULL) {
-		m_engine->StartConnection(GetCtxId());
-	}
-	else {
-		m_engine->EndConnection();
-	}*/
 
 	m_frame = frame;
 }
@@ -191,17 +160,6 @@ void Mediator::OnRemoteCommand(const Command &command) {
 
 			wxDebugEvent event(wxEVT_OUTPUT_LOG, wxID_ANY,
 				logType, wxConvFromUTF8(str), key, line);
-			frame->AddPendingDebugEvent(event, frame, true);
-		}
-		break;
-
-	case REMOTECOMMANDTYPE_OUTPUT_INTERACTIVEVIEW:
-		if (frame != NULL) {
-			std::string str;
-			command.GetData().Get_OutputInteractiveView(str);
-
-			wxDebugEvent event(wxEVT_OUTPUT_INTERACTIVEVIEW, wxID_ANY,
-				wxConvFromUTF8(str));
 			frame->AddPendingDebugEvent(event, frame, true);
 		}
 		break;

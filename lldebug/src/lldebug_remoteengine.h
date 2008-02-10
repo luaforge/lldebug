@@ -33,7 +33,6 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_STEPOVER,
 	REMOTECOMMANDTYPE_STEPRETURN,
 	REMOTECOMMANDTYPE_OUTPUT_LOG,
-	REMOTECOMMANDTYPE_OUTPUT_INTERACTIVEVIEW,
 	REMOTECOMMANDTYPE_EVAL,
 
 	REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
@@ -115,9 +114,6 @@ public:
 
 	void Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const;
 	void Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line);
-
-	void Get_OutputInteractiveView(std::string &str) const;
-	void Set_OutputInteractiveView(const std::string &str);
 
 	void Get_Eval(std::string &str) const;
 	void Set_Eval(const std::string &str);
@@ -274,7 +270,6 @@ public:
 	void StepReturn();
 
 	void OutputLog(LogType type, const std::string &str, const std::string &key, int line);
-	void OutputInteractiveView(const std::string &str);
 	void Eval(const std::string &str, const StringCallback &callback);
 	
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);

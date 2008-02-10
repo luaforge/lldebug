@@ -83,7 +83,7 @@ private:
 		SetOvertype(false);
 		SetReadOnly(false);
 		SetWrapMode(wxSCI_WRAP_NONE);
-		//SetHotspotActiveUnderline(true);
+		SetHotspotActiveUnderline(true);
 		SetLexer(wxSCI_LEX_LUA);
 		SetLayoutCache(wxSCI_CACHE_PAGE);
 
@@ -120,7 +120,7 @@ private:
             StyleSetUnderline(style, (curType.fontStyle & FONTSTYLE_UNDERL) > 0);
             StyleSetVisible(style, (curType.fontStyle & FONTSTYLE_HIDDEN) == 0);
             StyleSetCase(style, curType.letterCase);
-			//StyleSetHotSpot(style, curType.hotspot);
+			StyleSetHotSpot(style, curType.hotspot);
             if (curType.words != NULL) {
                 SetKeyWords(keywordNum, curType.words);
                 ++keywordNum;

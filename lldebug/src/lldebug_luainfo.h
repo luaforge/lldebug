@@ -127,7 +127,7 @@ private:
  */
 class LuaStackFrame {
 public:
-	explicit LuaStackFrame(const LuaHandle &lua = LuaHandle(), int level = -1);
+	explicit LuaStackFrame(const LuaHandle &lua = LuaHandle(), int level = 0);
 	~LuaStackFrame();
 
 	/// Get the lua state object.

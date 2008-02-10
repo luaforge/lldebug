@@ -9,4 +9,4 @@
 * lldebug_startfile, lldebug_startstring
 - eval that can handle local variable
 - interactive view
-* modify 'LuaGetValueLocal' function
+- modify 'LuaGetValueLocal' function

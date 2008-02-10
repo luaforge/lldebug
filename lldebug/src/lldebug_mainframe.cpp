@@ -55,7 +55,6 @@ enum {
 };
 
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
-	EVT_IDLE(MainFrame::OnIdle)
 	EVT_MENU(wxID_EXIT, MainFrame::OnMenu)
 
 	EVT_MENU(ID_MENU_BREAK, MainFrame::OnMenu)
@@ -80,7 +79,7 @@ MainFrame::MainFrame()
 		, wxT("Lua Debugger")
 		, wxDefaultPosition, wxSize(800, 600)
 		, wxCAPTION | wxRESIZE_BORDER | wxSYSTEM_MENU | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
-	, m_auiManager(NULL), m_auiNotebook(NULL) {
+	, m_auiManager(NULL) {
 	CreateGUIControls();
 }
 
@@ -92,9 +91,6 @@ MainFrame::~MainFrame() {
 		m_auiManager = NULL;
 	}
 
-	// 子ウィンドウを削除した後、SetFrame(NULL)を行います。
-	DeleteAllBars();
-	DestroyChildren();
 	Mediator::Get()->SetMainFrame(NULL);
 }
 
@@ -178,28 +174,42 @@ bool MainFrame::IsExistDebugWindow(int wintypeid) {
 	return (FindWindowById(wintypeid) != NULL);
 }
 
-void MainFrame::ShowDebugWindow(int wintypeid) {
+wxAuiNotebook *MainFrame::GetAuiNotebook() {
 	scoped_lock lock(m_mutex);
+	wxAuiNotebook *auiNotebook
+		= static_cast<wxAuiNotebook *>(FindWindowById(ID_WINDOWHOLDER));
 
 	// If a notebook is hidden, we have to close and recreate it.
-	if (m_auiNotebook != NULL && !m_auiNotebook->IsShown()) {
-		m_auiManager->DetachPane(m_auiNotebook);
-		m_auiNotebook->Close();
-		delete m_auiNotebook;
-		m_auiNotebook = NULL;
+	if (auiNotebook != NULL && !auiNotebook->IsShown()) {
+		m_auiManager->DetachPane(auiNotebook);
+		auiNotebook->Close();
+		delete auiNotebook;
+		auiNotebook = NULL;
 	}
 
 	// find and create a notebook window
-	if (m_auiNotebook == NULL || !IsExistDebugWindow(ID_WINDOWHOLDER)) {
-		m_auiNotebook = new wxAuiNotebook(
+	if (auiNotebook == NULL) {
+		auiNotebook = new wxAuiNotebook(
 			this, ID_WINDOWHOLDER,
 			wxDefaultPosition, wxSize(100, 300),
 			wxAUI_NB_TOP | wxAUI_NB_SCROLL_BUTTONS | wxAUI_NB_TAB_SPLIT
 				| wxAUI_NB_CLOSE_ON_ACTIVE_TAB);
 
-		m_auiManager->AddPane(m_auiNotebook, wxAuiPaneInfo()
+		m_auiManager->AddPane(auiNotebook, wxAuiPaneInfo()
 			.Name(wxT("Controls")).Caption(wxT("Controls")).Bottom());
 		m_auiManager->Update();
+	}
+
+	return auiNotebook;
+}
+
+void MainFrame::ShowDebugWindow(int wintypeid) {
+	scoped_lock lock(m_mutex);
+
+	// Find AuiNotebook.
+	wxAuiNotebook *auiNotebook = GetAuiNotebook();
+	if (auiNotebook == NULL) {
+		return;
 	}
 
 	// If the view is already exist, do nothing.
@@ -209,47 +219,47 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 
 	switch (wintypeid) {
 	case ID_INTERACTIVEVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new InteractiveView(this),
 			_("InteractiveView"));
 		break;
 	case ID_OUTPUTVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new OutputView(this),
 			_("OutputView"));
 		break;
 	case ID_LOCALWATCHVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new WatchView(this, WatchView::TYPE_LOCALWATCH),
 			_("LocalWatch"));
 		break;
 	case ID_ENVIRONWATCHVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new WatchView(this, WatchView::TYPE_ENVIRONWATCH),
 			_("EnvironWatch"));
 		break;
 	case ID_GLOBALWATCHVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new WatchView(this, WatchView::TYPE_GLOBALWATCH),
 			_("GlobalWatch"));
 		break;
 	case ID_REGISTRYWATCHVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new WatchView(this, WatchView::TYPE_REGISTRYWATCH),
 			_("RegistryWatch"));
 		break;
 	case ID_STACKWATCHVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new WatchView(this, WatchView::TYPE_STACKWATCH),
 			_("StackWatch"));
 		break;
 	/*case ID_WATCHVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new WatchView(m_ctx, this, WatchView::TYPE_WATCH),
 			_("Watch"));
 		break;
 	case ID_BACKTRACEVIEW:
-		m_auiNotebook->AddPage(
+		auiNotebook->AddPage(
 			new BackTraceView(m_ctx, this),
 			_("BackTrace"));
 		break;*/
@@ -258,13 +268,9 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 	}
 
 	// Select and show new page.
-	if (m_auiNotebook->GetPageCount() > 0) {
-		m_auiNotebook->SetSelection(m_auiNotebook->GetPageCount() - 1);
+	if (auiNotebook->GetPageCount() > 0) {
+		auiNotebook->SetSelection(auiNotebook->GetPageCount() - 1);
 	}
-}
-
-void MainFrame::OnIdle(wxIdleEvent &event) {
-	scoped_lock lock(m_mutex);
 }
 
 void MainFrame::OnMenu(wxCommandEvent &event) {

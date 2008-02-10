@@ -48,7 +48,7 @@ public:
 private:
 	void CreateGUIControls();
 	void OnMenu(wxCommandEvent &event);
-	void OnIdle(wxIdleEvent &event);
+	wxAuiNotebook *GetAuiNotebook();
 
 private:
 	DECLARE_EVENT_TABLE();
@@ -58,7 +58,6 @@ private:
 	mutex m_mutex;
 
 	wxAuiManager *m_auiManager;
-	wxAuiNotebook *m_auiNotebook;
 	SourceView *m_sourceView;
 };
 

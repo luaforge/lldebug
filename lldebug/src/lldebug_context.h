@@ -63,8 +63,8 @@ public:
 	virtual void Quit();
 
 	/// 文字列をウィンドウに出力します。
-	std::string ParseLuaError(const std::string &cstr, std::string &key_,
-							  int &line_, bool &isDummyFunc);
+	std::string ParseLuaError(const std::string &cstr, std::string *key_,
+							  int *line_, bool *isDummyFunc_);
 	void OutputLuaError(const char *str);
 	void OutputError(const std::string &str);
 	void OutputLog(const std::string &str);

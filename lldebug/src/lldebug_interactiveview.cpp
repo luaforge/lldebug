@@ -161,18 +161,16 @@ struct EvalResponseHandler {
 	}
 
 	void operator()(const Command &command, const std::string &str) {
-		if (m_isVar) {
-			if (!str.empty()) {
-				m_view->OutputLog(wxConvFromUTF8(str));
+		if (str.empty()) {
+			if (m_isVar) {
+				m_view->OutputLog(_T("error"));
+			}
+			else {
+				m_view->OutputLog(_T("success"));
 			}
 		}
 		else {
-			if (str.empty()) {
-				m_view->OutputLog(_T("success"));
-			}
-			else {
-				m_view->OutputLog(wxConvFromUTF8(str));
-			}
+			m_view->OutputLog(wxConvFromUTF8(str));
 		}
 	}
 	};
@@ -193,7 +191,7 @@ void InteractiveView::Run() {
 		wxString stripped = str;
 		stripped = stripped.Remove(0, 1).Strip(wxString::both);
 
-		evalstr = "lldebug_output_interactive(";
+		evalstr = "return lldebug_tostring(";
 		evalstr += wxConvToUTF8(stripped);
 		evalstr += ")";
 		isVar = true;

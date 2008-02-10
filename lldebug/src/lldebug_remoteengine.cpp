@@ -798,15 +798,6 @@ void RemoteEngine::OutputLog(LogType type, const std::string &str, const std::st
 		data);
 }
 
-void RemoteEngine::OutputInteractiveView(const std::string &str) {
-	CommandData data;
-
-	data.Set_OutputInteractiveView(str);
-	WriteCommand(
-		REMOTECOMMANDTYPE_OUTPUT_INTERACTIVEVIEW,
-		data);
-}
-
 /**
  * @brief Handle the response string.
  */
@@ -1005,13 +996,6 @@ void CommandData::Get_OutputLog(LogType &type, std::string &str, std::string &ke
 }
 void CommandData::Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line) {
 	m_data = Serializer::ToData(type, str, key, line);
-}
-
-void CommandData::Get_OutputInteractiveView(std::string &str) const {
-	Serializer::ToValue(m_data, str);
-}
-void CommandData::Set_OutputInteractiveView(const std::string &str) {
-	m_data = Serializer::ToData(str);
 }
 
 void CommandData::Get_Eval(std::string &str) const {

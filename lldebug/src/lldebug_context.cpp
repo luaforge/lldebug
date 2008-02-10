@@ -349,8 +349,8 @@ void Context::Quit() {
 }
 
 /// Parse the lua error that forat is like 'FILENAME:LINE:str...'.
-std::string Context::ParseLuaError(const std::string &str, std::string &key_,
-								   int &line_, bool &isDummyFunc_) {
+std::string Context::ParseLuaError(const std::string &str, std::string *key_,
+								   int *line_, bool *isDummyFunc_) {
 	scoped_lock lock(m_mutex);
 
 	// FILENAME:LINE:str...
@@ -409,30 +409,30 @@ std::string Context::ParseLuaError(const std::string &str, std::string &key_,
 			// Replace key if any.
 			const Source *source = m_sourceManager.GetString(filename);
 			if (source != NULL) {
-				key_ = source->GetKey();
-				line_ = line;
-				isDummyFunc_ = false;
+				if (key_ != NULL) *key_ = source->GetKey();
+				if (key_ != NULL) *line_ = line;
+				if (key_ != NULL) *isDummyFunc_ = false;
 				return msg;
 			}
 			else if (filename == DUMMY_FUNCNAME) {
-				key_ = "";
-				line_ = -1;
-				isDummyFunc_ = true;
+				if (key_ != NULL) *key_ = "";
+				if (key_ != NULL) *line_ = -1;
+				if (key_ != NULL) *isDummyFunc_ = true;
 				return msg;
 			}
 		}
 		else {
-			key_ = std::string("@") + filename;
-			line_ = line;
-			isDummyFunc_ = false;
+			if (key_ != NULL) *key_ = std::string("@") + filename;
+			if (key_ != NULL) *line_ = line;
+			if (key_ != NULL) *isDummyFunc_ = false;
 			return msg;
 		}
 	}
 
 	// Come here when str can't be parsed or filename is invalid.
-	key_ = "";
-	line_ = -1;
-	isDummyFunc_ = false;
+	if (key_ != NULL) *key_ = "";
+	if (key_ != NULL) *line_ = -1;
+	if (key_ != NULL) *isDummyFunc_ = false;
 	return str;
 }
 
@@ -442,9 +442,8 @@ void Context::OutputLog(LogType type, const std::string &str) {
 	int line;
 	bool isDummyFunc;
 
-	std::string msg = ParseLuaError(str, key, line, isDummyFunc);
+	std::string msg = ParseLuaError(str, &key, &line, &isDummyFunc);
 	assert(!isDummyFunc);
-//		m_engine->OutputLog(LOGTYPE_INTERACTIVE, str, key, line);
 	m_engine->OutputLog(type, str, key, line);
 }
 
@@ -897,35 +896,46 @@ public:
 		return ctx->LuaNewindexForEval(L);
 	}
 
-	static int output_interactive(lua_State *L) {
+	static int tostring(lua_State *L) {
 		Context *ctx = Context::Find(L);
 		if (ctx == NULL) {
 			return 0;
 		}
 
-		std::string str = LuaToString(L, -1);
-		str += ", [";
-		str += lua_typename(L, lua_type(L, -1));
-		str += "]";
+		scoped_lua scoped(L, 1);
+		std::string result;
+		int n = lua_gettop(L);
 
-		// Output log to InteractiveView.
-		ctx->m_engine->OutputInteractiveView(str);
-		return 0;
+		for (int i = 1; i <= n; i++) {
+			// add newline after the second line.
+			if (i != 1) {
+				lua_pushliteral(L, "\n");
+			}
+
+			std::string str = LuaToString(L, i);
+			lua_pushlstring(L, str.c_str(), str.length());
+			lua_pushliteral(L, ", [");
+			lua_pushstring(L, lua_typename(L, lua_type(L, i)));
+			lua_pushliteral(L, "]");
+		}
+
+		lua_concat(L, lua_gettop(L) - n);
+		return 1;
 	}
 };
 
 int Context::LuaInitialize(lua_State *L) {
 	scoped_lock lock(m_mutex);
 
-	// lua_register macro may be changed a little on the specifiy lua version.
+	// Implementation of lua_register depends on the lua version.
 #define lldebug_register(L, name, func) \
 	lua_pushliteral(L, name); \
 	lua_pushcclosure(L, func, 0); \
 	lua_settable(L, LUA_GLOBALSINDEX);
 
 	lldebug_register(L,
-		"lldebug_output_interactive",
-		LuaImpl::output_interactive);
+		"lldebug_tostring",
+		LuaImpl::tostring);
 
 	lldebug_register(L,
 		"lldebug_index_for_eval",
@@ -1508,16 +1518,16 @@ int Context::LuaNewindexForEval(lua_State *L) {
 /**
  * @brief string reader for LuaEval.
  */
-struct string_reader {
+struct eval_string_reader {
 	std::string str;
 	int state;
 
-	explicit string_reader(const std::string &s)
+	explicit eval_string_reader(const std::string &s)
 		: str(s), state(0) {
 	}
 
 	static const char *exec(lua_State *L, void *data, size_t *size) {
-		string_reader *reader = (string_reader *)data;
+		eval_string_reader *reader = (eval_string_reader *)data;
 		static const char beginning[] =
 			"local function __lldebug_dummy__()\n";
 		static const char ending[] =
@@ -1526,7 +1536,7 @@ struct string_reader {
 			"    __index = lldebug_index_for_eval,\n"
 			"    __newindex = lldebug_newindex_for_eval\n"
 			"}))\n"
-			"__lldebug_dummy__()\n";
+			"return __lldebug_dummy__()\n";
 
 		switch (reader->state) {
 		case 0: // beginning function part
@@ -1553,28 +1563,38 @@ std::string Context::LuaEval(const std::string &str, lua_State *L) {
 	L = (L == NULL ? GetLua() : L);
 	scoped_lock lock(m_mutex);
 	scoped_lua scoped(L, 0);
-	std::string key;
-	int line;
-	bool isDummyFunc;
+	int beginningtop = lua_gettop(L); // Save the stack top.
 
 	// Load string using lua_load.
 	// (existence of luaL_loadstring depends on the lua version)
-	string_reader reader(str);
-	if (lua_load(L, string_reader::exec, &reader, DUMMY_FUNCNAME) != 0) {
+	eval_string_reader reader(str);
+	if (lua_load(L, eval_string_reader::exec, &reader, DUMMY_FUNCNAME) != 0) {
 		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);
-		return ParseLuaError(error, key, line, isDummyFunc);
+		return ParseLuaError(error, NULL, NULL, NULL);
 	}
 
 	// Do execute !
-	if (lua_pcall(L, 0, 0, 0) != 0) {
+	if (lua_pcall(L, 0, LUA_MULTRET, 0) != 0) {
 		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);
-		return ParseLuaError(error, key, line, isDummyFunc);
+		return ParseLuaError(error, NULL, NULL, NULL);
 	}
 
+	// Make results a string object.
+	std::string result;
+	int top = lua_gettop(L);
+	for (int i = beginningtop + 1; i <= top; ++i) {
+		if (i != beginningtop + 1) { // after the second
+			result += "\n";
+		}
+
+		result += LuaToString(L, i);
+	}
+
+	lua_settop(L, beginningtop); // adjust the stack top
 	m_isMustUpdate = true;
-	return std::string("");
+	return result;
 }
 
 LuaBacktraceList Context::LuaGetBacktrace() {
