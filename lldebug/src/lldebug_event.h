@@ -61,9 +61,9 @@ public:
 	/// UpdateSource event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  const std::string &key, int line,
-						  int updateSourceCount)
+						  int updateCount)
 		: wxEvent(winid, type), m_key(key), m_line(line)
-		, m_updateSourceCount(m_updateSourceCount) {
+		, m_updateCount(m_updateCount) {
 		wxASSERT(type == wxEVT_UPDATE_SOURCE);
 	}
 
@@ -137,8 +137,8 @@ public:
 	}
 
 	/// Get the count of 'update source'.
-	int GetUpdateSourceCount() const {
-		return m_updateSourceCount;
+	int GetUpdateCount() const {
+		return m_updateCount;
 	}
 
 	/// Is state breaking (stop running) ?
@@ -153,7 +153,7 @@ private:
 	std::string m_key;
 	int m_line;
 	LogType m_logType;
-	int m_updateSourceCount;
+	int m_updateCount;
 	bool m_isBreak;
 };
 

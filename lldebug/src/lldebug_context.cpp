@@ -159,7 +159,7 @@ Context *Context::Create() {
 
 Context::Context()
 	: m_id(0), m_lua(NULL)
-	, m_state(STATE_INITIAL), m_updateSourceCount(0)
+	, m_state(STATE_INITIAL), m_updateCount(0)
 	, m_isMustUpdate(false), m_engine(new RemoteEngine)
 	, m_sourceManager(&*m_engine), m_breakpoints(&*m_engine) {
 
@@ -640,11 +640,22 @@ int Context::HandleCommand() {
 			SetState(STATE_STEPRETURN);
 			break;
 
+		case REMOTECOMMANDTYPE_SET_UPDATECOUNT:
+			{
+				int count;
+				command.GetData().Get_SetUpdateCount(count);
+				if (count > m_updateCount) {
+					m_updateCount = count;
+				}
+			}
+			break;
+
 		case REMOTECOMMANDTYPE_EVAL:
 			{
 				std::string str;
-				command.GetData().Get_Eval(str);
-				std::string error = LuaEval(str);
+				LuaStackFrame stackFrame;
+				command.GetData().Get_Eval(str, stackFrame);
+				std::string error = LuaEval(str, stackFrame);
 				m_engine->ResponseString(command, error);
 			}
 			break;
@@ -675,16 +686,14 @@ int Context::HandleCommand() {
 			{
 				LuaStackFrame stackFrame;
 				command.GetData().Get_RequestLocalVarList(stackFrame);
-				m_engine->ResponseVarList(command,
-					LuaGetLocals(stackFrame.GetLua().GetState(), stackFrame.GetLevel()));
+				m_engine->ResponseVarList(command, LuaGetLocals(stackFrame));
 			}
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST:
 			{
 				LuaStackFrame stackFrame;
 				command.GetData().Get_RequestEnvironVarList(stackFrame);
-				m_engine->ResponseVarList(command,
-					LuaGetEnviron(stackFrame.GetLua().GetState(), stackFrame.GetLevel()));
+				m_engine->ResponseVarList(command, LuaGetEnviron(stackFrame));
 			}
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
@@ -785,7 +794,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 				BooleanCallbackWaiter waiter;
 				m_engine->UpdateSource(
 					ar->source, ar->currentline,
-					++m_updateSourceCount, waiter);
+					++m_updateCount, waiter);
 				lock.unlock();
 				waiter.Wait();
 				lock.lock();
@@ -896,30 +905,30 @@ public:
 		return ctx->LuaNewindexForEval(L);
 	}
 
-	static int tostring(lua_State *L) {
-		Context *ctx = Context::Find(L);
-		if (ctx == NULL) {
+	static int luavar_gc(lua_State *L) {
+		scoped_lua scoped(L, 0);
+		LuaVar *data = (LuaVar *)lua_touserdata(L, 1);
+		if (data == NULL) {
 			return 0;
 		}
 
+		data->~LuaVar();
+		return 0;
+	}
+
+	static int toluavar(lua_State *L) {
 		scoped_lua scoped(L, 1);
-		std::string result;
-		int n = lua_gettop(L);
 
-		for (int i = 1; i <= n; i++) {
-			// add newline after the second line.
-			if (i != 1) {
-				lua_pushliteral(L, "\n");
-			}
+		// Create a new LuaVar object.
+		LuaVar *data = (LuaVar *)lua_newuserdata(L, sizeof(LuaVar));
+		new(data) LuaVar(L, "", 1, LuaToString(L, 1));
 
-			std::string str = LuaToString(L, i);
-			lua_pushlstring(L, str.c_str(), str.length());
-			lua_pushliteral(L, ", [");
-			lua_pushstring(L, lua_typename(L, lua_type(L, i)));
-			lua_pushliteral(L, "]");
-		}
-
-		lua_concat(L, lua_gettop(L) - n);
+		// setmetatable(var, {__gc = luavar_gc})
+		lua_newtable(L);
+		lua_pushliteral(L, "__gc");
+		lua_pushcclosure(L, luavar_gc, 0);
+		lua_settable(L, -3);
+		lua_setmetatable(L, -2);
 		return 1;
 	}
 };
@@ -934,16 +943,8 @@ int Context::LuaInitialize(lua_State *L) {
 	lua_settable(L, LUA_GLOBALSINDEX);
 
 	lldebug_register(L,
-		"lldebug_tostring",
-		LuaImpl::tostring);
-
-	lldebug_register(L,
-		"lldebug_index_for_eval",
-		LuaImpl::index_for_eval);
-
-	lldebug_register(L,
-		"lldebug_newindex_for_eval",
-		LuaImpl::newindex_for_eval);
+		"lldebug_toluavar",
+		LuaImpl::toluavar);
 
 #undef lldebug_register
 
@@ -1018,283 +1019,194 @@ void Context::LuaOpenLibs(lua_State *L) {
 
 
 /*-----------------------------------------------------------------*/
-/**
- * @brief Iteration callback.
- *
- * To use template causes less portability.
- */
-struct iiterate_callback {
-	explicit iiterate_callback() {}
-	virtual ~iiterate_callback() {}
+/// Iterate the all fields of idx object.
+template<class Fn>
+static int iterate_fields(Fn &callback, lua_State *L, int idx) {
+	Context::scoped_lua scoped(L, 0);
 
-	virtual int on_callback(lua_State *L, const std::string &name,
-							int valueIndex) = 0;
-};
-
-/**
- * @brief The fields iterator.
- */
-class field_iterator {
-public:
-	explicit field_iterator(iiterate_callback *callback)
-		: m_callback(callback), m_result(-1) {
-		m_curpos = m_parentList.end();
+	// check metatable
+	if (lua_getmetatable(L, idx)) {
+		int top = lua_gettop(L);
+		// name of metatable is "(*metatable)"
+		int ret = callback(L, std::string("(*metatable)"), top);
+		lua_pop(L, 1);
+		if (ret != 0) {
+			return ret;
+		}
 	}
-
-	explicit field_iterator(shared_ptr<LuaVar> var, iiterate_callback *callback)
-		: m_var(var), m_callback(callback), m_result(-1) {
-
-		// restructure parents tree to list
-		for (shared_ptr<LuaVar> tmp = var;
-			tmp != NULL;
-			tmp = tmp->GetParent()) {
-			m_parentList.push_front(tmp);
-		}
-
-		m_curpos = m_parentList.begin();
-	}
-
-	/// Iterate the all fields of var.
-	int iterate() {
-		lua_State *L = m_var->GetLua().GetState();
-		Context::scoped_lua scoped(L, 0);
-
-		m_curpos = m_parentList.begin();
-		if (m_curpos != m_parentList.end()) {
-			++m_curpos; // root table has pushed
-		}
-
-		// push root table value
-		switch (m_var->GetRootType()) {
-		case VARROOT_GLOBAL:
-			lua_pushvalue(L, LUA_GLOBALSINDEX);
-			iterate_fields(L, lua_gettop(L));
-			lua_pop(L, 1);
-			break;
-		case VARROOT_REGISTRY:
-			lua_pushvalue(L, LUA_REGISTRYINDEX);
-			iterate_fields(L, lua_gettop(L));
-			lua_pop(L, 1);
-			break;
-		case VARROOT_LOCAL:
-			iterate_locals(L, m_var->GetLevel(), true, true, false);
-			break;
-		case VARROOT_ENVIRON:
-			iterate_locals(L, m_var->GetLevel(), false, false, true);
-			break;
-		case VARROOT_STACK:
-			iterate_stacks(L);
-			break;
-		default:
-			return -1;
-		}
-
-		return m_result;
-	}
-
-	/// Iterate the all fields of idx object.
-	int iterate_fields(lua_State *L, int idx) {
-		Context::scoped_lua scoped(L, 0);
-
-		// check metatable
-		if (lua_getmetatable(L, idx)) {
-			int top = lua_gettop(L);
-			// name of metatable is "(*metatable)"
-			int ret = on_listup(L, std::string("(*metatable)"), top);
-			lua_pop(L, 1);
-			if (ret != 0) {
-				return ret;
-			}
-		}
 		
-		if (lua_type(L, idx) != LUA_TTABLE) {
-			return 0;
-		}
+	if (lua_type(L, idx) != LUA_TTABLE) {
+		return 0;
+	}
 
-		lua_pushnil(L);  // first key
-		for (int i = 0; lua_next(L, idx) != 0; ++i) {
-			// key index: top - 1, value index: top
-			int top = lua_gettop(L);
-			int ret = on_listup(L, LuaToString(L, top - 1), top);
+	lua_pushnil(L);  // first key
+	for (int i = 0; lua_next(L, idx) != 0; ++i) {
+		// key index: top - 1, value index: top
+		int top = lua_gettop(L);
+		if (idx == LUA_REGISTRYINDEX && lua_islightuserdata(L, -2)
+			&& lua_topointer(L, -2) == &LuaOriginalObject) {
+		}
+		else {
+			int ret = callback(L, LuaToString(L, top - 1), top);
 			if (ret != 0) {
 				lua_pop(L, 2);
 				return ret;
 			}
-
-			// eliminate the value index and pushed value and key index
-			lua_pop(L, 1);
 		}
 
-		return 0;
+		// eliminate the value index and pushed value and key index
+		lua_pop(L, 1);
 	}
 
-	/// Iterates the local fields.
-	int iterate_locals(lua_State *L, int level,
-					   bool checkLocal, bool checkUpvalue,
-					   bool checkEnviron) {
-		Context::scoped_lua scoped(L, 0);
-		lua_Debug ar;
-		const char *name;
-
-		if (lua_getstack(L, level, &ar) == 0) {
-			// The stack level don't exist.
-			return -1;
-		}
-
-		// Check the local value. (1 is the initial value)
-		if (checkLocal) {
-			for (int i = 1; (name = lua_getlocal(L, &ar, i)) != NULL; ++i) {
-				if (strcmp(name, "(*temporary)") != 0) {
-					int ret = on_listup(L, ConvToUTF8(name), lua_gettop(L));
-					if (ret != 0) {
-						lua_pop(L, 1);
-						return ret;
-					}
-				}
-				lua_pop(L, 1); // Eliminate the local value.
-			}
-		}
-		
-		// Get the local function.
-		if (lua_getinfo(L, "f", &ar) != 0) {
-			// Check the upvalue.
-			if (checkUpvalue) {
-				for (int i = 1; (name = lua_getupvalue(L, -1, i)) != NULL; ++i) {
-					if (strcmp(name, "(*temporary)") != 0) {
-						int ret = on_listup(L, ConvToUTF8(name), lua_gettop(L));
-						if (ret != 0) {
-							lua_pop(L, 2);
-							return ret;
-						}
-					}
-					lua_pop(L, 1); // eliminate the local value.
-				}
-			}
-
-			// Check the environ table.
-			if (checkEnviron) {
-				lua_getfenv(L, -1);
-				int tableIdx = lua_gettop(L);
-
-				lua_pushnil(L);  // first key
-				for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
-					// key index: top - 1, value index: top
-					int top = lua_gettop(L);
-					int ret = on_listup(L, LuaToString(L, top - 1), top);
-					if (ret != 0) {
-						lua_pop(L, 4);
-						return ret;
-					}
-
-					// eliminate the value index.
-					lua_pop(L, 1);
-				}
-
-				lua_pop(L, 1); // eliminate the environ table.
-			}
-
-			lua_pop(L, 1); // eliminate the local function.
-		}
-
-		return 0;
-	}
-
-	/// Iterate the stacks.
-	int iterate_stacks(lua_State *L) {
-		Context::scoped_lua scoped(L, 0);
-		int top = lua_gettop(L);
-
-		for (int idx = 1; idx <= top; ++idx) {
-			char buffer[32];
-			snprintf(buffer, sizeof(buffer), "stack:%d", idx);
-			int ret = on_listup(L, buffer, idx);
-			if (ret != 0) {
-				return ret;
-			}
-		}
-
-		return 0;
-	}
-
-private:
-	int on_listup(lua_State *L, const std::string &name, int valueIdx) {
-		if (m_curpos != m_parentList.end()) {
-			// もしまだ親がいたら、さらにvarの親テーブルをたどります。
-			if ((*m_curpos)->GetName() == name) {
-				++m_curpos;
-				iterate_fields(L, valueIdx);
-				return 2; // return non zero value
-			}
-
-			// continue to iterate
-			return 0;
-		}
-
-		return (m_result = m_callback->on_callback(L, name, valueIdx));
-	}
-
-private:
-	shared_ptr<LuaVar> m_var;
-	iiterate_callback *m_callback;
-	int m_result;
-
-	typedef std::list<shared_ptr<LuaVar> > LuaVarParentList;
-	LuaVarParentList m_parentList; ///< parent list of var
-	LuaVarParentList::iterator m_curpos;
-};
-
-static int LuaIterateFieldsOfVar(shared_ptr<LuaVar> var,
-								 iiterate_callback *callback) {
-	field_iterator it(var, callback);
-	return it.iterate();
+	return 0;
 }
-
-struct get_fields_callback : iiterate_callback {
-	shared_ptr<LuaVar> var;
-	LuaVarList result;
-	explicit get_fields_callback(shared_ptr<LuaVar> var_)
-		: var(var_) {
-	}
-
-	struct inner_callback : iiterate_callback {
-		virtual int on_callback(lua_State *, const std::string &, int) {
-			// To come here tells that parent object has some fields.
-			return 0xffff;
-		}
-	};
-
-	virtual int on_callback(lua_State *L, const std::string &name, int valueIdx) {
-		shared_ptr<LuaVar> newVar(new LuaVar(var, name, valueIdx));
-		// Check weather newVar have fields (newVar is table).
-		inner_callback callback;
-		int ret = LuaIterateFieldsOfVar(newVar, &callback);
-		newVar->SetHasFields(ret == 0xffff);
-		result.push_back(*newVar);
-		return 0;
-	}
-	};
 
 /// Iterate the all fields of var.
-static LuaVarList LuaGetFieldsOfVar(shared_ptr<LuaVar> var) {
-	get_fields_callback callback(var);
-	if (LuaIterateFieldsOfVar(var, &callback) != 0) {
-		return LuaVarList();
+template<class Fn>
+static int iterate_var(Fn &callback, const LuaVar &var) {
+	lua_State *L = var.GetLua().GetState();
+
+	if (var.PushTable(L) != 0) {
+		return -1;
 	}
 
-	return callback.result;
+	Context::scoped_lua scoped(L, 0, 1);
+	return iterate_fields(callback, L, lua_gettop(L));
 }
+
+/// Iterate the stacks.
+template<class Fn>
+static int iterate_stacks(Fn &callback, lua_State *L) {
+	Context::scoped_lua scoped(L, 0);
+	int top = lua_gettop(L);
+
+	for (int idx = 1; idx <= top; ++idx) {
+		char buffer[32];
+		snprintf(buffer, sizeof(buffer), "stack:%d", idx);
+		int ret = callback(L, buffer, idx);
+		if (ret != 0) {
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+/// Iterates the local fields.
+template<class Fn>
+static int iterate_locals(Fn &callback, lua_State *L, int level,
+				   bool checkLocal, bool checkUpvalue, bool checkEnviron) {
+	Context::scoped_lua scoped(L, 0);
+	lua_Debug ar;
+	const char *name;
+
+	if (lua_getstack(L, level, &ar) == 0) {
+		// The stack level don't exist.
+		return -1;
+	}
+
+	// Check the local value. (1 is the initial value)
+	if (checkLocal) {
+		for (int i = 1; (name = lua_getlocal(L, &ar, i)) != NULL; ++i) {
+			if (strcmp(name, "(*temporary)") != 0) {
+				int ret = callback(L, ConvToUTF8(name), lua_gettop(L));
+				if (ret != 0) {
+					lua_pop(L, 1);
+					return ret;
+				}
+			}
+			lua_pop(L, 1); // Eliminate the local value.
+		}
+	}
+	
+	// Get the local function.
+	if (lua_getinfo(L, "f", &ar) != 0) {
+		// Check the upvalue.
+		if (checkUpvalue) {
+			for (int i = 1; (name = lua_getupvalue(L, -1, i)) != NULL; ++i) {
+				if (strcmp(name, "(*temporary)") != 0) {
+					int ret = callback(L, ConvToUTF8(name), lua_gettop(L));
+					if (ret != 0) {
+						lua_pop(L, 2);
+						return ret;
+					}
+				}
+				lua_pop(L, 1); // eliminate the local value.
+			}
+		}
+
+		// Check the environ table.
+		if (checkEnviron) {
+			lua_getfenv(L, -1);
+			int tableIdx = lua_gettop(L);
+
+			lua_pushnil(L);  // first key
+			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
+				// key index: top - 1, value index: top
+				int top = lua_gettop(L);
+				int ret = callback(L, LuaToString(L, top - 1), top);
+				if (ret != 0) {
+					lua_pop(L, 4);
+					return ret;
+				}
+
+				// eliminate the value index.
+				lua_pop(L, 1);
+			}
+
+			lua_pop(L, 1); // eliminate the environ table.
+		}
+
+		lua_pop(L, 1); // eliminate the local function.
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Check weather the variable has fields.
+ */
+struct field_checker {
+	int operator()(lua_State *, const std::string &, int) {
+		// To come here tells that parent object has some fields.
+		return 0xffff;
+	}
+	};
+
+/**
+ * @brief Make a LuaVarList object.
+ */
+struct varlist_maker {
+	int operator()(lua_State *L, const std::string &name, int valueIdx) {
+		LuaVar var(LuaHandle(L), name, valueIdx, LuaToString(L, valueIdx));
+
+		// Check weather var have fields (weather var is table).
+		int ret = iterate_fields(field_checker(), L, valueIdx);
+		var.SetHasFields(ret == 0xffff);
+		m_result.push_back(var);
+		return 0;
+	}
+
+	LuaVarList &get_result() {
+		return m_result;
+	}
+
+	private:
+	LuaVarList m_result;
+	};
+
 
 LuaVarList Context::LuaGetFields(TableType type) {
 	scoped_lock lock(m_mutex);
-	VarRootType rootType;
+	int rootType = 0;
 
 	// Detect table type.
 	switch (type) {
 	case TABLETYPE_GLOBAL:
-		rootType = VARROOT_GLOBAL;
+		rootType = LUA_GLOBALSINDEX;
 		break;
 	case TABLETYPE_REGISTRY:
-		rootType = VARROOT_REGISTRY;
+		rootType = LUA_REGISTRYINDEX;
 		break;
 	default:
 		assert(0 && "type [:TableType] is invalid");
@@ -1302,44 +1214,67 @@ LuaVarList Context::LuaGetFields(TableType type) {
 	}
 
 	// Get the fields of the table.
-	shared_ptr<LuaVar> var(new LuaVar(GetLua(), rootType));
-	return LuaGetFieldsOfVar(var);
+	varlist_maker callback;
+	if (iterate_fields(callback, GetLua(), rootType) != 0) {
+		return LuaVarList();
+	}
+
+	return callback.get_result();
 }
 
 LuaVarList Context::LuaGetFields(const LuaVar &var) {
 	scoped_lock lock(m_mutex);
 
 	// Get the fields of var.
-	shared_ptr<LuaVar> newVar(new LuaVar(var));
-	return LuaGetFieldsOfVar(newVar);
+	varlist_maker callback;
+	if (iterate_var(callback, var) != 0) {
+		return LuaVarList();
+	}
+
+	return callback.get_result();
 }
 
-LuaVarList Context::LuaGetLocals(lua_State *L, int level) {
+LuaVarList Context::LuaGetLocals(const LuaStackFrame &stackFrame) {
 	scoped_lock lock(m_mutex);
+	lua_State *L = stackFrame.GetLua().GetState();
 	
-	shared_ptr<LuaVar> var(
-		new LuaVar((L != NULL ? L : GetLua()), VARROOT_LOCAL, level));
-	return LuaGetFieldsOfVar(var);
+	varlist_maker callback;
+	if (iterate_locals(callback, (L != NULL ? L : GetLua()),
+		stackFrame.GetLevel(), true, true, false) != 0) {
+		return LuaVarList();
+	}
+
+	return callback.get_result();
 }
 
-LuaVarList Context::LuaGetEnviron(lua_State *L, int level) {
+LuaVarList Context::LuaGetEnviron(const LuaStackFrame &stackFrame) {
 	scoped_lock lock(m_mutex);
+	lua_State *L = stackFrame.GetLua().GetState();
 	
-	shared_ptr<LuaVar> var(
-		new LuaVar((L != NULL ? L : GetLua()), VARROOT_ENVIRON, level));
-	return LuaGetFieldsOfVar(var);
+	varlist_maker callback;
+	if (iterate_locals(callback, (L != NULL ? L : GetLua()),
+		stackFrame.GetLevel(), false, false, true) != 0) {
+		return LuaVarList();
+	}
+
+	return callback.get_result();
 }
 
 LuaStackList Context::LuaGetStack() {
 	scoped_lock lock(m_mutex);
-	shared_ptr<LuaVar> var(new LuaVar(GetLua(), VARROOT_STACK));
-	return LuaGetFieldsOfVar(var);
+
+	varlist_maker callback;
+	if (iterate_stacks(callback, GetLua()) != 0) {
+		return LuaVarList();
+	}
+
+	return callback.get_result();
 }
 
 /**
  * @brief variable finder
  */
-struct variable_finder : iiterate_callback {
+struct variable_finder {
 	lua_State *L;
 	std::string target;
 	int nilpos;
@@ -1357,7 +1292,7 @@ struct variable_finder : iiterate_callback {
 		}
 	}
 
-	virtual int on_callback(lua_State *L, const std::string &name, int valueIdx) {
+	int operator()(lua_State *L, const std::string &name, int valueIdx) {
 		if (target == name) {
 			lua_pushvalue(L, valueIdx);
 			lua_replace(L, nilpos); // replace valueIdx with nil
@@ -1390,6 +1325,7 @@ int Context::LuaIndexForEval(lua_State *L) {
 		return 1;
 	}
 	std::string target(lua_tostring(L, 2));
+	int level = (int)lua_tointeger(L, lua_upvalueindex(1));
 
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
@@ -1397,16 +1333,14 @@ int Context::LuaIndexForEval(lua_State *L) {
 	// level 3: current running function
 	{
 		variable_finder finder(L, target);
-		field_iterator it(&finder);
-		if (it.iterate_locals(L, 1, true, true, false) == 0xffff) {
+		if (iterate_locals(finder, L, 1, true, true, false) == 0xffff) {
 			return 1;
 		}
 	}
 
 	{
 		variable_finder finder(L, target);
-		field_iterator it(&finder);
-		if (it.iterate_locals(L, 3, true, true, true) == 0xffff) {
+		if (iterate_locals(finder, L, 3 + level, true, true, true) == 0xffff) {
 			return 1;
 		}
 	}
@@ -1499,6 +1433,7 @@ int Context::LuaNewindexForEval(lua_State *L) {
 		return 0;
 	}
 	std::string target(lua_tostring(L, 2));
+	int level = (int)lua_tointeger(L, lua_upvalueindex(1));
 	
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
@@ -1508,7 +1443,7 @@ int Context::LuaNewindexForEval(lua_State *L) {
 		return 0;
 	}
 
-	if (LuaSetValueLocal(L, 3, target, 3, true) == 0) {
+	if (LuaSetValueLocal(L, 3 + level, target, 3, true) == 0) {
 		return 0;
 	}
 
@@ -1520,29 +1455,23 @@ int Context::LuaNewindexForEval(lua_State *L) {
  */
 struct eval_string_reader {
 	std::string str;
+	const char *beginning;
+	const char *ending;
 	int state;
 
-	explicit eval_string_reader(const std::string &s)
-		: str(s), state(0) {
+	explicit eval_string_reader(const std::string &str_,
+								const char *beginning_, const char *ending_)
+		: str(str_), beginning(beginning_), ending(ending_), state(0) {
 	}
 
 	static const char *exec(lua_State *L, void *data, size_t *size) {
 		eval_string_reader *reader = (eval_string_reader *)data;
-		static const char beginning[] =
-			"local function __lldebug_dummy__()\n";
-		static const char ending[] =
-			"\nend\n"
-			"setfenv(__lldebug_dummy__, setmetatable({}, {\n"
-			"    __index = lldebug_index_for_eval,\n"
-			"    __newindex = lldebug_newindex_for_eval\n"
-			"}))\n"
-			"return __lldebug_dummy__()\n";
-
+		
 		switch (reader->state) {
 		case 0: // beginning function part
 			++reader->state;
-			*size = (sizeof(beginning) / sizeof(char)) - 1;
-			return beginning;
+			*size = strlen(reader->beginning);
+			return reader->beginning;
 
 		case 1: // content part
 			++reader->state;
@@ -1551,23 +1480,63 @@ struct eval_string_reader {
 
 		case 2: // ending function part
 			++reader->state;
-			*size = (sizeof(ending) / sizeof(char)) - 1;
-			return ending;
+			*size = strlen(reader->ending);
+			return reader->ending;
 		}
 
 		return NULL;
 	}
 	};
 
-std::string Context::LuaEval(const std::string &str, lua_State *L) {
-	L = (L == NULL ? GetLua() : L);
+std::string Context::LuaEval(const std::string &str,
+							 const LuaStackFrame &stackFrame) {
+	lua_State *L = stackFrame.GetLua().GetState();
+	if (L == NULL) L = GetLua();
 	scoped_lock lock(m_mutex);
 	scoped_lua scoped(L, 0);
 	int beginningtop = lua_gettop(L); // Save the stack top.
 
+	static const char *beginning =
+		"local function __lldebug_eval_function__()\n";
+	static const char *ending =
+		"\nend\n"
+		"setfenv("
+		"  __lldebug_eval_function__,"
+		"  setmetatable({}, __lldebug_eval_metatable__))\n"
+		"return __lldebug_eval_function__()\n";
+
+	// create __lldebug_eval_metatable__ in the global table.
+	// table = {__index=func1, __newindex=func2}
+	lua_newtable(L);
+	lua_pushliteral(L, "__index");
+	lua_pushinteger(L, stackFrame.GetLevel());
+	lua_pushcclosure(L, LuaImpl::index_for_eval, 1);
+	lua_rawset(L, -3);
+	lua_pushliteral(L, "__newindex");
+	lua_pushinteger(L, stackFrame.GetLevel());
+	lua_pushcclosure(L, LuaImpl::newindex_for_eval, 1);
+	lua_rawset(L, -3);
+
+	// globals[__lldebug_eval_metatable__] = table
+	lua_pushliteral(L, "__lldebug_eval_metatable__");
+	lua_pushvalue(L, -2);
+	lua_rawset(L, LUA_GLOBALSINDEX);
+	lua_pop(L, 1);
+
+	// on exit: globals[__lldebug_eval_metatable__] = nil
+	struct call_on_exit {
+		lua_State *L;
+		call_on_exit(lua_State *L_) : L(L_) {}
+		~call_on_exit() {
+			lua_pushliteral(L, "__lldebug_eval_metatable__");
+			lua_pushnil(L);
+			lua_rawset(L, LUA_GLOBALSINDEX);
+		}
+	} exit_obj(L);
+
 	// Load string using lua_load.
 	// (existence of luaL_loadstring depends on the lua version)
-	eval_string_reader reader(str);
+	eval_string_reader reader(str, beginning, ending);
 	if (lua_load(L, eval_string_reader::exec, &reader, DUMMY_FUNCNAME) != 0) {
 		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);

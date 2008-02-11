@@ -22,6 +22,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_CHANGED_STATE,
 	REMOTECOMMANDTYPE_UPDATE_SOURCE,
 	REMOTECOMMANDTYPE_ADDED_SOURCE,
+	REMOTECOMMANDTYPE_SET_UPDATECOUNT,
 
 	REMOTECOMMANDTYPE_SET_BREAKPOINT,
 	REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
@@ -97,11 +98,14 @@ public:
 	void Get_ChangedState(bool &isBreak) const;
 	void Set_ChangedState(bool isBreak);
 
-	void Get_UpdateSource(std::string &key, int &line, int &updateSourceCount) const;
-	void Set_UpdateSource(const std::string &key, int line, int updateSourceCount);
+	void Get_UpdateSource(std::string &key, int &line, int &updateCount) const;
+	void Set_UpdateSource(const std::string &key, int line, int updateCount);
 
 	void Get_AddedSource(Source &source) const;
 	void Set_AddedSource(const Source &source);
+
+	void Get_SetUpdateCount(int &updateCount) const;
+	void Set_SetUpdateCount(int updateCount);
 
 	void Get_SetBreakpoint(Breakpoint &bp) const;
 	void Set_SetBreakpoint(const Breakpoint &bp);
@@ -115,8 +119,8 @@ public:
 	void Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const;
 	void Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line);
 
-	void Get_Eval(std::string &str) const;
-	void Set_Eval(const std::string &str);
+	void Get_Eval(std::string &str, LuaStackFrame &stackFrame) const;
+	void Set_Eval(const std::string &str, const LuaStackFrame &stackFrame);
 
 	void Get_RequestFieldVarList(LuaVar &var) const;
 	void Set_RequestFieldVarList(const LuaVar &var);
@@ -256,8 +260,9 @@ public:
 	void ResponseFailed(const Command &command);
 
 	void ChangedState(bool isBreak);
-	void UpdateSource(const std::string &key, int line, int updateSourceCount, const CommandCallback &response);
+	void UpdateSource(const std::string &key, int line, int updateCount, const CommandCallback &response);
 	void AddedSource(const Source &source);
+	void SetUpdateCount(int updateCount);
 
 	void SetBreakpoint(const Breakpoint &bp);
 	void RemoveBreakpoint(const Breakpoint &bp);
@@ -270,7 +275,8 @@ public:
 	void StepReturn();
 
 	void OutputLog(LogType type, const std::string &str, const std::string &key, int line);
-	void Eval(const std::string &str, const StringCallback &callback);
+	void Eval(const std::string &str, const LuaStackFrame &stackFrame,
+			  const StringCallback &callback);
 	
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
 	void RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);

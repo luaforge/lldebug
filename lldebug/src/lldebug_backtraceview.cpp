@@ -26,51 +26,49 @@
 
 #include "lldebug_prec.h"
 #include "lldebug_backtraceview.h"
-#include "lldebug_context.h"
-#include "lldebug_mainframe.h"
+#include "lldebug_mediator.h"
 
 namespace lldebug {
 
-class BackTraceViewItemData : public wxTreeItemData {
+class BacktraceViewItemData : public wxTreeItemData {
 public:
-	explicit BackTraceViewItemData(const LuaBackTraceInfo &info)
-		: m_info(info) {
+	explicit BacktraceViewItemData(const LuaBacktrace &bt)
+		: m_backtrace(bt) {
 	}
 
-	virtual ~BackTraceViewItemData() {
+	virtual ~BacktraceViewItemData() {
 	}
 
-	const LuaBackTraceInfo &GetInfo() const {
-		return m_info;
+	const LuaBacktrace &GetBacktrace() const {
+		return m_backtrace;
 	}
 
 private:
-	LuaBackTraceInfo m_info;
+	LuaBacktrace m_backtrace;
 };
 
-BEGIN_EVENT_TABLE(BackTraceView, wxTreeListCtrl)
-	EVT_SIZE(BackTraceView::OnSize)
-	EVT_SHOW(BackTraceView::OnShow)
-	EVT_TREE_ITEM_ACTIVATED(wxID_ANY, BackTraceView::OnItemActivated)
-	EVT_LIST_COL_END_DRAG(wxID_ANY, BackTraceView::OnColEndDrag)
-	EVT_LLDEBUG_CHANGED_STATE(ID_BACKTRACEVIEW, BackTraceView::OnChangedState)
-	EVT_LLDEBUG_UPDATE_SOURCE(ID_BACKTRACEVIEW, BackTraceView::OnUpdateSource)
+BEGIN_EVENT_TABLE(BacktraceView, wxTreeListCtrl)
+	EVT_SIZE(BacktraceView::OnSize)
+	EVT_SHOW(BacktraceView::OnShow)
+	EVT_TREE_ITEM_ACTIVATED(wxID_ANY, BacktraceView::OnItemActivated)
+	EVT_LIST_COL_END_DRAG(wxID_ANY, BacktraceView::OnColEndDrag)
+	EVT_LLDEBUG_CHANGED_STATE(ID_BACKTRACEVIEW, BacktraceView::OnChangedState)
+	EVT_LLDEBUG_UPDATE_SOURCE(ID_BACKTRACEVIEW, BacktraceView::OnUpdateSource)
 END_EVENT_TABLE()
 
-BackTraceView::BackTraceView(Context *ctx, wxWindow *parent)
-	: wxTreeListCtrl(parent, ID_BACKTRACEVIEW + ctx->GetId()
+BacktraceView::BacktraceView(wxWindow *parent)
+	: wxTreeListCtrl(parent, ID_BACKTRACEVIEW
 		, wxDefaultPosition, wxDefaultSize
 		, wxTR_HAS_BUTTONS | wxTR_HIDE_ROOT
 		| wxTR_ROW_LINES | wxTR_COL_LINES
-		| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB)
-	, m_ctx(ctx) {
+		| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB) {
 	CreateGUIControls();
 }
 
-BackTraceView::~BackTraceView() {
+BacktraceView::~BacktraceView() {
 }
 
-void BackTraceView::CreateGUIControls() {
+void BacktraceView::CreateGUIControls() {
 	scoped_lock lock(m_mutex);
 
 	AddColumn(_("File"), 80, wxALIGN_LEFT, -1, true, true);
@@ -82,22 +80,22 @@ void BackTraceView::CreateGUIControls() {
 	AddRoot(wxT(""));
 }
 
-BackTraceViewItemData *BackTraceView::GetItemData(const wxTreeItemId &item) {
+BacktraceViewItemData *BacktraceView::GetItemData(const wxTreeItemId &item) {
 	scoped_lock lock(m_mutex);
-	return static_cast<BackTraceViewItemData *>(wxTreeListCtrl::GetItemData(item));
+	return static_cast<BacktraceViewItemData *>(wxTreeListCtrl::GetItemData(item));
 }
 
-void BackTraceView::UpdateBackTrace() {
-	LuaBackTrace backTrace = m_ctx->LuaGetBackTrace();
+void BacktraceView::UpdateBackTrace() {
+	LuaBacktraceList backtraces;
 	wxTreeItemId root = GetRootItem();
 	DeleteChildren(root);
 
-	for (LuaBackTrace::size_type i = 0; i < backTrace.size(); ++i) {
-		const LuaBackTraceInfo &info = backTrace[i];
+	for (LuaBacktraceList::size_type i = 0; i < backtraces.size(); ++i) {
+		const LuaBacktrace &info = backtraces[i];
 
 		wxTreeItemId item = AppendItem(
 			root, wxEmptyString, -1, -1,
-			new BackTraceViewItemData(info));
+			new BacktraceViewItemData(info));
 
 		// カラムを設定します。
 		wxString value;
@@ -118,40 +116,36 @@ void BackTraceView::UpdateBackTrace() {
 	}
 }
 
-void BackTraceView::OnChangedState(wxChangedStateEvent &event) {
+void BacktraceView::OnChangedState(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 	event.Skip();
 
-	Enable(event.GetValue());
-	if (event.GetValue() && IsEnabled() && IsShown()) {
-		UpdateBackTrace();
+	Enable(event.IsBreak());
+	if (event.IsBreak() && IsEnabled() && IsShown()) {
+		//UpdateBacktrace();
 	}
 }
 
-void BackTraceView::OnUpdateSource(wxSourceLineEvent &event) {
-	scoped_lock lock(m_mutex);
-	event.Skip();
-
-	if (IsEnabled() && IsShown()) {
-		UpdateBackTrace();
-	}
-}
-
-void BackTraceView::OnItemActivated(wxTreeEvent &event) {
+void BacktraceView::OnUpdateSource(wxDebugEvent &event) {
 	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	if (IsEnabled() && IsShown()) {
-		BackTraceViewItemData *data = GetItemData(event.GetItem());
-		const LuaBackTraceInfo &info = data->GetInfo();
-
-		m_ctx->GetFrame()->SetViewSource(
-			info.GetKey(), info.GetLine(),
-			info.GetLua(), info.GetLevel());
+//		UpdateBacktrace();
 	}
 }
 
-void BackTraceView::OnShow(wxShowEvent &event) {
+void BacktraceView::OnItemActivated(wxTreeEvent &event) {
+	scoped_lock lock(m_mutex);
+	event.Skip();
+
+	if (IsEnabled() && IsShown()) {
+		BacktraceViewItemData *data = GetItemData(event.GetItem());
+		Mediator::Get()->FocusBacktraceLine(data->GetBacktrace());
+	}
+}
+
+void BacktraceView::OnShow(wxShowEvent &event) {
 	scoped_lock lock(m_mutex);
 	event.Skip();
 
@@ -160,7 +154,7 @@ void BackTraceView::OnShow(wxShowEvent &event) {
 	}
 }
 
-void BackTraceView::LayoutColumn(int selectedColumn) {
+void BacktraceView::LayoutColumn(int selectedColumn) {
 	scoped_lock lock(m_mutex);
 
 	// 合計カラムサイズを取得します。
@@ -194,12 +188,12 @@ void BackTraceView::LayoutColumn(int selectedColumn) {
 	}
 }
 
-void BackTraceView::OnSize(wxSizeEvent &event) {
+void BacktraceView::OnSize(wxSizeEvent &event) {
 	event.Skip();
 	LayoutColumn(-1);
 }
 
-void BackTraceView::OnColEndDrag(wxListEvent &event) {
+void BacktraceView::OnColEndDrag(wxListEvent &event) {
 	event.Skip();
 	LayoutColumn(event.GetColumn());
 }

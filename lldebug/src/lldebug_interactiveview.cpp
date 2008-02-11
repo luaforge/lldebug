@@ -191,7 +191,7 @@ void InteractiveView::Run() {
 		wxString stripped = str;
 		stripped = stripped.Remove(0, 1).Strip(wxString::both);
 
-		evalstr = "return lldebug_tostring(";
+		evalstr = "return tostring(";
 		evalstr += wxConvToUTF8(stripped);
 		evalstr += ")";
 		isVar = true;
@@ -203,6 +203,7 @@ void InteractiveView::Run() {
 
 	Mediator::Get()->GetEngine()->Eval(
 		evalstr,
+		Mediator::Get()->GetStackFrame(),
 		EvalResponseHandler(this, isVar));
 
 	m_text->AppendText(_T("\n"));

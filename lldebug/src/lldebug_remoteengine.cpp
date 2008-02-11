@@ -731,6 +731,15 @@ void RemoteEngine::AddedSource(const Source &source) {
 		data);
 }
 
+void RemoteEngine::SetUpdateCount(int updateCount) {
+	CommandData data;
+
+	data.Set_SetUpdateCount(updateCount);
+	WriteCommand(
+		REMOTECOMMANDTYPE_SET_UPDATECOUNT,
+		data);
+}
+
 /// Notify that the breakpoint was set.
 void RemoteEngine::SetBreakpoint(const Breakpoint &bp) {
 	CommandData data;
@@ -815,10 +824,12 @@ struct StringResponseHandler {
 	}
 };
 
-void RemoteEngine::Eval(const std::string &str, const StringCallback &callback) {
+void RemoteEngine::Eval(const std::string &str,
+						const LuaStackFrame &stackFrame,
+						const StringCallback &callback) {
 	CommandData data;
 
-	data.Set_Eval(str);
+	data.Set_Eval(str, stackFrame);
 	WriteCommand(
 		REMOTECOMMANDTYPE_EVAL,
 		data,
@@ -949,18 +960,17 @@ Command::~Command() {
 void CommandData::Get_ChangedState(bool &isBreak) const {
 	Serializer::ToValue(m_data, isBreak);
 }
-
 void CommandData::Set_ChangedState(bool isBreak) {
 	m_data = Serializer::ToData(isBreak);
 }
 
 void CommandData::Get_UpdateSource(std::string &key, int &line,
-								   int &updateSourceCount) const {
-	Serializer::ToValue(m_data, key, line, updateSourceCount);
+								   int &updateCount) const {
+	Serializer::ToValue(m_data, key, line, updateCount);
 }
 void CommandData::Set_UpdateSource(const std::string &key, int line,
-								   int updateSourceCount) {
-	m_data = Serializer::ToData(key, line, updateSourceCount);
+								   int updateCount) {
+	m_data = Serializer::ToData(key, line, updateCount);
 }
 
 void CommandData::Get_AddedSource(Source &source) const {
@@ -968,6 +978,13 @@ void CommandData::Get_AddedSource(Source &source) const {
 }
 void CommandData::Set_AddedSource(const Source &source) {
 	m_data = Serializer::ToData(source);
+}
+
+void CommandData::Get_SetUpdateCount(int &updateCount) const {
+	Serializer::ToValue(m_data, updateCount);
+}
+void CommandData::Set_SetUpdateCount(int updateCount) {
+	m_data = Serializer::ToData(updateCount);
 }
 
 void CommandData::Get_SetBreakpoint(Breakpoint &bp) const {
@@ -998,11 +1015,11 @@ void CommandData::Set_OutputLog(LogType type, const std::string &str, const std:
 	m_data = Serializer::ToData(type, str, key, line);
 }
 
-void CommandData::Get_Eval(std::string &str) const {
-	Serializer::ToValue(m_data, str);
+void CommandData::Get_Eval(std::string &str, LuaStackFrame &stackFrame) const {
+	Serializer::ToValue(m_data, str, stackFrame);
 }
-void CommandData::Set_Eval(const std::string &str) {
-	m_data = Serializer::ToData(str);
+void CommandData::Set_Eval(const std::string &str, const LuaStackFrame &stackFrame) {
+	m_data = Serializer::ToData(str, stackFrame);
 }
 
 void CommandData::Get_RequestFieldVarList(LuaVar &var) const {

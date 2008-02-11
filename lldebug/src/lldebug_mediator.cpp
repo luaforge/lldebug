@@ -36,7 +36,7 @@ Mediator *Mediator::ms_instance = NULL;
 Mediator::Mediator()
 	: m_engine(new RemoteEngine), m_frame(NULL)
 	, m_breakpoints(m_engine.get()), m_sourceManager(m_engine.get())
-	, m_updateSourceCount(0) {
+	, m_updateCount(0) {
 
 	// Set the callback function called when the end of the reading commands.
 	CommandCallback callback = boost::bind1st(
@@ -71,6 +71,13 @@ void Mediator::SetMainFrame(MainFrame *frame) {
 	m_frame = frame;
 }
 
+void Mediator::IncUpdateCount() {
+	scoped_lock lock(m_mutex);
+
+	++m_updateCount;
+	m_engine->SetUpdateCount(m_updateCount);
+}
+
 void Mediator::FocusErrorLine(const std::string &key, int line) {
 	MainFrame *frame = GetFrame();
 
@@ -80,6 +87,13 @@ void Mediator::FocusErrorLine(const std::string &key, int line) {
 
 void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 	MainFrame *frame = GetFrame();
+
+	IncUpdateCount();
+
+	{
+		scoped_lock lock(m_mutex);
+		m_stackFrame = LuaStackFrame(bt.GetLua(), bt.GetLevel());
+	}
 
 	wxDebugEvent event(wxEVT_FOCUS_BACKTRACELINE, wxID_ANY, bt);
 	frame->AddPendingDebugEvent(event, frame, true);
@@ -107,18 +121,44 @@ void Mediator::OnRemoteCommand(const Command &command) {
 		}
 		break;
 
-	case REMOTECOMMANDTYPE_UPDATE_SOURCE:
-		if (frame != NULL) {
-			std::string key;
-			int line, updateSourceCount;
-			command.GetData().Get_UpdateSource(key, line, updateSourceCount);
+	case REMOTECOMMANDTYPE_SET_UPDATECOUNT:
+		{
+			scoped_lock lock(m_mutex);
+			int updateCount;
+			command.GetData().Get_SetUpdateCount(updateCount);
 
-			wxDebugEvent event(
-				wxEVT_UPDATE_SOURCE, wxID_ANY,
-				key, line, updateSourceCount);
-			m_updateSourceCount = updateSourceCount;
-			frame->AddPendingDebugEvent(event, frame, true);
-			m_engine->ResponseSuccessed(command);
+			if (updateCount > m_updateCount) {
+				m_updateCount = updateCount;
+			}
+		}
+		break;
+
+	case REMOTECOMMANDTYPE_UPDATE_SOURCE:
+		{
+			std::string key;
+			int line, updateCount;
+			command.GetData().Get_UpdateSource(key, line, updateCount);
+
+			{
+				scoped_lock lock(m_mutex);
+				// Update info.
+				if (updateCount > m_updateCount) {
+					m_updateCount = updateCount;
+				}
+				else {
+					++m_updateCount;
+					m_engine->SetUpdateCount(m_updateCount);
+				}
+				m_stackFrame = LuaStackFrame(LuaHandle(), 0);
+			}
+
+			if (frame != NULL) {
+				wxDebugEvent event(
+					wxEVT_UPDATE_SOURCE, wxID_ANY,
+					key, line, updateCount);
+				frame->AddPendingDebugEvent(event, frame, true);
+				m_engine->ResponseSuccessed(command);
+			}
 		}
 		break;
 

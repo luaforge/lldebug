@@ -33,17 +33,17 @@
 
 namespace lldebug {
 
-class BackTraceViewItemData;
+class BacktraceViewItemData;
 
 /**
  * @brief ローカル変数とその値を表示するコントロールです。
  */
-class BackTraceView : public wxTreeListCtrl {
+class BacktraceView : public wxTreeListCtrl {
 public:
-	explicit BackTraceView(Context *ctx, wxWindow *parent);
-	virtual ~BackTraceView();
+	explicit BacktraceView(wxWindow *parent);
+	virtual ~BacktraceView();
 
-	virtual BackTraceViewItemData *GetItemData(const wxTreeItemId &item);
+	virtual BacktraceViewItemData *GetItemData(const wxTreeItemId &item);
 
 private:
 	void CreateGUIControls();
@@ -51,8 +51,8 @@ private:
 	void LayoutColumn(int column);
 
 private:
-	void OnChangedState(wxChangedStateEvent &event);
-	void OnUpdateSource(wxSourceLineEvent &event);
+	void OnChangedState(wxDebugEvent &event);
+	void OnUpdateSource(wxDebugEvent &event);
 	void OnItemActivated(wxTreeEvent &event);
 	void OnShow(wxShowEvent &event);
 	void OnSize(wxSizeEvent &event);
@@ -62,7 +62,6 @@ private:
 
 private:
 	mutex m_mutex;
-	Context *m_ctx;
 };
 
 }

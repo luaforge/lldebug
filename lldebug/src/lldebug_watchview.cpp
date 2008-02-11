@@ -34,7 +34,7 @@ namespace lldebug {
 class WatchViewItemData : public wxTreeItemData {
 public:
 	explicit WatchViewItemData(const LuaVar &var)
-		: m_var(var), m_updateSourceCount(-1) {
+		: m_var(var), m_updateCount(-1) {
 	}
 
 	virtual ~WatchViewItemData() {
@@ -44,17 +44,17 @@ public:
 		return m_var;
 	}
 
-	int GetUpdateSourceCount() const {
-		return m_updateSourceCount;
+	int GetUpdateCount() const {
+		return m_updateCount;
 	}
 
-	void SetUpdateSourceCount(int updateSourceCount) {
-		m_updateSourceCount = updateSourceCount;
+	void SetUpdateCount(int updateCount) {
+		m_updateCount = updateCount;
 	}
 
 private:
 	LuaVar m_var;
-	int m_updateSourceCount;
+	int m_updateCount;
 };
 
 BEGIN_EVENT_TABLE(WatchView, wxTreeListCtrl)
@@ -144,7 +144,7 @@ public:
 
 	bool IsNeed() {
 		WatchViewItemData *data = m_view->GetItemData(m_item);
-		return (data->GetUpdateSourceCount() < Mediator::Get()->GetUpdateSourceCount());
+		return (data->GetUpdateCount() < Mediator::Get()->GetUpdateCount());
 	}
 
 	void operator()(const lldebug::Command &command, const LuaVarList &vars) {
@@ -177,11 +177,11 @@ void WatchView::BeginUpdateVars(bool isExpand) {
 	switch (m_type) {
 	case TYPE_LOCALWATCH:
 		Mediator::Get()->GetEngine()->RequestLocalVarList(
-			LuaStackFrame(LuaHandle(), 0), callback);
+			Mediator::Get()->GetStackFrame(), callback);
 		break;
 	case TYPE_ENVIRONWATCH:
 		Mediator::Get()->GetEngine()->RequestEnvironVarList(
-			LuaStackFrame(LuaHandle(), 0), callback);
+			Mediator::Get()->GetStackFrame(), callback);
 		break;
 	case TYPE_GLOBALWATCH:
 		Mediator::Get()->GetEngine()->RequestGlobalVarList(callback);
@@ -299,7 +299,7 @@ void WatchView::DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool i
 
 	// Set updated mark.
 	WatchViewItemData *data = GetItemData(parent);
-	data->SetUpdateSourceCount(Mediator::Get()->GetUpdateSourceCount());
+	data->SetUpdateCount(Mediator::Get()->GetUpdateCount());
 }
 
 void WatchView::OnChangedState(wxDebugEvent &event) {

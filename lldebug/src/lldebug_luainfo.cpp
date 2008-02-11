@@ -30,6 +30,8 @@
 
 namespace lldebug {
 
+const int LuaOriginalObject = 0;
+
 #ifndef LLDEBUG_FRAME
 std::string LuaToString(lua_State *L, int idx) {
 	int type = lua_type(L, idx);
@@ -124,35 +126,85 @@ LuaStackFrame::~LuaStackFrame() {
 }
 
 
-LuaVar::LuaVar()
-	: m_valueType(-1) { //LUA_TNONE) {
-}
-
-LuaVar::~LuaVar() {
-}
-
 #ifndef LLDEBUG_FRAME
-LuaVar::LuaVar(const LuaHandle &lua, VarRootType type, int level)
-	: m_lua(lua), m_rootType(type), m_level(level), m_hasFields(false) {
-	m_valueType = LUA_TTABLE;
-	m_value = "root table";
-}
-
-LuaVar::LuaVar(shared_ptr<LuaVar> parent, const std::string &name,
-			   int valueIdx)
-	: m_lua(parent->m_lua), m_rootType(parent->m_rootType)
-	, m_level(parent->m_level), m_parent(parent), m_name(name)
+LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
+				 int valueIdx, const std::string &value)
+	 : m_lua(lua), m_name(name), m_value(value), m_valueType(0)
 	, m_hasFields(false) {
-	m_valueType = lua_type(m_lua.GetState(), valueIdx);
-	m_value = LuaToString(m_lua.GetState(), valueIdx);
+	 m_tableIdx = RegisterTable(lua.GetState(), valueIdx);
 }
 
-LuaVar::LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx)
-	: m_lua(parent->m_lua), m_rootType(parent->m_rootType)
-	, m_level(parent->m_level), m_parent(parent), m_hasFields(false) {
-	m_name = LuaToString(m_lua.GetState(), keyIdx);
-	m_valueType = lua_type(m_lua.GetState(), valueIdx);
-	m_value = LuaToString(m_lua.GetState(), valueIdx);
+int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
+	if (lua_type(L, valueIdx) != LUA_TTABLE) {
+		return -1;
+	}
+
+	// OriginalObj couldn't be handle correctly.
+	if (lua_islightuserdata(L, valueIdx)
+		&& lua_topointer(L, valueIdx) == &LuaOriginalObject) {
+		return -1;
+	}
+
+	int top = lua_gettop(L);
+
+	// Try to do "table = registry[&OriginalObj]"
+	lua_pushlightuserdata(L, (void *)&LuaOriginalObject);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 1);
+
+		// local newtable = {}
+		lua_newtable(L);
+
+		// setmetatable(newtable, {__mode="vk"})
+		lua_newtable(L);
+		lua_pushliteral(L, "__mode");
+		lua_pushliteral(L, "vk");
+		lua_rawset(L, -3);
+		lua_setmetatable(L, -2);
+
+		// newtable[0] = 1 -- initial index
+		lua_pushinteger(L, 1);
+		lua_rawseti(L, -2, 0);
+
+		// registry[&OriginalObj] = newtable
+		lua_pushlightuserdata(L, (void *)&LuaOriginalObject);
+		lua_pushvalue(L, -2);
+		lua_rawset(L, LUA_REGISTRYINDEX);
+	}
+
+	// table is registry[&OriginalObj]
+	int table = lua_gettop(L);
+
+	// n = table[0]
+	lua_rawgeti(L, table, 0);
+	int n = (int)lua_tointeger(L, -1);
+	lua_pop(L, 1);
+
+	// table[0] = n + 1
+	lua_pushinteger(L, n + 1);
+	lua_rawseti(L, table, 0);
+
+	// table[n] = valueIdx
+	lua_pushvalue(L, valueIdx);
+	lua_rawseti(L, table, n);
+	
+	lua_pop(L, 1);
+	assert(top == lua_gettop(L));
+	return n;
+}
+
+int LuaVar::PushTable(lua_State *L) const {
+	if (m_tableIdx < 0) {
+		return -1;
+	}
+
+	// push registry[&OriginalObj][m_tableIdx]
+	lua_pushlightuserdata(L, (void *)&LuaOriginalObject);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_rawgeti(L, -1, m_tableIdx);
+	lua_remove(L, -2);
+	return 0;
 }
 #endif
 

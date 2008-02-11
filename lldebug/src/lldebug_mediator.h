@@ -51,6 +51,9 @@ public:
 	/// Get the ID of the 'lldebug::Context' class.
 	int GetCtxId();
 
+	/// Increment the update count.
+	void IncUpdateCount();
+
 	/// Focus the error line.
 	void FocusErrorLine(const std::string &key, int line);
 
@@ -133,9 +136,9 @@ public:
 	}
 
 	/// Get the count of 'UpdateSource'.
-	int GetUpdateSourceCount() {
+	int GetUpdateCount() {
 		scoped_lock lock(m_mutex);
-		return m_updateSourceCount;
+		return m_updateCount;
 	}
 
 private:
@@ -160,7 +163,7 @@ private:
 	SourceManager m_sourceManager;
 
 	LuaStackFrame m_stackFrame;
-	int m_updateSourceCount;
+	int m_updateCount;
 };
 
 }

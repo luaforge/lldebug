@@ -191,6 +191,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lldebug_backtraceview.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\lldebug_backtraceview.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lldebug_context.h"
 				>
 			</File>

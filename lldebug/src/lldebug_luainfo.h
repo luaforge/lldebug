@@ -29,6 +29,9 @@
 
 namespace lldebug {
 
+/// A dummy object that offers original address for lua.
+extern const int LuaOriginalObject;
+
 #ifndef LLDEBUG_FRAME
 /// Convert the lua object placed idx to string.
 std::string LuaToString(lua_State *L, int idx);
@@ -37,16 +40,6 @@ std::string LuaToString(lua_State *L, int idx);
 std::string LuaMakeFuncName(lua_Debug *ar);
 #endif
 
-/**
- * @brief
- */
-enum VarRootType {
-	VARROOT_GLOBAL,
-	VARROOT_LOCAL,
-	VARROOT_REGISTRY,
-	VARROOT_ENVIRON,
-	VARROOT_STACK,
-};
 
 /**
  * @brief 異なるアプリケーション間でlua_Stateの値を共有するために必要なクラスです。
@@ -158,18 +151,25 @@ private:
 	int m_level;
 };
 
+
 /**
  * @brief luaの変数情報を保持します。
  */
 class LuaVar {
 public:
-	explicit LuaVar();
-	virtual ~LuaVar();
+	explicit LuaVar()
+		: m_valueType(-1) {
+	}
+
+	virtual ~LuaVar() {
+	}
 
 #ifndef LLDEBUG_FRAME
-	LuaVar(const LuaHandle &lua, VarRootType type, int level = -1);
-	LuaVar(shared_ptr<LuaVar> parent, const std::string &name, int valueIdx);
-	LuaVar(shared_ptr<LuaVar> parent, int keyIdx, int valueIdx);
+	LuaVar(const LuaHandle &lua, const std::string &name,
+		   int valueIdx, const std::string &value);
+
+	int RegisterTable(lua_State *L, int valueIdx);
+	int PushTable(lua_State *L) const;
 #endif
 	
 	/// このオブジェクトが有効かどうか取得します。
@@ -180,16 +180,6 @@ public:
 	/// この変数があるlua_State *を取得します。
 	const LuaHandle &GetLua() const {
 		return m_lua;
-	}
-
-	/// 基底のテーブルタイプを取得します。
-	VarRootType GetRootType() const {
-		return m_rootType;
-	}
-
-	/// 基底テーブルがローカルだったときのスタックフレームレベルを取得します。
-	int GetLevel() const {
-		return m_level;
 	}
 
 	/// 変数名orテーブルのキー名を取得します。
@@ -222,30 +212,8 @@ public:
 		m_hasFields = hasFields;
 	}
 
-	/// 親を取得します。
-	shared_ptr<LuaVar> GetParent() const {
-		return m_parent;
-	}
-
 	friend bool operator==(const LuaVar &x, const LuaVar &y) {
-		bool xhasp = (x.m_parent == NULL);
-		bool yhasp = (y.m_parent == NULL);
-		if (xhasp != yhasp) {
-			return false;
-		}
-
-		if (x.m_lua != y.m_lua || x.m_name != y.m_name) {
-			return false;
-		}
-
-		if (x.m_parent == NULL) {
-			return (
-				x.m_rootType == y.m_rootType &&
-				x.m_level == y.m_level);
-		}
-		else {
-			return (*x.m_parent == *y.m_parent);
-		}
+		return (x.m_lua == y.m_lua && x.m_name == y.m_name);
 	}
 
 	friend bool operator!=(const LuaVar &x, const LuaVar &y) {
@@ -257,24 +225,19 @@ private:
 	template<class Archive>
 	void serialize(Archive& ar, const unsigned int) {
 		ar & LLDEBUG_MEMBER_NVP(lua);
-		ar & LLDEBUG_MEMBER_NVP(rootType);
-		ar & LLDEBUG_MEMBER_NVP(level);
-		ar & LLDEBUG_MEMBER_NVP(parent);
 		ar & LLDEBUG_MEMBER_NVP(name);
 		ar & LLDEBUG_MEMBER_NVP(value);
 		ar & LLDEBUG_MEMBER_NVP(valueType);
+		ar & LLDEBUG_MEMBER_NVP(tableIdx);
 		ar & LLDEBUG_MEMBER_NVP(hasFields);
 	}
 
 private:
 	LuaHandle m_lua;
-	VarRootType m_rootType;
-	int m_level;  ///< 基底がローカルだった場合のスタックフレームレベルです。
-	shared_ptr<LuaVar> m_parent;
-
 	std::string m_name;
 	std::string m_value;
 	int m_valueType;
+	int m_tableIdx;
 	bool m_hasFields;
 };
 

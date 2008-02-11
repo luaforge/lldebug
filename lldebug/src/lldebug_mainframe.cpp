@@ -260,7 +260,7 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 		break;
 	case ID_BACKTRACEVIEW:
 		auiNotebook->AddPage(
-			new BackTraceView(m_ctx, this),
+			new BacktraceView(m_ctx, this),
 			_("BackTrace"));
 		break;*/
 	default:

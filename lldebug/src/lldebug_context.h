@@ -76,13 +76,13 @@ public:
 	int LuaOpenBase(lua_State *L);
 	void LuaOpenLibs(lua_State *L);
 
-	LuaVarList LuaGetLocals(lua_State *L, int level);
-	LuaVarList LuaGetEnviron(lua_State *L, int level);
+	LuaVarList LuaGetLocals(const LuaStackFrame &stackFrame);
+	LuaVarList LuaGetEnviron(const LuaStackFrame &stackFrame);
 	LuaVarList LuaGetFields(TableType type);
 	LuaVarList LuaGetFields(const LuaVar &var);
 	LuaStackList LuaGetStack();
 	LuaBacktraceList LuaGetBacktrace();
-	std::string LuaEval(const std::string &str, lua_State *L=NULL);
+	std::string LuaEval(const std::string &str, const LuaStackFrame &stackFrame);
 
 	/// コンテキストのＩＤを取得します。
 	int GetId() const {
@@ -175,7 +175,7 @@ private:
 	int m_id;
 	lua_State *m_lua;
 	State m_state;
-	int m_updateSourceCount;
+	int m_updateCount;
 	bool m_isMustUpdate;
 
 	/// lua_State *ごとの関数呼び出し回数を記録することで
