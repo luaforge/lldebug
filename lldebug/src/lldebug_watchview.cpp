@@ -264,9 +264,13 @@ void WatchView::DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool i
 
 		// カラムを設定します。
 		wxString value = wxConvFromUTF8(var.GetValue());
+		if (GetItemText(item, 1) != value) {
+			SetItemText(item, 1, value);
+		}
 		wxString type = wxConvFromUTF8(var.GetValueTypeName());
-		SetItemText(item, 1, value);
-		SetItemText(item, 2, type);
+		if (GetItemText(item, 2) != type) {
+			SetItemText(item, 2, type);
+		}
 
 		// 子アイテムがあればそれも更新します。
 		if (var.HasFields()) {
@@ -281,12 +285,14 @@ void WatchView::DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool i
 			}
 		}
 		else {
-			// アイテムが開かれているかの状態は子供がなくなっても保存されます。
-			// なので一応閉じておきます。
-			Collapse(item);
+			if (HasChildren(item)) {
+				// The state weather the item is expanded or collapsed
+				// has been saved, so collapse it carefully.
+				Collapse(item);
 
-			// アイテムが無いなら子アイテムを消します。
-			DeleteChildren(item);
+				// Delete all child items.
+				DeleteChildren(item);
+			}
 		}
 	}
 
@@ -297,7 +303,7 @@ void WatchView::DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool i
 		Delete(*it);
 	}
 
-	// Set updated mark.
+	// Set update count.
 	WatchViewItemData *data = GetItemData(parent);
 	data->SetUpdateCount(Mediator::Get()->GetUpdateCount());
 }
