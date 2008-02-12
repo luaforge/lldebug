@@ -175,19 +175,50 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 
 	// table is registry[&OriginalObj]
 	int table = lua_gettop(L);
+	int n = 0; // use after
 
-	// n = table[0]
-	lua_rawgeti(L, table, 0);
-	int n = (int)lua_tointeger(L, -1);
-	lua_pop(L, 1);
-
-	// table[0] = n + 1
-	lua_pushinteger(L, n + 1);
-	lua_rawseti(L, table, 0);
-
-	// table[n] = valueIdx
+	// Check table[valueIdx] is number.
 	lua_pushvalue(L, valueIdx);
-	lua_rawseti(L, table, n);
+	lua_rawget(L, table);
+	if (lua_isnumber(L, -1)) {
+		n = (int)lua_tointeger(L, -1);
+		lua_pop(L, 1);
+
+		// Check table[n] is table.
+		lua_rawgeti(L, table, n);
+		if (lua_istable(L, -1)) {
+			// No problems.
+			lua_pop(L, 1);
+		}
+		else {
+			lua_pop(L, 1);
+
+			// table[n] = valueIdx, again
+			lua_pushvalue(L, valueIdx);
+			lua_rawseti(L, table, n);
+		}
+	}
+	else {
+		lua_pop(L, 1);
+
+		// n = table[0]
+		lua_rawgeti(L, table, 0);
+		n = (int)lua_tointeger(L, -1);
+		lua_pop(L, 1);
+
+		// table[0] = n + 1
+		lua_pushinteger(L, n + 1);
+		lua_rawseti(L, table, 0);
+
+		// table[valueIdx] = n
+		lua_pushvalue(L, valueIdx);
+		lua_pushinteger(L, n);
+		lua_rawset(L, table);
+
+		// table[n] = valueIdx
+		lua_pushvalue(L, valueIdx);
+		lua_rawseti(L, table, n);
+	}
 	
 	lua_pop(L, 1);
 	assert(top == lua_gettop(L));

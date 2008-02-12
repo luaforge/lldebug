@@ -905,6 +905,30 @@ public:
 		return ctx->LuaNewindexForEval(L);
 	}
 
+	static int print_internal_table(lua_State *L) {
+		Context::scoped_lua scoped(L, 0);
+		lua_pushlightuserdata(L, (void *)&LuaOriginalObject);
+		lua_rawget(L, LUA_REGISTRYINDEX);
+
+		printf("lldebug_internal_table = ");
+
+		if (lua_isnil(L, -1)) {
+			printf("nil\n");
+			lua_pop(L, 1);
+			return 0;
+		}
+		
+		printf("lightuserdata\n\n");
+		lua_pushnil(L);
+		while (lua_next(L, -2)) {
+			printf("  %s = %s\n", LuaToString(L, -2).c_str(), LuaToString(L, -1).c_str());
+			lua_pop(L, 1);
+		}
+
+		lua_pop(L, 1);
+		return 0;
+	}
+
 	static int luavar_gc(lua_State *L) {
 		scoped_lua scoped(L, 0);
 		LuaVar *data = (LuaVar *)lua_touserdata(L, 1);
@@ -941,6 +965,10 @@ int Context::LuaInitialize(lua_State *L) {
 	lua_pushliteral(L, name); \
 	lua_pushcclosure(L, func, 0); \
 	lua_settable(L, LUA_GLOBALSINDEX);
+
+	lldebug_register(L,
+		"lldebug_print_internal_table",
+		LuaImpl::print_internal_table);
 
 	lldebug_register(L,
 		"lldebug_toluavar",
