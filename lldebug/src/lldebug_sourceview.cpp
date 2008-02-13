@@ -74,8 +74,6 @@ public:
 
 private:
 	void CreateGUIControls() {
-		scoped_lock lock(m_mutex);
-
 		// default font for all styles
 		SetViewEOL(false);
 		SetEdgeMode(false ? wxSCI_EDGE_LINE : wxSCI_EDGE_NONE);
@@ -206,8 +204,6 @@ private:
 
 	/// Fold the source, if any.
 	void OnMarginClick(wxScintillaEvent &event) {
-		scoped_lock lock(m_mutex);
-
 		if (event.GetMargin() == MARGIN_FOLDING) {
 			int lineClick = LineFromPosition(event.GetPosition());
 			int levelClick = GetFoldLevel(lineClick);
@@ -223,7 +219,6 @@ private:
 
 	/// Save source if 'Ctrl+S' key was pressed.
 	void OnKeyDown(wxKeyEvent &event) {
-		scoped_lock lock(m_mutex);
 		event.Skip();
 
 		if (event.ControlDown() && event.GetKeyCode() == 'S') {
@@ -254,9 +249,6 @@ private:
 
 	/// Modified mark may be set, if any.
 	void OnModified(wxScintillaEvent &event) {
-		scoped_lock lock(m_mutex);
-		event.Skip();
-
 		if (event.GetModificationType()
 			& (wxSCI_MOD_INSERTTEXT | wxSCI_MOD_DELETETEXT)) {
 			ChangeModified(true);
@@ -265,8 +257,6 @@ private:
 
 	/// Indent if newline was added.
 	void OnCharAdded(wxScintillaEvent &event) {
-		scoped_lock lock(m_mutex);
-
 		// Change this if support for mac files with \r is needed
 		if (event.GetKey() == '\n' || event.GetKey() == '\r') {
 			int currentLine = GetCurrentLine();
@@ -295,14 +285,12 @@ private:
 	}
 
 	void OnHotSpotClick(wxScintillaEvent &event) {
-		scoped_lock lock(m_mutex);
 		//int pos = event.GetPosition();
 		//CallTipShow(pos, event.GetText());
 	}
 
 	/// Refresh the breakpoint marks.
 	void OnChangedBreakpoints(wxDebugEvent &event) {
-		scoped_lock lock(m_mutex);
 		MarkerDeleteAll(MARKNUM_BREAKPOINT);
 
 		BreakpointList &bps = Mediator::Get()->GetBreakpoints();
@@ -325,8 +313,6 @@ public:
 
 	/// Initialize this object.
 	void Initialize(const Source &source) {
-		scoped_lock lock(m_mutex);
-
 		std::string str;
 		for (string_array::size_type i = 0; i < source.GetLineCount(); ++i) {
 			// The encoding is UTF8.
@@ -355,7 +341,6 @@ public:
 
 	/// Focus the current running line.
 	int FocusCurrentLine(int line, bool isCurrentRunning=true) {
-		scoped_lock lock(m_mutex);
 		wxASSERT((line < 0) || (0 < line && line <= GetLineCount()));
 
 		// Line base is different.
@@ -399,13 +384,11 @@ public:
 	}
 
 	void ToggleBreakpointFromLine(int line) {
-		scoped_lock lock(m_mutex);
 		line = median(line, 0, GetLineCount());
 		Mediator::Get()->ToggleBreakpoint(m_key, line);
 	}
 
 	void ToggleBreakpoint() {
-		scoped_lock lock(m_mutex);
 		int from, to;
 		GetSelection(&from, &to);
 		ToggleBreakpointFromLine(LineFromPosition(to));
@@ -413,8 +396,6 @@ public:
 
 	/// Focus the error line.
 	void FocusErrorLine(int line) {
-		scoped_lock lock(m_mutex);
-
 		if (line <= 0) {
 			return;
 		}
@@ -428,8 +409,6 @@ public:
 
 	/// Change weather this object is enable.
 	void ChangeEnable(bool enable) {
-		scoped_lock lock(m_mutex);
-
 		if (!enable) {
 			FocusCurrentLine(-1, true);
 		}
@@ -437,7 +416,6 @@ public:
 
 	/// Save source text.
 	void SaveSource() {
-		scoped_lock lock(m_mutex);
 		if (m_path.IsEmpty()) {
 			return;
 		}
@@ -472,7 +450,6 @@ public:
 
 private:
 	SourceView *m_parent;
-	mutex m_mutex;
 	bool m_initialized;
 	bool m_isModified;
 
@@ -515,8 +492,6 @@ SourceView::~SourceView() {
 }
 
 void SourceView::CreateGUIControls() {
-	scoped_lock lock(m_mutex);
-
 	std::list<Source> sources = Mediator::Get()->GetSourceManager().GetList();
 	std::list<Source>::iterator it;
 	for (it = sources.begin(); it != sources.end(); ++it) {
@@ -525,8 +500,6 @@ void SourceView::CreateGUIControls() {
 }
 
 size_t SourceView::FindPageFromKey(const std::string &key) {
-	scoped_lock lock(m_mutex);
-
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 
@@ -539,14 +512,11 @@ size_t SourceView::FindPageFromKey(const std::string &key) {
 }
 
 SourceViewPage *SourceView::GetPage(size_t i) {
-	scoped_lock lock(m_mutex);
-
 	wxWindow *page = wxAuiNotebook::GetPage(i);
 	return dynamic_cast<SourceViewPage *>(page);
 }
 
 SourceViewPage *SourceView::GetSelected() {
-	scoped_lock lock(m_mutex);
 	size_t sel = GetSelection();
 
 	if (sel == wxNOT_FOUND) {
@@ -557,16 +527,12 @@ SourceViewPage *SourceView::GetSelected() {
 }
 
 void SourceView::CreatePage(const Source &source) {
-	scoped_lock lock(m_mutex);
-
 	SourceViewPage *page = new SourceViewPage(this);
 	page->Initialize(source);
 	AddPage(page, page->GetTitle(), true);
 }
 
 void SourceView::OnChangedState(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	SourceViewPage *page = GetSelected();
 	if (page != NULL) {
 		page->ChangeEnable(event.IsBreak());
@@ -574,7 +540,6 @@ void SourceView::OnChangedState(wxDebugEvent &event) {
 }
 
 void SourceView::ToggleBreakpoint() {
-	scoped_lock lock(m_mutex);
 	SourceViewPage *page = GetSelected();
 
 	if (page != NULL) {
@@ -583,8 +548,6 @@ void SourceView::ToggleBreakpoint() {
 }
 
 void SourceView::OnUpdateSource(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
-	
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 
@@ -603,14 +566,10 @@ void SourceView::OnUpdateSource(wxDebugEvent &event) {
 }
 
 void SourceView::OnAddedSource(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	CreatePage(event.GetSource());
 }
 
 void SourceView::OnFocusErrorLine(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 
@@ -623,8 +582,6 @@ void SourceView::OnFocusErrorLine(wxDebugEvent &event) {
 }
 
 void SourceView::OnFocusBacktraceLine(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 

@@ -50,7 +50,6 @@ private:
 	DECLARE_EVENT_TABLE();
 
 private:
-	mutex m_mutex;
 	wxTextCtrl *m_text;
 
 	class TextInput;

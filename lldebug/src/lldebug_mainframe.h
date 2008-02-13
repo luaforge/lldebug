@@ -42,11 +42,13 @@ public:
 	virtual ~MainFrame();
 
 	void AddPendingDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways);
+	void ProcessDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways);
 	bool IsExistDebugWindow(int wintypeid);
 	void ShowDebugWindow(int wintypeid);
 
 private:
 	void CreateGUIControls();
+	void OnIdle(wxIdleEvent &event);
 	void OnMenu(wxCommandEvent &event);
 	wxAuiNotebook *GetAuiNotebook();
 

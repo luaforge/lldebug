@@ -29,13 +29,13 @@
 
 #include "lldebug_sysinfo.h"
 #include "lldebug_luainfo.h"
+#include "lldebug_remoteengine.h"
+#include "lldebug_queue.h"
 
 namespace lldebug {
 
 class Application;
 class MainFrame;
-class RemoteEngine;
-class Command;
 
 /**
  * @brief Ç∑Ç◊ÇƒÇÃÉNÉâÉXÇ…ã§í ÇÃèÓïÒÇï€éùÇµÇ‹Ç∑ÅB
@@ -61,83 +61,73 @@ public:
 	void FocusBacktraceLine(const LuaBacktrace &bt);
 
 	/// Process the remote command.
-	void OnRemoteCommand(const Command &command);
+	void ProcessRemoteCommand(const Command &command);
+
+	/// Process the all remote commanda.
+	void ProcessAllRemoteCommands();
 
 	/// Get the RemoteEngine object.
-	RemoteEngine *GetEngine() {
-		scoped_lock lock(m_mutex);
-		return m_engine.get();
+	shared_ptr<RemoteEngine> GetEngine() {
+		return m_engine;
 	}
 
 	/// Get the main frame.
 	MainFrame *GetFrame() {
-		scoped_lock lock(m_mutex);
 		return m_frame;
 	}
 
 	/// Get the BreakpointList object.
 	BreakpointList &GetBreakpoints() {
-		scoped_lock lock(m_mutex);
 		return m_breakpoints;
 	}
 
 	/// Get the SourceManager object.
 	SourceManager &GetSourceManager() {
-		scoped_lock lock(m_mutex);
 		return m_sourceManager;
 	}
 
 	/// Get the source contents.
 	const Source *GetSource(const std::string &key) {
-		scoped_lock lock(m_mutex);
 		return m_sourceManager.Get(key);
 	}
 
 	/// Save the source.
 	int SaveSource(const std::string &key, const string_array &source) {
-		scoped_lock lock(m_mutex);
 		return m_sourceManager.Save(key, source);
 	}
 
 	/// Find the breakpoint.
 	Breakpoint FindBreakpoint(const std::string &key, int line) {
-		scoped_lock lock(m_mutex);
 		return m_breakpoints.Find(key, line);
 	}
 
 	/// Find the next breakpoint.
 	Breakpoint NextBreakpoint(const Breakpoint &bp) {
-		scoped_lock lock(m_mutex);
 		return m_breakpoints.Next(bp);
 	}
 
 	/// Set the breakpoint.
 	void SetBreakpoint(const Breakpoint &bp) {
-		scoped_lock lock(m_mutex);
 		m_breakpoints.Set(bp);
 	}
 
 	/// Toggle on/off of the breakpoint.
 	void ToggleBreakpoint(const std::string &key, int line) {
-		scoped_lock lock(m_mutex);
 		m_breakpoints.Toggle(key, line);
 	}
 
 	/// Get the stack frame for the local vars.
 	const LuaStackFrame &GetStackFrame() {
-		scoped_lock lock(m_mutex);
 		return m_stackFrame;
 	}
 
 	/// Set the stack frame for the local vars.
 	void SetStackFrame(const LuaStackFrame &stackFrame) {
-		scoped_lock lock(m_mutex);
 		m_stackFrame = stackFrame;
 	}
 
 	/// Get the count of 'UpdateSource'.
 	int GetUpdateCount() {
-		scoped_lock lock(m_mutex);
 		return m_updateCount;
 	}
 
@@ -154,11 +144,15 @@ private:
 	void SetMainFrame(MainFrame *frame);
 
 private:
+	/// Process the remote command.
+	void OnRemoteCommand(const Command &command);
+
+private:
 	static Mediator *ms_instance;
 
-	mutex m_mutex;
 	shared_ptr<RemoteEngine> m_engine;
 	MainFrame *m_frame;
+	queue_mt<Command> m_queue;
 	BreakpointList m_breakpoints;
 	SourceManager m_sourceManager;
 

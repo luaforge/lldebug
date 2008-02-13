@@ -28,7 +28,6 @@
 #define __LLDEBUG_OUTPUTVIEW_H__
 
 #include "lldebug_controls.h"
-#include "wx/wxscintilla.h"
 
 namespace lldebug {
 
@@ -43,15 +42,12 @@ public:
 	void OutputLog(LogType type, const wxString &str, const std::string &key, int line);
 
 private:
-	void CreateGUIControls();
 	void OnSize(wxSizeEvent &event);
 	void OnOutputLog(wxDebugEvent &event);
 
 	DECLARE_EVENT_TABLE();
 
 private:
-	mutex m_mutex;
-
 	class InnerTextCtrl;
 	InnerTextCtrl *m_text;
 };

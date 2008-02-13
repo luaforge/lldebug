@@ -27,6 +27,7 @@
 #include "lldebug_prec.h"
 #include "lldebug_mediator.h"
 #include "lldebug_outputview.h"
+#include "wx/wxscintilla.h"
 
 namespace lldebug {
 
@@ -44,8 +45,6 @@ private:
 	typedef std::map<int, ViewData> DataMap;
 	DataMap m_dataMap;
 
-	mutex m_mutex;
-
 	DECLARE_EVENT_TABLE();
 
 public:
@@ -58,8 +57,6 @@ public:
 	}
 
 	void CreateGUIControls() {
-		scoped_lock lock(m_mutex);
-
 		SetReadOnly(true);
 		SetViewEOL(false);
 		SetWrapMode(wxSCI_WRAP_NONE);
@@ -83,8 +80,6 @@ public:
 
 	/// Add raw text that is std::string.
 	void AddTextRawStd(const std::string &str) {
-		scoped_lock lock(m_mutex);
-
 		if (str.empty()) {
 			return;
 		}
@@ -94,8 +89,6 @@ public:
 
 	/// Output log.
 	void OutputLog(LogType type, const wxString &str, const std::string &key, int line) {
-		scoped_lock lock(m_mutex);
-
 		if (!key.empty()) {
 			ViewData data;
 			data.key = key;
@@ -121,8 +114,7 @@ public:
 	}
 
 	void OnDClick(wxScintillaEvent &event) {
-		scoped_lock lock(m_mutex);
-		//event.Skip();
+		event.Skip();
 
 		// Out of selectable range.
 		if (event.GetPosition() < 0) {
@@ -155,35 +147,28 @@ BEGIN_EVENT_TABLE(OutputView, wxListBox)
 END_EVENT_TABLE()
 
 OutputView::OutputView(wxWindow *parent)
-	: wxPanel(parent, ID_OUTPUTVIEW, wxPoint(0, 0), wxSize(100, 200)) {
-	CreateGUIControls();
+	: wxPanel(parent, ID_OUTPUTVIEW) {
+	m_text = new InnerTextCtrl(this);
+
+	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+	sizer->Add(m_text, 1, wxEXPAND);
+	SetSizer(sizer);
+	sizer->SetSizeHints(this);
 }
 
 OutputView::~OutputView() {
 }
 
-void OutputView::CreateGUIControls() {
-	scoped_lock lock(m_mutex);
-
-	m_text = new InnerTextCtrl(this);
-}
-
 void OutputView::OnSize(wxSizeEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	m_text->SetSize(GetClientSize());
 }
 
 void OutputView::OutputLog(LogType logType, const wxString &str, const std::string &key, int line) {
-	scoped_lock lock(m_mutex);
-
 	wxDebugEvent event(wxEVT_OUTPUT_LOG, GetId(), logType, str, key, line);
-	ProcessEvent(event);
+	AddPendingEvent(event);
 }
 
 void OutputView::OnOutputLog(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	m_text->OutputLog(event.GetLogType(), event.GetStr(), event.GetKey(), event.GetLine());
 }
 

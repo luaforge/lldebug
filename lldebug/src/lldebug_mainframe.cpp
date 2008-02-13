@@ -55,6 +55,7 @@ enum {
 };
 
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
+	EVT_IDLE(MainFrame::OnIdle)
 	EVT_MENU(wxID_EXIT, MainFrame::OnMenu)
 
 	EVT_MENU(ID_MENU_BREAK, MainFrame::OnMenu)
@@ -168,6 +169,26 @@ void MainFrame::AddPendingDebugEvent(wxEvent &event, wxWindow *parent, bool send
 	parent->AddPendingEvent(event);
 }
 
+void MainFrame::ProcessDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways) {
+	scoped_lock lock(m_mutex);
+
+	if (!sendAlways && !parent->IsShown()) {
+		return;
+	}
+
+	wxWindowList& children = parent->GetChildren();
+	for (size_t i = 0; i < children.GetCount(); ++i) {
+		ProcessDebugEvent(event, children[i], sendAlways);
+	}
+
+	event.SetId(parent->GetId());
+	parent->ProcessEvent(event);
+}
+
+void MainFrame::OnIdle(wxIdleEvent &event) {
+	Mediator::Get()->ProcessAllRemoteCommands();
+}
+
 bool MainFrame::IsExistDebugWindow(int wintypeid) {
 	scoped_lock lock(m_mutex);
 
@@ -253,12 +274,12 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 			new WatchView(this, WatchView::TYPE_STACKWATCH),
 			_("StackWatch"));
 		break;
-	/*case ID_WATCHVIEW:
+	case ID_WATCHVIEW:
 		auiNotebook->AddPage(
-			new WatchView(m_ctx, this, WatchView::TYPE_WATCH),
+			new WatchView(this, WatchView::TYPE_WATCH),
 			_("Watch"));
 		break;
-	case ID_BACKTRACEVIEW:
+	/*case ID_BACKTRACEVIEW:
 		auiNotebook->AddPage(
 			new BacktraceView(m_ctx, this),
 			_("BackTrace"));

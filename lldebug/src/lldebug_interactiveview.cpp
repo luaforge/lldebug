@@ -104,7 +104,6 @@ InteractiveView::~InteractiveView() {
 }
 
 void InteractiveView::CreateGUIControls() {
-	scoped_lock lock(m_mutex);
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 
 	m_text = new wxTextCtrl(this, wxID_ANY, wxT("output")
@@ -129,13 +128,11 @@ void InteractiveView::CreateGUIControls() {
 }
 
 void InteractiveView::OnChangedState(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
 	Enable(event.IsBreak());
 }
 
+/// Output log str. (thread safe)
 void InteractiveView::OutputLog(const wxString &str) {
-	scoped_lock lock(m_mutex);
-
 	wxDebugEvent event(
 		wxEVT_OUTPUT_INTERACTIVEVIEW,
 		GetId(), str);
@@ -143,8 +140,6 @@ void InteractiveView::OutputLog(const wxString &str) {
 }
 
 void InteractiveView::OnOutputInteractiveView(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	m_text->AppendText(_T("\n"));
 	m_text->AppendText(event.GetStr());
 }
@@ -176,7 +171,6 @@ struct EvalResponseHandler {
 	};
 
 void InteractiveView::Run() {
-	scoped_lock lock(m_mutex);
 	wxString str = m_input->GetValue().Strip(wxString::both);
 	std::string evalstr;
 	bool isVar = false;

@@ -50,13 +50,10 @@ Mediator::~Mediator() {
 }
 
 int Mediator::GetCtxId() {
-	scoped_lock lock(m_mutex);
 	return m_engine->GetCtxId();
 }
 
 int Mediator::Initialize(const std::string &hostName, const std::string &portName) {
-	scoped_lock lock(m_mutex);
-
 	if (m_engine->StartFrame(hostName, portName, 20) != 0) {
 		return -1;
 	}
@@ -66,14 +63,10 @@ int Mediator::Initialize(const std::string &hostName, const std::string &portNam
 }
 
 void Mediator::SetMainFrame(MainFrame *frame) {
-	scoped_lock lock(m_mutex);
-
 	m_frame = frame;
 }
 
 void Mediator::IncUpdateCount() {
-	scoped_lock lock(m_mutex);
-
 	++m_updateCount;
 	m_engine->SetUpdateCount(m_updateCount);
 }
@@ -89,19 +82,27 @@ void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 	MainFrame *frame = GetFrame();
 
 	IncUpdateCount();
-
-	{
-		scoped_lock lock(m_mutex);
-		m_stackFrame = LuaStackFrame(bt.GetLua(), bt.GetLevel());
-	}
+	m_stackFrame = LuaStackFrame(bt.GetLua(), bt.GetLevel());
 
 	wxDebugEvent event(wxEVT_FOCUS_BACKTRACELINE, wxID_ANY, bt);
 	frame->AddPendingDebugEvent(event, frame, true);
 }
 
 void Mediator::OnRemoteCommand(const Command &command) {
+	m_queue.push(command);
+}
+
+void Mediator::ProcessAllRemoteCommands() {
+	while (!m_queue.empty()) {
+		Command command = m_queue.front();
+		m_queue.pop();
+
+		ProcessRemoteCommand(command);
+	}
+}
+
+void Mediator::ProcessRemoteCommand(const Command &command) {
 	MainFrame *frame = GetFrame();
-	//scoped_lock lock(m_mutex);
 
 	// Process remote commands.
 	switch (command.GetType()) {
@@ -123,7 +124,6 @@ void Mediator::OnRemoteCommand(const Command &command) {
 
 	case REMOTECOMMANDTYPE_SET_UPDATECOUNT:
 		{
-			scoped_lock lock(m_mutex);
 			int updateCount;
 			command.GetData().Get_SetUpdateCount(updateCount);
 
@@ -139,18 +139,15 @@ void Mediator::OnRemoteCommand(const Command &command) {
 			int line, updateCount;
 			command.GetData().Get_UpdateSource(key, line, updateCount);
 
-			{
-				scoped_lock lock(m_mutex);
-				// Update info.
-				if (updateCount > m_updateCount) {
-					m_updateCount = updateCount;
-				}
-				else {
-					++m_updateCount;
-					m_engine->SetUpdateCount(m_updateCount);
-				}
-				m_stackFrame = LuaStackFrame(LuaHandle(), 0);
+			// Update info.
+			if (updateCount > m_updateCount) {
+				m_updateCount = updateCount;
 			}
+			else {
+				++m_updateCount;
+				m_engine->SetUpdateCount(m_updateCount);
+			}
+			m_stackFrame = LuaStackFrame(LuaHandle(), 0);
 
 			if (frame != NULL) {
 				wxDebugEvent event(
@@ -179,10 +176,7 @@ void Mediator::OnRemoteCommand(const Command &command) {
 		{
 			BreakpointList bps(m_engine.get());
 			command.GetData().Get_ChangedBreakpointList(bps);
-			{
-				scoped_lock lock(m_mutex);
-				m_breakpoints = bps;
-			}
+			m_breakpoints = bps;
 
 			if (frame != NULL) {
 				wxDebugEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY);

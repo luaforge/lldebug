@@ -57,10 +57,8 @@ private:
 	void OnFocusErrorLine(wxDebugEvent &event);
 	void OnFocusBacktraceLine(wxDebugEvent &event);
 
-	DECLARE_EVENT_TABLE();
-
 private:
-	mutex m_mutex;
+	DECLARE_EVENT_TABLE();
 };
 
 }
