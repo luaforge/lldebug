@@ -32,12 +32,43 @@ namespace lldebug {
 
 const int LuaOriginalObject = 0;
 
+// #define LUA_TNONE		(-1)
+// #define LUA_TNIL		0
+// #define LUA_TBOOLEAN		1
+// #define LUA_TLIGHTUSERDATA	2
+// #define LUA_TNUMBER		3
+// #define LUA_TSTRING		4
+// #define LUA_TTABLE		5
+// #define LUA_TFUNCTION		6
+// #define LUA_TUSERDATA		7
+// #define LUA_TTHREAD		8
+std::string LuaGetTypeName(int type) {
+	const static std::string s_typenames[] = {
+		"nil",
+		"boolean",
+		"lightuserdata",
+		"number",
+		"string",
+		"table",
+		"function",
+		"userdata",
+		"thread",
+	};
+	const static int size =
+		(sizeof(s_typenames) / sizeof(s_typenames[0]));
+	
+	if (type < 0 || size <= type) {
+		return std::string("");
+	}
+
+	return s_typenames[type];
+}
+
 #ifndef LLDEBUG_FRAME
 std::string LuaToString(lua_State *L, int idx) {
 	int type = lua_type(L, idx);
-	bool ascii = true;
-	char buffer[512];
 	std::string str;
+	char buffer[512];
 
 	switch (type) {
 	case LUA_TNONE:
@@ -63,33 +94,59 @@ std::string LuaToString(lua_State *L, int idx) {
 		}
 		break;
 	case LUA_TSTRING:
-		snprintf(buffer, sizeof(buffer), "%s", lua_tostring(L, idx));
-		str = buffer;
-		ascii = false;
+		str = lua_tostring(L, idx);
 		break;
 	case LUA_TFUNCTION:
 	case LUA_TTHREAD:
 	case LUA_TTABLE:
-		snprintf(buffer, sizeof(buffer), "%p", lua_topointer(L, idx));
-		str = buffer;
-		break;
 	case LUA_TUSERDATA:
 	case LUA_TLIGHTUSERDATA:
-		lua_pushvalue(L, idx);
-		lua_pushliteral(L, "tostring");
-		lua_gettable(L, LUA_GLOBALSINDEX);
-		lua_insert(L, -2);
-		lua_pcall(L, 1, 1, 0);
-		snprintf(buffer, sizeof(buffer), "%s", lua_tostring(L, -1));
+		snprintf(buffer, sizeof(buffer), "%s: %p", lua_typename(L, type), lua_topointer(L, idx));
 		str = buffer;
-		lua_pop(L, 1);
-		ascii = false;
 		break;
 	default:
 		return std::string("");
 	}
 
-	return (ascii ? str : ConvToUTF8(str));
+	return str;
+}
+
+std::string LuaConvertString(lua_State *L, int idx) {
+	int top = lua_gettop(L);
+	const char *cstr;
+	std::string str;
+
+	lua_pushliteral(L, "lldebug");
+	lua_gettable(L, LUA_GLOBALSINDEX);
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 1);
+		goto on_error;
+	}
+
+	lua_pushliteral(L, "tostring");
+	lua_gettable(L, -2);
+	if (!lua_isfunction(L, -1)) {
+		lua_pop(L, 2);
+		goto on_error;
+	}
+	lua_remove(L, -2); // eliminate 'lldebug'.
+
+	lua_pushvalue(L, idx);
+	if (lua_pcall(L, 1, 1, 0) != 0) {
+		lua_pop(L, 1); // error string
+		goto on_error;
+	}
+
+	cstr = lua_tostring(L, -1);
+	str = (cstr != NULL ? cstr : "");
+	lua_pop(L, 1);
+
+	assert(top == lua_gettop(L));
+	return str;
+
+on_error:;
+	assert(top == lua_gettop(L));
+	return std::string("error on lldebug.tostring");
 }
 
 std::string LuaMakeFuncName(lua_Debug *ar) {
@@ -126,12 +183,48 @@ LuaStackFrame::~LuaStackFrame() {
 }
 
 
+LuaVar::LuaVar()
+	: m_valueType(-1), m_tableIdx(-1), m_hasFields(false) {
+}
+
+LuaVar::~LuaVar() {
+}
+
 #ifndef LLDEBUG_FRAME
+LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
+	: m_lua(lua), m_name(name) {
+	lua_State *L = lua.GetState();
+	m_value = LuaConvertString(L, valueIdx);
+	m_valueType = lua_type(L, valueIdx);
+	m_tableIdx = RegisterTable(L, valueIdx);
+	m_hasFields = CheckHasFields(L, valueIdx);
+}
+
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
-				 int valueIdx, const std::string &value)
-	 : m_lua(lua), m_name(name), m_value(value), m_valueType(0)
-	, m_hasFields(false) {
-	 m_tableIdx = RegisterTable(lua.GetState(), valueIdx);
+			   const std::string &value)
+	: m_lua(lua), m_name(name), m_value(value), m_valueType(LUA_TNONE)
+	, m_tableIdx(-1), m_hasFields(false) {
+}
+
+bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {
+	// Check weather 'valueIdx' has metatable.
+	if (lua_getmetatable(L, valueIdx) != 0) {
+		lua_pop(L, 1);
+		return true;
+	}
+
+	if (!lua_istable(L, valueIdx)) {
+		return false;
+	}
+
+	// Check weather 'valueIdx' has fields.
+	lua_pushnil(L);
+	if (lua_next(L, valueIdx) != 0) {
+		lua_pop(L, 2);
+		return true;
+	}
+
+	return false;
 }
 
 int LuaVar::RegisterTable(lua_State *L, int valueIdx) {

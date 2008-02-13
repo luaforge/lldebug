@@ -32,9 +32,17 @@ namespace lldebug {
 /// A dummy object that offers original address for lua.
 extern const int LuaOriginalObject;
 
+/// Get the typename.
+std::string LuaGetTypeName(int type);
+
 #ifndef LLDEBUG_FRAME
-/// Convert the lua object placed idx to string.
+/// Convert the lua object placed on idx to string.
+/// It doesn't use any lua functions.
 std::string LuaToString(lua_State *L, int idx);
+
+/// Convert the lua object placed on idx to string.
+/// It uses lua functions.
+std::string LuaConvertString(lua_State *L, int idx);
 
 /// Get the original name of the lua function.
 std::string LuaMakeFuncName(lua_Debug *ar);
@@ -157,18 +165,14 @@ private:
  */
 class LuaVar {
 public:
-	explicit LuaVar()
-		: m_valueType(-1) {
-	}
-
-	virtual ~LuaVar() {
-	}
+	explicit LuaVar();
+	virtual ~LuaVar();
 
 #ifndef LLDEBUG_FRAME
-	LuaVar(const LuaHandle &lua, const std::string &name,
-		   int valueIdx, const std::string &value);
+	LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx);
+	LuaVar(const LuaHandle &lua, const std::string &name, const std::string &value);
 
-	int RegisterTable(lua_State *L, int valueIdx);
+	/// Push the table value.
 	int PushTable(lua_State *L) const;
 #endif
 	
@@ -199,17 +203,12 @@ public:
 
 	/// 変数の値型を文字列で取得します。
 	std::string GetValueTypeName() const {
-		return "";//lua_typename(NULL, m_valueType);
+		return LuaGetTypeName(m_valueType);
 	}
 
 	/// 変数がフィールドを持つかどうかを取得します。
 	bool HasFields() const {
 		return m_hasFields;
-	}
-
-	/// 変数がフィールドを持つかどうかを設定します。
-	void SetHasFields(bool hasFields) {
-		m_hasFields = hasFields;
 	}
 
 	friend bool operator==(const LuaVar &x, const LuaVar &y) {
@@ -219,6 +218,15 @@ public:
 	friend bool operator!=(const LuaVar &x, const LuaVar &y) {
 		return !(x == y);
 	}
+
+protected:
+#ifndef LLDEBUG_FRAME
+	/// Check weather the variable has fields.
+	bool CheckHasFields(lua_State *L, int valueIdx) const;
+
+	/// Register and save valueIdx to the internal table.
+	int RegisterTable(lua_State *L, int valueIdx);
+#endif
 
 private:
 	friend class boost::serialization::access;
