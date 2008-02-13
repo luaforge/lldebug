@@ -4,7 +4,7 @@
 // Author:      Robert Roebling
 // Maintainer:  Otto Wyss
 // Created:     01/02/97
-// RCS-ID:      $Id: treelistctrl.h,v 1.2 2008-01-31 15:58:07 cielacanth Exp $
+// RCS-ID:      $Id: treelistctrl.h,v 1.3 2008-02-13 12:22:54 cielacanth Exp $
 // Copyright:   (c) 2004 Robert Roebling, Julian Smart, Alberto Griggio,
 //              Vadim Zeitlin, Otto Wyss
 // Licence:     wxWindows
@@ -27,7 +27,9 @@ class WXDLLEXPORT wxTreeListItem;
 class WXDLLEXPORT wxTreeListHeaderWindow;
 class WXDLLEXPORT wxTreeListMainWindow;
 
-#define wxTR_VIRTUAL    0x1000    // The application provides items text on demand.
+#define wxTR_VIRTUAL      0x1000    // The application provides items text on demand.
+#define wxTR_COL_LINES    0x2000    // Draw col lines.
+#define wxTR_HIDE_COLUMNS 0x4000    // Hide the all columns.
 
 // Using this typedef removes an ambiguity when calling Remove()
 #ifdef __WXMSW__
@@ -123,9 +125,6 @@ const int wxTL_MODE_NAV_LEVEL    = 0x0004;
 const int wxTL_MODE_FIND_EXACT   = 0x0000; // default
 const int wxTL_MODE_FIND_PARTIAL = 0x0010;
 const int wxTL_MODE_FIND_NOCASE  = 0x0020;
-
-// additional control style
-#define wxTR_COL_LINES  0x00010000     // don't display root node
 
 // additional flag for HitTest
 const int wxTREE_HITTEST_ONITEMCOLUMN = 0x2000;
@@ -461,11 +460,6 @@ public:
     void CollapseAndReset(const wxTreeItemId& item); //? TODO ???
     // toggles the current state
     void Toggle (const wxTreeItemId& item);
-
-	// stop refreshing
-	void BeginBatch();
-	// restart refreshing
-	void EndBatch();
 
     // remove the selection from currently selected item (if any)
     void Unselect();

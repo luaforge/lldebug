@@ -4,7 +4,7 @@
 // Author:      Robert Roebling
 // Maintainer:  Otto Wyss
 // Created:     01/02/97
-// RCS-ID:      $Id: treelistctrl.cpp,v 1.2 2008-01-31 15:58:07 cielacanth Exp $
+// RCS-ID:      $Id: treelistctrl.cpp,v 1.3 2008-02-13 12:22:54 cielacanth Exp $
 // Copyright:   (c) 2004 Robert Roebling, Julian Smart, Alberto Griggio,
 //              Vadim Zeitlin, Otto Wyss
 // Licence:     wxWindows
@@ -496,11 +496,6 @@ public:
     // toggles the current state
     void Toggle(const wxTreeItemId& item);
 
-	// stop refreshing
-	void BeginBatch();
-	// restart refreshing
-	void EndBatch();
-
     // remove the selection from currently selected item (if any)
     void Unselect();
     void UnselectAll();
@@ -617,7 +612,6 @@ protected:
     bool                 m_hasFocus;
 public:
     bool                 m_dirty;
-	int                  m_batchCount;
 protected:
     bool                 m_ownsImageListNormal,
                          m_ownsImageListState,
@@ -961,7 +955,7 @@ wxEditTextCtrl::wxEditTextCtrl (wxWindow *parent,
                                 int style,
                                 const wxValidator& validator,
                                 const wxString &name)
-    : wxTextCtrl (parent, id, value, pos, size, style|wxSIMPLE_BORDER, validator, name)
+    : wxTextCtrl (parent, id, value, pos, size, style|wxSIMPLE_BORDER|wxTE_PROCESS_ENTER, validator, name)
 {
     m_res = res;
     m_accept = accept;
@@ -974,7 +968,7 @@ wxEditTextCtrl::wxEditTextCtrl (wxWindow *parent,
 
 void wxEditTextCtrl::OnChar( wxKeyEvent &event )
 {
-    if (event.GetKeyCode() == WXK_RETURN)
+	if (event.GetKeyCode() == WXK_RETURN)
     {
         (*m_accept) = true;
         (*m_res) = GetValue();
@@ -1680,7 +1674,6 @@ void wxTreeListMainWindow::Init() {
 
     m_hasFocus = false;
     m_dirty = false;
-	m_batchCount = 0;
 
     m_lineHeight = LINEHEIGHT;
     m_indent = MININDENT; // min. indent
@@ -2413,13 +2406,6 @@ void wxTreeListMainWindow::Toggle (const wxTreeItemId& itemId) {
     }
 }
 
-void wxTreeListMainWindow::BeginBatch () {
-	++m_batchCount;
-}
-
-void wxTreeListMainWindow::EndBatch () {
-	--m_batchCount;
-}
 
 void wxTreeListMainWindow::Unselect() {
     if (m_selectItem) {
@@ -3575,7 +3561,9 @@ void wxTreeListMainWindow::EditLabel (const wxTreeItemId& item, int column) {
     long style = 0;
     if (column == GetMainColumn()) {
         x += m_editItem->GetTextX() - 2; // wxTextCtrl needs 2 pixels before the text
-        w = wxMin (m_editItem->GetWidth(), m_owner->GetHeaderWindow()->GetWidth() - x);
+        w = wxMin (
+			    m_owner->GetHeaderWindow()->GetWidth() - x,
+				m_owner->GetHeaderWindow()->GetColumnWidth(column) - x - 2);
     }else{
         for (int i = 0; i < column; ++i) x += header_win->GetColumnWidth (i); // start of column
         switch (header_win->GetColumnAlignment (column)) {
@@ -3834,8 +3822,6 @@ void wxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
      * we actually redraw the tree when everything is over */
 
     if (!m_dirty) return;
-
-	if (m_batchCount > 0) return;
 
     m_dirty = false;
     CalculatePositions();
@@ -4162,14 +4148,19 @@ bool wxTreeListCtrl::Create(wxWindow *parent, wxWindowID id,
 void wxTreeListCtrl::CalculateAndSetHeaderHeight()
 {
     if (m_header_win) {
-
-        // we use 'g' to get the descent, too
-        int w, h, d;
-        m_header_win->GetTextExtent(_T("Hg"), &w, &h, &d);
-        h += d + 2 * HEADER_OFFSET_Y + EXTRA_HEIGHT;
+        // check weather the flag has wxTR_HIDE_COLUMN.
+        int h;
+		if (HasFlag(wxTR_HIDE_COLUMNS)) {
+			h = 0;
+		}else {
+			// we use 'd' to get the descent, too
+			int w, d;
+			m_header_win->GetTextExtent(_T("Hg"), &w, &h, &d);
+			h += d + 2 * HEADER_OFFSET_Y + EXTRA_HEIGHT;
+		}
 
         // only update if changed
-        if (h != m_headerHeight) {
+		if (h != m_headerHeight) {
             m_headerHeight = h;
             DoHeaderLayout();
         }
@@ -4477,12 +4468,6 @@ void wxTreeListCtrl::CollapseAndReset(const wxTreeItemId& item)
 
 void wxTreeListCtrl::Toggle(const wxTreeItemId& item)
 { m_main_win->Toggle(item); }
-
-void wxTreeListCtrl::BeginBatch()
-{ m_main_win->BeginBatch(); }
-
-void wxTreeListCtrl::EndBatch()
-{ m_main_win->EndBatch(); }
 
 void wxTreeListCtrl::Unselect()
 { m_main_win->Unselect(); }
