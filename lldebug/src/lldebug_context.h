@@ -30,6 +30,7 @@
 #include "lldebug_sysinfo.h"
 #include "lldebug_luainfo.h"
 #include "lldebug_remoteengine.h"
+#include "lldebug_queue.h"
 
 namespace lldebug {
 
@@ -52,15 +53,17 @@ public:
 		STATE_QUIT,
 	};
 
-	class scoped_lua;
-	friend class scoped_lua;
-
 public:
 	static Context *Create();
 	virtual void Delete();
 
 	static Context *Find(lua_State *L);
 	virtual void Quit();
+	virtual void SetDebugEnable(bool enabled);
+
+	virtual bool IsDebugEnabled() {
+		return m_isEnabled;
+	}
 
 	/// 文字列をウィンドウに出力します。
 	std::string ParseLuaError(const std::string &cstr, std::string *key_,
@@ -76,13 +79,16 @@ public:
 	int LuaOpenBase(lua_State *L);
 	void LuaOpenLibs(lua_State *L);
 
-	LuaVarList LuaGetLocals(const LuaStackFrame &stackFrame);
-	LuaVarList LuaGetEnviron(const LuaStackFrame &stackFrame);
 	LuaVarList LuaGetFields(TableType type);
 	LuaVarList LuaGetFields(const LuaVar &var);
+	LuaVarList LuaGetLocals(const LuaStackFrame &stackFrame);
+	LuaVarList LuaGetEnviron(const LuaStackFrame &stackFrame);
+	LuaVarList LuaGetEvalVarList(const string_array &array, const LuaStackFrame &stackFrame);
+	std::string LuaGetEval(const std::string &str, const LuaStackFrame &stackFrame);
 	LuaStackList LuaGetStack();
 	LuaBacktraceList LuaGetBacktrace();
-	std::string LuaEval(const std::string &str, const LuaStackFrame &stackFrame);
+
+	int LuaEval(lua_State *L, int level, const std::string &str);
 
 	/// コンテキストのＩＤを取得します。
 	int GetId() const {
@@ -152,7 +158,7 @@ private:
 	virtual void CommandCallback(const Command &command);
 	virtual int HandleCommand();
 
-	static void SetHook(lua_State *L, bool enable);
+	static void SetHook(lua_State *L);
 	virtual void HookCallback(lua_State *L, lua_Debug *ar);
 	static void s_HookCallback(lua_State *L, lua_Debug *ar);
 
@@ -175,6 +181,7 @@ private:
 	int m_id;
 	lua_State *m_lua;
 	State m_state;
+	bool m_isEnabled;
 	int m_updateCount;
 	bool m_isMustUpdate;
 
@@ -196,7 +203,7 @@ private:
 	BreakpointList m_breakpoints;
 	std::string m_rootFileKey;
 
-	typedef std::queue<Command> CommandQueue;
+	typedef queue_mt<Command> CommandQueue;
 	CommandQueue m_readCommandQueue;
 	boost::condition m_readCommandQueueCond;
 };
@@ -204,25 +211,36 @@ private:
 /**
  * @brief 特定のスコープでluaを使うためのクラスです。
  */
-class Context::scoped_lua {
+class scoped_lua {
 public:
 	explicit scoped_lua(lua_State *L)
 		: m_L(L), m_top(-1), m_n(-1), m_npop(0) {
-		m_oldhook = (lua_gethook(L) != NULL);
-		Context::SetHook(L, false);
+		m_ctx = Context::Find(L);
+		if (m_ctx != NULL) {
+			m_isOldEnabled = m_ctx->IsDebugEnabled();
+			m_ctx->SetDebugEnable(false);
+		}
 	}
 
 	explicit scoped_lua(lua_State *L, int n, int npop = 0)
 		: m_L(L), m_n(n), m_npop(npop) {
+		m_ctx = Context::Find(L);
+		if (m_ctx != NULL) {
+			m_isOldEnabled = m_ctx->IsDebugEnabled();
+			m_ctx->SetDebugEnable(false);
+		}
 		m_top = lua_gettop(L);
-		m_oldhook = (lua_gethook(L) != NULL);
-		Context::SetHook(L, false);
 	}
 
 	~scoped_lua() {
-		Context::SetHook(m_L, m_oldhook);
-		if (m_top >= 0) assert(m_top + m_n == lua_gettop(m_L));
+		if (m_top >= 0) {
+			assert(m_top + m_n == lua_gettop(m_L));
+		}
 		lua_pop(m_L, m_npop);
+
+		if (m_ctx != NULL) {
+			m_ctx->SetDebugEnable(m_isOldEnabled);
+		}
 	}
 
 	void reset_stackn(int n) {
@@ -230,10 +248,11 @@ public:
 	}
 
 private:
+	Context *m_ctx;
 	lua_State *m_L;
 	int m_top, m_n;
 	int m_npop;
-	bool m_oldhook;
+	bool m_isOldEnabled;
 };
 
 }
