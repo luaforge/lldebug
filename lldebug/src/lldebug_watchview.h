@@ -29,16 +29,15 @@
 
 #include "lldebug_controls.h"
 #include "lldebug_luainfo.h"
-#include <wx/treelistctrl.h>
 
 namespace lldebug {
 
-class WatchViewItemData;
+class VariableWatch;
 
 /**
  * @brief ローカル変数とその値を表示するコントロールです。
  */
-class WatchView : public wxTreeListCtrl {
+class WatchView : public wxPanel {
 public:
 	enum Type {
 		TYPE_LOCALWATCH,
@@ -49,38 +48,20 @@ public:
 		TYPE_WATCH,
 	};
 
-	typedef std::vector<wxTreeItemId> wxTreeItemIdList;
-
 public:
 	explicit WatchView(wxWindow *parent, Type type);
 	virtual ~WatchView();
 
-	virtual wxTreeItemIdList GetItemChildren(const wxTreeItemId &item);
-	virtual WatchViewItemData *GetItemData(const wxTreeItemId &item);
-
 private:
-	void CreateGUIControls();
-	void LayoutColumn(int selectedColumn);
-
-	class UpdateVars;
-	friend class UpdateVars;
-	void BeginUpdateVars(bool isExpand);
-	void BeginUpdateVars(wxTreeItemId item, const LuaVar &var, bool isExpand);
-	void DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool isExpand);
-
-private:
+	void BeginUpdating();
 	void OnChangedState(wxDebugEvent &event);
 	void OnUpdateSource(wxDebugEvent &event);
 	void OnShow(wxShowEvent &event);
-	void OnExpanded(wxTreeEvent &event);
-	void OnEndLabelEdit(wxTreeEvent &event);
-	void OnSize(wxSizeEvent &event);
-	void OnColEndDrag(wxListEvent &event);
 
 	DECLARE_EVENT_TABLE();
 
 private:
-	mutex m_mutex;
+	VariableWatch *m_watch;
 	Type m_type;
 };
 

@@ -41,6 +41,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
+	REMOTECOMMANDTYPE_REQUEST_EVALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_STACKLIST,
 	REMOTECOMMANDTYPE_REQUEST_BACKTRACE,
 
@@ -130,6 +131,9 @@ public:
 
 	void Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const;
 	void Set_RequestEnvironVarList(const LuaStackFrame &stackFrame);
+
+	void Get_RequestEvalVarList(string_array &array, LuaStackFrame &stackFrame) const;
+	void Set_RequestEvalVarList(const string_array &array, const LuaStackFrame &stackFrame);
 
 	void Get_ValueString(std::string &str) const;
 	void Set_ValueString(const std::string &str);
@@ -281,6 +285,7 @@ public:
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
 	void RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
 	void RequestEnvironVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
+	void RequestEvalVarList(const string_array &array, const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
 	void RequestGlobalVarList(const LuaVarListCallback &callback);
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);

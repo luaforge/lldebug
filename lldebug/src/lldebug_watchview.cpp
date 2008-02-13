@@ -25,31 +25,42 @@
  */
 
 #include "lldebug_prec.h"
+#include "lldebug_queue.h"
 #include "lldebug_mediator.h"
 #include "lldebug_remoteengine.h"
 #include "lldebug_watchview.h"
 
+#include "wx/treelistctrl.h"
+
 namespace lldebug {
 
-class WatchViewItemData : public wxTreeItemData {
+typedef std::vector<wxTreeItemId> wxTreeItemIdList;
+
+/**
+ * @brief The data of the VariableWatch.
+ */
+class VariableWatchItemData : public wxTreeItemData {
 public:
-	explicit WatchViewItemData(const LuaVar &var)
+	explicit VariableWatchItemData(const LuaVar &var)
 		: m_var(var), m_updateCount(-1) {
 	}
 
-	virtual ~WatchViewItemData() {
+	virtual ~VariableWatchItemData() {
 	}
 
+	/// Get the LuaVar object.
 	const LuaVar &GetVar() const {
 		return m_var;
 	}
 
+	/// Get the update count.
 	int GetUpdateCount() const {
 		return m_updateCount;
 	}
 
-	void SetUpdateCount(int updateCount) {
-		m_updateCount = updateCount;
+	/// Update the update count.
+	void Updated() {
+		m_updateCount = Mediator::Get()->GetUpdateCount();
 	}
 
 private:
@@ -57,15 +68,428 @@ private:
 	int m_updateCount;
 };
 
-BEGIN_EVENT_TABLE(WatchView, wxTreeListCtrl)
-	EVT_SIZE(WatchView::OnSize)
+
+/// The type of a function that requests the LuaVarList from RemoteEngine.
+typedef boost::function1<void, const LuaVarListCallback &> VarListRequester;
+
+/**
+ * @brief The common implementation of 'VariableWatch'.
+ */
+class VariableWatch : public wxTreeListCtrl {
+public:
+	explicit VariableWatch(wxWindow *parent, int id,
+						   bool isShowColumn, bool isShowType,
+						   bool isLabelEditable,
+						   const VarListRequester &requester)
+		: wxTreeListCtrl(parent, id
+			, wxDefaultPosition, wxDefaultSize
+			, wxTR_HAS_BUTTONS | wxTR_LINES_AT_ROOT | wxTR_HIDE_ROOT
+			| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
+			| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB)
+		, m_isShowColumn(isShowColumn), m_isLabelEditable(isLabelEditable)
+		, m_requester(requester) {
+
+		if (isShowColumn) {
+			// Set the header font.
+			wxFont font(GetFont());
+			font.SetPointSize(9);
+			SetFont(font);
+
+			AddColumn(_("Name"), 80, wxALIGN_LEFT, -1, true, true);
+			AddColumn(_("Value"), 120, wxALIGN_LEFT, -1, true, true);
+			if (isShowType) {
+				AddColumn(_("Type"), 60, wxALIGN_LEFT, -1, true, true);
+			}
+			SetLineSpacing(2);
+		}
+
+		AddRoot(wxT(""), -1, -1, new VariableWatchItemData(LuaVar()));
+		if (isLabelEditable) {
+			AppendItem(
+				GetRootItem(), wxT("                                "),
+				-1, -1, new VariableWatchItemData(LuaVar()));
+		}
+	}
+
+	virtual ~VariableWatch() {
+	}
+
+	/// Get children of the item.
+	virtual wxTreeItemIdList GetItemChildren(const wxTreeItemId &item) {
+		wxTreeItemIdList result;
+		wxTreeItemIdValue cookie;
+
+		for (wxTreeItemId child = GetFirstChild(item, cookie);
+			child.IsOk();
+			child = GetNextChild(item, cookie)) {
+			result.push_back(child);
+		}
+
+		return result;
+	}
+
+	/// Get the data of the item.
+	virtual VariableWatchItemData *GetItemData(const wxTreeItemId &item) {
+		return static_cast<VariableWatchItemData *>(wxTreeListCtrl::GetItemData(item));
+	}
+
+private:
+	/// This object is called when the request var list
+	/// is done and results are returned.
+	struct RequestVarListCallback {
+		explicit RequestVarListCallback(VariableWatch *watch, wxTreeItemId item, bool isExpanded)
+			: m_watch(watch), m_item(item), m_isExpanded(isExpanded) {
+		}
+		/// This method may be called from the other thread.
+		/// @param vars    result of the request
+		void operator()(const lldebug::Command &command, const LuaVarList &vars) {
+			VariableWatch::UpdateData data;
+			data.item = m_item;
+			data.vars = vars;
+			data.isExpanded = m_isExpanded;
+			m_watch->m_queue.push(data);
+		}
+	private:
+		VariableWatch *m_watch;
+		wxTreeItemId m_item;
+		bool m_isExpanded;
+	};
+	friend struct RequestVarsCallback;
+
+public:
+	/// Begin updating contents.
+	void BeginUpdating(wxTreeItemId item, bool isExpanded,
+						 const VarListRequester &request) {
+		VariableWatchItemData *data = GetItemData(item);
+		//bool isRoot = (item == GetRootItem());
+		bool isNeedUpdate =
+			(data->GetUpdateCount() < Mediator::Get()->GetUpdateCount());
+
+		if (isNeedUpdate) {
+			RequestVarListCallback callback(this, item, isExpanded);
+			request(callback);
+		}
+		else if (isExpanded) {
+			wxTreeItemIdList children = GetItemChildren(item);
+
+			wxTreeItemIdList::iterator it;
+			for (it = children.begin(); it != children.end(); ++it) {
+				VariableWatchItemData *data = GetItemData(*it);
+				BeginUpdating(*it, false, data->GetVar());
+			}
+		}
+	}
+
+	/// Request for the fields of the var.
+	struct FieldsRequester {
+		explicit FieldsRequester(const LuaVar &var)
+			: m_var(var) {
+		}
+		void operator()(const LuaVarListCallback &callback) {
+			Mediator::Get()->GetEngine()->RequestFieldsVarList(m_var, callback);
+		}
+	private:
+		LuaVar m_var;
+		};
+
+	/// Begin the updating the fields of the var.
+	void BeginUpdating(wxTreeItemId item, bool isExpanded, const LuaVar &var) {
+		BeginUpdating(item, isExpanded, FieldsRequester(var));
+	}
+
+	/// Request for the results of the label evaluations.
+	struct EvalLabelRequester {
+		explicit EvalLabelRequester(VariableWatch *watch)
+			: m_watch(watch) {
+		}
+		void operator()(const LuaVarListCallback &callback) {
+			wxTreeItemId item = m_watch->GetRootItem();
+			wxTreeItemIdValue cookie;
+			string_array labels;
+
+			for (wxTreeItemId child = m_watch->GetFirstChild(item, cookie);
+				child.IsOk();
+				child = m_watch->GetNextChild(item, cookie)) {
+				wxString label = m_watch->GetItemText(child);
+
+				if (label.Strip(wxString::both).IsEmpty()) {
+					labels.push_back("");
+				}
+				else {
+					std::string str = "return (";
+					str += wxConvToUTF8(label);
+					str += ")";
+					labels.push_back(str);
+				}
+			}
+
+			Mediator::Get()->GetEngine()->RequestEvalVarList(
+				labels,
+				Mediator::Get()->GetStackFrame(),
+				callback);
+		}
+	private:
+		VariableWatch *m_watch;
+		};
+
+	/// Begin updating vars.
+	void BeginUpdating() {
+		if (m_isLabelEditable) {
+			BeginUpdating(GetRootItem(), true, EvalLabelRequester(this));
+		}
+		else {
+			BeginUpdating(GetRootItem(), true, m_requester);
+		}
+	}
+
+private:
+	/// Compare the item vars.
+	struct ItemComparator {
+		explicit ItemComparator(VariableWatch *watch, const LuaVar &var)
+			: m_watch(watch), m_var(var) {
+		}
+
+		bool operator()(const wxTreeItemId &item) {
+			VariableWatchItemData *data = m_watch->GetItemData(item);
+			return
+				( data != NULL && data->GetVar().IsOk()
+				? data->GetVar() == m_var
+				: false);
+		}
+
+	private:
+		VariableWatch *m_watch;
+		const LuaVar &m_var;
+	};
+
+	/// Update child variables of vars actually.
+	void DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars,
+					  bool isExpand) {
+		// The current chilren list.
+		// If the item is updated, it is removed.
+		wxTreeItemIdList children = GetItemChildren(parent);
+		bool isEvalLabels =
+			(m_isLabelEditable && parent == GetRootItem());
+
+		// If each tree's label were evaluted...
+		if (isEvalLabels) {
+			wxASSERT(children.size() == vars.size());
+		}
+
+		for (LuaVarList::size_type i = 0; i < vars.size(); ++i) {
+			const LuaVar &var = vars[i];
+			wxTreeItemIdList::iterator it;
+			wxTreeItemId item;
+
+			// Set item to 'it'.
+			if (isEvalLabels) {
+				// Because the item of 'children' is eliminated.
+				it = children.begin();
+			} else {
+				// Find the item that has the same LuaVar object.
+				it = std::find_if(children.begin(), children.end(), ItemComparator(this, var));
+			}
+
+			// Does the item exist ?
+			if (it == children.end()) { // No!
+				item = AppendItem(parent, wxEmptyString, -1, -1, new VariableWatchItemData(var));
+
+				wxString name = wxConvFromUTF8(var.GetName());
+				SetItemText(item, 0, name);
+			}
+			else {
+				// Use the exist item.
+				item = *it;
+				children.erase(it);
+
+				// Replace the item data.
+				VariableWatchItemData *oldData = GetItemData(item);
+				if (oldData != NULL) {
+					delete oldData;
+				}
+				SetItemData(item, new VariableWatchItemData(var));
+			}
+
+			// To avoid the useless refresh, check change of the title.
+			wxString value = wxConvFromUTF8(var.GetValue());
+			if (GetItemText(item, 1) != value) {
+				SetItemText(item, 1, value);
+			}
+
+			// Check weather it has the type column.
+			if (GetColumnCount() >= 3) {
+				wxString type = wxConvFromUTF8(var.GetValueTypeName());
+				if (GetItemText(item, 2) != type) {
+					SetItemText(item, 2, type);
+				}
+			}
+
+			// Refresh the chilren, too.
+			if (var.HasFields()) {
+				if (IsExpanded(item)) {
+					BeginUpdating(item, true, var);
+				}
+				else if (isExpand) {
+					BeginUpdating(item, false, var);
+				}
+				else if (!HasChildren(item)) {
+					AppendItem(item, _T("$<item for lazy evalution>"));
+				}
+			}
+			else {
+				if (HasChildren(item)) {
+					// The state weather the item is expanded or collapsed
+					// has been saved, so collapse it carefully.
+					Collapse(item);
+
+					// Delete all child items.
+					DeleteChildren(item);
+				}
+			}
+		}
+
+		// Remove all items that were not refreshed or appended.
+		wxTreeItemIdList::iterator it;
+		for (it = children.begin(); it != children.end(); ++it) {
+			Delete(*it);
+		}
+
+		// If m_isLabelEditable is true, the update count is useless.
+		//if (!m_isLabelEditable)
+		{
+			VariableWatchItemData *data = GetItemData(parent);
+			data->Updated();
+		}
+	}
+
+private:
+	void OnIdle(wxIdleEvent &event) {
+		event.Skip();
+
+		while (!m_queue.empty()) {
+			UpdateData data = m_queue.front();
+			m_queue.pop();
+			DoUpdateVars(data.item, data.vars, data.isExpanded);
+		}
+	}
+
+	void OnExpanded(wxTreeEvent &event) {
+		event.Skip();
+
+		VariableWatchItemData *data = GetItemData(event.GetItem());
+		BeginUpdating(event.GetItem(), true, data->GetVar());
+	}
+
+	void OnEndLabelEdit(wxTreeEvent &event) {
+		event.Skip();
+
+		if (m_isLabelEditable) {
+			// The last label is only the white space,
+			// add a new label.
+			wxTreeItemIdValue cookie;
+			wxTreeItemId item = GetLastChild(GetRootItem(), cookie);
+			if (item == event.GetItem()) {
+				wxString label = event.GetLabel();
+				if (!label.Strip(wxString::both).IsEmpty()) {
+					AppendItem(
+						GetRootItem(), wxT("                     "),
+						-1, -1, new VariableWatchItemData(LuaVar()));
+				}
+			}
+
+			SetItemText(event.GetItem(), event.GetLabel());
+			Mediator::Get()->IncUpdateCount();
+			BeginUpdating();
+		}
+	}
+
+private:
+	/// Resize the target and next columns to fit the window width.
+	void LayoutColumn(int targetColumn) {
+		if (GetColumnCount() <= 1) {
+			if (GetColumnCount() == 1) {
+				SetColumnWidth(0, GetClientSize().GetWidth());
+			}
+			return;
+		}
+
+		int resizeItem = targetColumn + 1;
+		if (resizeItem == GetColumnCount()) {
+			resizeItem = GetColumnCount() - 1;
+		}
+		
+		int columnsWidth = 0; // column's width
+		for (int i = 0; i < GetColumnCount(); ++i) {
+			if (i != resizeItem) {
+				columnsWidth += GetColumnWidth(i);
+			}
+		}
+
+		// Do resize the column.
+		SetColumnWidth(
+			resizeItem,
+			GetClientSize().GetWidth() - columnsWidth);
+	}
+
+	/// Fit the the columns to the window width.
+	void FitColumns() {
+		int curWidth = 0; // column's size
+		for (int i = 0; i < GetColumnCount(); ++i) {
+			curWidth += GetColumnWidth(i); 
+		}
+	
+		// prevWidth is the currently resizable width.
+		int width = GetClientSize().GetWidth();
+		double ratio = (double)width / curWidth;
+		if (ratio < 0.001) {
+			return;
+		}
+
+		// Resize the columns with the same ratio.
+		for (int i = 0; i < GetColumnCount(); ++i) {
+			int w = GetColumnWidth(i);
+			SetColumnWidth(i, (int)(w * ratio));
+		}
+	}
+
+	void OnSize(wxSizeEvent &event) {
+		event.Skip();
+		FitColumns();
+	}
+
+	void OnColEndDrag(wxListEvent &event) {
+		event.Skip();
+		LayoutColumn(event.GetColumn());
+	}
+
+private:
+	struct UpdateData {
+		wxTreeItemId item;
+		LuaVarList vars;
+		bool isExpanded;
+	};
+	queue_mt<UpdateData> m_queue;
+	bool m_isShowColumn;
+	bool m_isLabelEditable;
+	VarListRequester m_requester;
+
+	DECLARE_EVENT_TABLE();
+};
+
+BEGIN_EVENT_TABLE(VariableWatch, wxTreeListCtrl)
+	EVT_IDLE(VariableWatch::OnIdle)
+	EVT_SIZE(VariableWatch::OnSize)
+	EVT_TREE_ITEM_EXPANDED(wxID_ANY, VariableWatch::OnExpanded)
+	EVT_TREE_END_LABEL_EDIT(wxID_ANY, VariableWatch::OnEndLabelEdit)
+	EVT_LIST_COL_END_DRAG(wxID_ANY, VariableWatch::OnColEndDrag)
+END_EVENT_TABLE()
+
+
+/*-----------------------------------------------------------------*/
+BEGIN_EVENT_TABLE(WatchView, wxPanel)
 	EVT_SHOW(WatchView::OnShow)
 	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, WatchView::OnChangedState)
 	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, WatchView::OnUpdateSource)
-
-	EVT_TREE_ITEM_EXPANDED(wxID_ANY, WatchView::OnExpanded)
-	EVT_TREE_END_LABEL_EDIT(wxID_ANY, WatchView::OnEndLabelEdit)
-	EVT_LIST_COL_END_DRAG(wxID_ANY, WatchView::OnColEndDrag)
 END_EVENT_TABLE()
 
 static int GetWatchViewId(WatchView::Type type) {
@@ -87,312 +511,105 @@ static int GetWatchViewId(WatchView::Type type) {
 	return -1;
 }
 
+/*class TestView : public wxFrame {
+	wxTreeListCtrl *m_tree;
+public:
+	explicit TestView(wxWindow *parent)
+		: wxFrame(parent, wxID_ANY, _T("")
+			, wxDefaultPosition, wxDefaultSize
+			, wxFRAME_TOOL_WINDOW | wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT) {
+
+		wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+		sizer->Add(m_tree = new wxTreeListCtrl(this, wxID_ANY
+			, wxDefaultPosition, wxDefaultSize
+			, wxTR_HAS_BUTTONS | wxTR_HIDE_COLUMNS | wxTR_LINES_AT_ROOT
+			| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
+			| wxTR_FULL_ROW_HIGHLIGHT | wxTR_HIDE_ROOT), 1, wxEXPAND);
+		SetSizer(sizer);
+		sizer->SetSizeHints(this);
+	}
+};*/
+
+struct VarUpdateRequester {
+	explicit VarUpdateRequester(WatchView::Type type)
+		: m_type(type) {
+	}
+	void operator()(const LuaVarListCallback &callback) {
+		switch (m_type) {
+		case WatchView::TYPE_LOCALWATCH:
+			Mediator::Get()->GetEngine()->RequestLocalVarList(
+				Mediator::Get()->GetStackFrame(), callback);
+			break;
+		case WatchView::TYPE_ENVIRONWATCH:
+			Mediator::Get()->GetEngine()->RequestEnvironVarList(
+				Mediator::Get()->GetStackFrame(), callback);
+			break;
+		case WatchView::TYPE_GLOBALWATCH:
+			Mediator::Get()->GetEngine()->RequestGlobalVarList(callback);
+			break;
+		case WatchView::TYPE_REGISTRYWATCH:
+			Mediator::Get()->GetEngine()->RequestRegistryVarList(callback);
+			break;
+		case WatchView::TYPE_STACKWATCH:
+			Mediator::Get()->GetEngine()->RequestStackList(callback);
+			break;
+		case WatchView::TYPE_WATCH:
+			wxASSERT(false);
+			break;
+		}
+	}
+private:
+	WatchView::Type m_type;
+};
+
 WatchView::WatchView(wxWindow *parent, Type type)
-	: wxTreeListCtrl(parent, GetWatchViewId(type)
-		, wxDefaultPosition, wxDefaultSize
-		, wxTR_HAS_BUTTONS | wxTR_LINES_AT_ROOT | wxTR_HIDE_ROOT
-		| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
-		| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB)
+	: wxPanel(parent, GetWatchViewId(type))
 	, m_type(type) {
-	CreateGUIControls();
+
+	if (type == TYPE_WATCH) {
+		m_watch = new VariableWatch(
+			this, wxID_ANY, true, true,
+			true, VarListRequester());
+	}
+	else {
+		m_watch = new VariableWatch(
+			this, wxID_ANY, true, true,
+			false, VarUpdateRequester(type));
+	}
+
+	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+	sizer->Add(m_watch, 1, wxEXPAND);
+	SetSizer(sizer);
+	sizer->SetSizeHints(this);
 }
 
 WatchView::~WatchView() {
 }
 
-void WatchView::CreateGUIControls() {
-	scoped_lock lock(m_mutex);
-
-	if (m_type == TYPE_STACKWATCH) {
-		AddColumn(_("Index"), 80, wxALIGN_LEFT, -1, true, true);
-	}
-	else {
-		AddColumn(_("Name"), 80, wxALIGN_LEFT, -1, true, true);
-	}
-
-	AddColumn(_("Value"), 120, wxALIGN_LEFT, -1, true, true);
-	AddColumn(_("Type"), 60, wxALIGN_LEFT, -1, true, true);
-	SetLineSpacing(2);
-
-	AddRoot(wxT(""), -1, -1, new WatchViewItemData(LuaVar()));
-}
-
-WatchView::wxTreeItemIdList WatchView::GetItemChildren(const wxTreeItemId &item) {
-	scoped_lock lock(m_mutex);
-	wxTreeItemIdList result;
-	wxTreeItemIdValue cookie;
-
-	for (wxTreeItemId child = GetFirstChild(item, cookie);
-		child.IsOk();
-		child = GetNextChild(item, cookie)) {
-		result.push_back(child);
-	}
-
-	return result;
-}
-
-WatchViewItemData *WatchView::GetItemData(const wxTreeItemId &item) {
-	scoped_lock lock(m_mutex);
-	return static_cast<WatchViewItemData *>(wxTreeListCtrl::GetItemData(item));
-}
-
-class WatchView::UpdateVars {
-public:
-	explicit UpdateVars(WatchView *view, wxTreeItemId item, bool isExpand)
-		: m_view(view), m_item(item), m_isExpand(isExpand) {
-	}
-
-	bool IsNeed() {
-		WatchViewItemData *data = m_view->GetItemData(m_item);
-		return (data->GetUpdateCount() < Mediator::Get()->GetUpdateCount());
-	}
-
-	void operator()(const lldebug::Command &command, const LuaVarList &vars) {
-		m_view->DoUpdateVars(m_item, vars, m_isExpand);
-	}
-
-private:
-	WatchView *m_view;
-	wxTreeItemId m_item;
-	bool m_isExpand;
-};
-
-void WatchView::BeginUpdateVars(bool isExpand) {
-	scoped_lock lock(m_mutex);
-	UpdateVars callback = UpdateVars(this, GetRootItem(), isExpand);
-
-	if (!callback.IsNeed()) {
-		if (isExpand) {
-			wxTreeItemIdList children = GetItemChildren(GetRootItem());
-
-			wxTreeItemIdList::iterator it;
-			for (it = children.begin(); it != children.end(); ++it) {
-				WatchViewItemData *data = GetItemData(*it);
-				BeginUpdateVars(*it, data->GetVar(), false);
-			}
-		}
-		return;
-	}
-
-	switch (m_type) {
-	case TYPE_LOCALWATCH:
-		Mediator::Get()->GetEngine()->RequestLocalVarList(
-			Mediator::Get()->GetStackFrame(), callback);
-		break;
-	case TYPE_ENVIRONWATCH:
-		Mediator::Get()->GetEngine()->RequestEnvironVarList(
-			Mediator::Get()->GetStackFrame(), callback);
-		break;
-	case TYPE_GLOBALWATCH:
-		Mediator::Get()->GetEngine()->RequestGlobalVarList(callback);
-		break;
-	case TYPE_REGISTRYWATCH:
-		Mediator::Get()->GetEngine()->RequestRegistryVarList(callback);
-		break;
-	case TYPE_STACKWATCH:
-		Mediator::Get()->GetEngine()->RequestStackList(callback);
-		break;
-	case TYPE_WATCH:
-		break;
-	}
-}
-
-void WatchView::BeginUpdateVars(wxTreeItemId item, const LuaVar &var, bool isExpand) {
-	scoped_lock lock(m_mutex);
-	UpdateVars callback = UpdateVars(this, item, isExpand);
-
-	if (callback.IsNeed()) {
-		Mediator::Get()->GetEngine()->RequestFieldsVarList(var, callback);
-	}
-	else {
-		if (isExpand) {
-			wxTreeItemIdList children = GetItemChildren(item);
-
-			wxTreeItemIdList::iterator it;
-			for (it = children.begin(); it != children.end(); ++it) {
-				WatchViewItemData *data = GetItemData(*it);
-				BeginUpdateVars(*it, data->GetVar(), false);
-			}
-		}
-	}
-}
-
-struct CompareItem {
-	WatchView *watch;
-	const LuaVar &var;
-
-	explicit CompareItem(WatchView *watch_, const LuaVar &var_)
-		: watch(watch_), var(var_) {
-	}
-
-	bool operator()(const wxTreeItemId &item) {
-		WatchViewItemData *data = watch->GetItemData(item);
-		return (data != NULL && data->GetVar().IsOk() ? data->GetVar() == var : false);
-	}
-};
-
-void WatchView::DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars, bool isExpand) {
-	scoped_lock lock(m_mutex);
-	// 既存の子アイテムリストで、アイテムの追加・削除時に使います。
-	wxTreeItemIdList children = GetItemChildren(parent);
-
-	for (LuaVarList::size_type i = 0; i < vars.size(); ++i) {
-		const LuaVar &var = vars[i];
-		wxTreeItemIdList::iterator it;
-		wxTreeItemId item;
-
-		// 子アイテムがすでに登録されているか探します。
-		it = std::find_if(children.begin(), children.end(), CompareItem(this, var));
-		if (it == children.end()) {
-			item = AppendItem(parent, wxEmptyString, -1, -1, new WatchViewItemData(var));
-
-			wxString name = wxConvFromUTF8(var.GetName());
-			SetItemText(item, 0, name);
-		}
-		else {
-			// 既存のアイテムがあったらそれを使います。
-			item = *it;
-			children.erase(it);
-
-			// 古いデータは削除しないとリークします。
-			WatchViewItemData *oldData = GetItemData(item);
-			if (oldData != NULL) {
-				delete oldData;
-			}
-			SetItemData(item, new WatchViewItemData(var));
-		}
-
-		// カラムを設定します。
-		wxString value = wxConvFromUTF8(var.GetValue());
-		if (GetItemText(item, 1) != value) {
-			SetItemText(item, 1, value);
-		}
-		wxString type = wxConvFromUTF8(var.GetValueTypeName());
-		if (GetItemText(item, 2) != type) {
-			SetItemText(item, 2, type);
-		}
-
-		// 子アイテムがあればそれも更新します。
-		if (var.HasFields()) {
-			if (IsExpanded(item)) {
-				BeginUpdateVars(item, var, true);
-			}
-			else if (isExpand) {
-				BeginUpdateVars(item, var, false);
-			}
-			else if (!HasChildren(item)) {
-				AppendItem(item, _T("$<item for lazy evalution>"));
-			}
-		}
-		else {
-			if (HasChildren(item)) {
-				// The state weather the item is expanded or collapsed
-				// has been saved, so collapse it carefully.
-				Collapse(item);
-
-				// Delete all child items.
-				DeleteChildren(item);
-			}
-		}
-	}
-
-	// 子アイテムに残っているアイテムは削除対象になります。
-	for (wxTreeItemIdList::iterator it = children.begin();
-		it != children.end();
-		++it) {
-		Delete(*it);
-	}
-
-	// Set update count.
-	WatchViewItemData *data = GetItemData(parent);
-	data->SetUpdateCount(Mediator::Get()->GetUpdateCount());
+void WatchView::BeginUpdating() {
+	m_watch->BeginUpdating();
 }
 
 void WatchView::OnChangedState(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	Enable(event.IsBreak());
 }
 
 void WatchView::OnUpdateSource(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	if (IsEnabled() && IsShown()) {
-		BeginUpdateVars(true);
+		BeginUpdating();
 	}
 }
 
 void WatchView::OnShow(wxShowEvent &event) {
-	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	if (event.GetShow() && IsEnabled() && IsShown()) {
-		BeginUpdateVars(true);
+		BeginUpdating();
 	}
-}
-
-void WatchView::OnExpanded(wxTreeEvent &event) {
-	scoped_lock lock(m_mutex);
-	event.Skip();
-
-	WatchViewItemData *data = GetItemData(event.GetItem());
-	BeginUpdateVars(event.GetItem(), data->GetVar(), true);
-}
-
-void WatchView::OnEndLabelEdit(wxTreeEvent &event) {
-	scoped_lock lock(m_mutex);
-	event.Skip();
-
-	if (m_type == TYPE_WATCH) {
-		//wxTreeItemId item = event.GetItem();
-		//WatchViewItemData *data = GetItemData(item);
-	}
-}
-
-void WatchView::LayoutColumn(int selectedColumn) {
-	scoped_lock lock(m_mutex);
-
-	// 合計カラムサイズを取得します。
-	int col_w = 0;
-	int sel_w = 0;
-	for (int i = 0; i < GetColumnCount(); ++i) {
-		if (i <= selectedColumn && i != GetColumnCount() - 1) {
-			sel_w += GetColumnWidth(i); 
-		}
-		else {
-			col_w += GetColumnWidth(i);
-		}
-	}
-	
-	// 小さすぎる場合はエラーとして扱います。
-	int width = GetClientSize().GetWidth();
-				//- wxSystemSettings::GetMetric(wxSYS_VSCROLL_X) - 2;
-	double rate = (double)(width - sel_w) / col_w;
-	if (rate < 0.0001) {
-		return;
-	}
-
-	// カラムサイズを同じ比率だけ変化させます。
-	for (int i = 0; i < GetColumnCount(); ++i) {
-		if (i <= selectedColumn && i != GetColumnCount() - 1) {
-			continue;
-		}
-
-		int w = GetColumnWidth(i);
-		SetColumnWidth(i, (int)(w * rate));
-	}
-}
-
-void WatchView::OnSize(wxSizeEvent &event) {
-	event.Skip();
-	LayoutColumn(-1);
-}
-
-void WatchView::OnColEndDrag(wxListEvent &event) {
-	event.Skip();
-	LayoutColumn(event.GetColumn());
 }
 
 }
