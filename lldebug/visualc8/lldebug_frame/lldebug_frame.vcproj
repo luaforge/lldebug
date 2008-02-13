@@ -287,6 +287,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\lldebug_queue.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\lldebug_remoteengine.cpp"
 				>
 			</File>
