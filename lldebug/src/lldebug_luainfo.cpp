@@ -153,7 +153,7 @@ std::string LuaMakeFuncName(lua_Debug *ar) {
 	std::string name;
 
 	if (*ar->namewhat != '\0') { /* is there a name? */
-		name = ConvToUTF8(ar->name);
+		name = ar->name;
 	}
 	else {
 		if (*ar->what == 'm') { /* main? */

@@ -731,6 +731,16 @@ void RemoteEngine::AddedSource(const Source &source) {
 		data);
 }
 
+void RemoteEngine::SaveSource(const std::string &key,
+							  const string_array &sources) {
+	CommandData data;
+
+	data.Set_SaveSource(key, sources);
+	WriteCommand(
+		REMOTECOMMANDTYPE_SAVE_SOURCE,
+		data);
+}
+
 void RemoteEngine::SetUpdateCount(int updateCount) {
 	CommandData data;
 
@@ -993,6 +1003,15 @@ void CommandData::Get_AddedSource(Source &source) const {
 }
 void CommandData::Set_AddedSource(const Source &source) {
 	m_data = Serializer::ToData(source);
+}
+
+void CommandData::Get_SaveSource(std::string &key,
+								 string_array &sources) const {
+	Serializer::ToValue(m_data, key, sources);
+}
+void CommandData::Set_SaveSource(const std::string &key,
+								 const string_array &sources) {
+	m_data = Serializer::ToData(key, sources);
 }
 
 void CommandData::Get_SetUpdateCount(int &updateCount) const {

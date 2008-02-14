@@ -22,6 +22,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_CHANGED_STATE,
 	REMOTECOMMANDTYPE_UPDATE_SOURCE,
 	REMOTECOMMANDTYPE_ADDED_SOURCE,
+	REMOTECOMMANDTYPE_SAVE_SOURCE,
 	REMOTECOMMANDTYPE_SET_UPDATECOUNT,
 
 	REMOTECOMMANDTYPE_SET_BREAKPOINT,
@@ -104,6 +105,9 @@ public:
 
 	void Get_AddedSource(Source &source) const;
 	void Set_AddedSource(const Source &source);
+
+	void Get_SaveSource(std::string &key, string_array &sources) const;
+	void Set_SaveSource(const std::string &key, const string_array &sources);
 
 	void Get_SetUpdateCount(int &updateCount) const;
 	void Set_SetUpdateCount(int updateCount);
@@ -266,6 +270,7 @@ public:
 	void ChangedState(bool isBreak);
 	void UpdateSource(const std::string &key, int line, int updateCount, const CommandCallback &response);
 	void AddedSource(const Source &source);
+	void SaveSource(const std::string &key, const string_array &sources);
 	void SetUpdateCount(int updateCount);
 
 	void SetBreakpoint(const Breakpoint &bp);

@@ -640,6 +640,15 @@ int Context::HandleCommand() {
 			SetState(STATE_STEPRETURN);
 			break;
 
+		case REMOTECOMMANDTYPE_SAVE_SOURCE:
+			{
+				std::string key;
+				string_array sources;
+				command.GetData().Get_SaveSource(key, sources);
+				SaveSource(key, sources);
+			}
+			break;
+
 		case REMOTECOMMANDTYPE_SET_UPDATECOUNT:
 			{
 				int count;
@@ -1205,7 +1214,8 @@ static int iterate_stacks(Fn &callback, lua_State *L) {
 /// Iterates the local fields.
 template<class Fn>
 static int iterate_locals(Fn &callback, lua_State *L, int level,
-				   bool checkLocal, bool checkUpvalue, bool checkEnviron) {
+						  bool checkLocal, bool checkUpvalue,
+						  bool checkEnviron) {
 	scoped_lua scoped(L, 0);
 	lua_Debug ar;
 	const char *name;

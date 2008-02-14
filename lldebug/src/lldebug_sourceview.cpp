@@ -444,7 +444,7 @@ public:
 			array.pop_back();
 		}
 
-		//SaveFile(m_path);
+		Mediator::Get()->GetEngine()->SaveSource(m_key, array);
 		ChangeModified(false);
 	}
 

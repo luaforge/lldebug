@@ -1,12 +1,13 @@
-* encoding problem
-* need to refactor RemoteEngine class
-/ consider 'lldebug_serialization.h'
 - error message and log message
-* break, restart, and exit
-* backtrace
-* normal watch view
-* popup menu
-* lldebug_startfile, lldebug_startstring
+- normal watch view
 - eval that can handle local variable
 - interactive view
 - modify 'LuaGetValueLocal' function
+/ consider 'lldebug_serialization.h'
+
+* encoding problem
+* need to refactor RemoteEngine class
+* break, restart, and exit
+* backtrace
+* popup menu
+* lldebug_startfile, lldebug_startstring
