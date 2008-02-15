@@ -27,8 +27,9 @@
 #include "lldebug_prec.h"
 #include "lldebug_queue.h"
 #include "lldebug_mediator.h"
-#include "lldebug_remoteengine.h"
 #include "lldebug_watchview.h"
+
+#include "lldebug_mainframe.h"
 
 #include "wx/treelistctrl.h"
 
@@ -85,9 +86,9 @@ public:
 			, wxDefaultPosition, wxDefaultSize
 			, wxTR_HAS_BUTTONS | wxTR_LINES_AT_ROOT | wxTR_HIDE_ROOT
 			| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
-			| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB)
-		, m_isShowColumn(isShowColumn), m_isLabelEditable(isLabelEditable)
-		, m_requester(requester) {
+			| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB
+			| (isShowColumn ? 0 : wxTR_HIDE_COLUMNS))
+		, m_isLabelEditable(isLabelEditable), m_requester(requester) {
 
 		if (isShowColumn) {
 			// Set the header font.
@@ -138,21 +139,29 @@ private:
 	/// is done and results are returned.
 	struct RequestVarListCallback {
 		explicit RequestVarListCallback(VariableWatch *watch, wxTreeItemId item, bool isExpanded)
-			: m_watch(watch), m_item(item), m_isExpanded(isExpanded) {
+			: m_watch(watch), m_item(item), m_isExpanded(isExpanded)
+			, m_updateCount(Mediator::Get()->GetUpdateCount()) {
 		}
 		/// This method may be called from the other thread.
 		/// @param vars    result of the request
 		void operator()(const lldebug::Command &command, const LuaVarList &vars) {
+			static int count = 0;
+			Mediator::Get()->GetFrame()->SetTitle(wxString::Format(_T("%d"), ++count));
+			if (m_updateCount < Mediator::Get()->GetUpdateCount()) {
+				return;
+			}
 			VariableWatch::UpdateData data;
 			data.item = m_item;
 			data.vars = vars;
 			data.isExpanded = m_isExpanded;
+			data.updateCount = Mediator::Get()->GetUpdateCount();
 			m_watch->m_queue.push(data);
 		}
 	private:
 		VariableWatch *m_watch;
 		wxTreeItemId m_item;
 		bool m_isExpanded;
+		int m_updateCount;
 	};
 	friend struct RequestVarsCallback;
 
@@ -253,7 +262,7 @@ private:
 			VariableWatchItemData *data = m_watch->GetItemData(item);
 			return
 				( data != NULL && data->GetVar().IsOk()
-				? data->GetVar() == m_var
+				? data->GetVar().GetName() == m_var.GetName()
 				: false);
 		}
 
@@ -340,11 +349,17 @@ private:
 				if (HasChildren(item)) {
 					// The state weather the item is expanded or collapsed
 					// has been saved, so collapse it carefully.
-					Collapse(item);
+					if (IsExpanded(item)) {
+						Collapse(item);
+					}
 
 					// Delete all child items.
 					DeleteChildren(item);
 				}
+
+				// Update was done.
+				VariableWatchItemData *data = GetItemData(item);
+				data->Updated();
 			}
 		}
 
@@ -354,12 +369,9 @@ private:
 			Delete(*it);
 		}
 
-		// If m_isLabelEditable is true, the update count is useless.
-		//if (!m_isLabelEditable)
-		{
-			VariableWatchItemData *data = GetItemData(parent);
-			data->Updated();
-		}
+		// Update was done.
+		VariableWatchItemData *data = GetItemData(parent);
+		data->Updated();
 	}
 
 private:
@@ -369,7 +381,10 @@ private:
 		while (!m_queue.empty()) {
 			UpdateData data = m_queue.front();
 			m_queue.pop();
-			DoUpdateVars(data.item, data.vars, data.isExpanded);
+
+			if (data.updateCount >= Mediator::Get()->GetUpdateCount()) {
+				DoUpdateVars(data.item, data.vars, data.isExpanded);
+			}
 		}
 	}
 
@@ -384,7 +399,7 @@ private:
 		event.Skip();
 
 		if (m_isLabelEditable) {
-			// The last label is only the white space,
+			// The last label isn't only the white space,
 			// add a new label.
 			wxTreeItemIdValue cookie;
 			wxTreeItemId item = GetLastChild(GetRootItem(), cookie);
@@ -397,9 +412,12 @@ private:
 				}
 			}
 
-			SetItemText(event.GetItem(), event.GetLabel());
-			Mediator::Get()->IncUpdateCount();
-			BeginUpdating();
+			// If it is changed, we update the value of the var.
+			if (GetItemText(event.GetItem()) != event.GetLabel()) {
+				SetItemText(event.GetItem(), event.GetLabel());
+				Mediator::Get()->IncUpdateCount();
+				BeginUpdating();
+			}
 		}
 	}
 
@@ -464,12 +482,13 @@ private:
 
 private:
 	struct UpdateData {
+		int updateCount;
 		wxTreeItemId item;
 		LuaVarList vars;
 		bool isExpanded;
 	};
 	queue_mt<UpdateData> m_queue;
-	bool m_isShowColumn;
+
 	bool m_isLabelEditable;
 	VarListRequester m_requester;
 
