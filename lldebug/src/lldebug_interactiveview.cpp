@@ -156,16 +156,27 @@ struct EvalResponseHandler {
 	}
 
 	void operator()(const Command &command, const std::string &str) {
+		bool successed = false;
+
 		if (str.empty()) {
 			if (m_isVar) {
 				m_view->OutputLog(_T("error"));
 			}
 			else {
 				m_view->OutputLog(_T("success"));
+				successed = true;
 			}
 		}
 		else {
+			if (m_isVar) {
+				successed = true;
+			}
+
 			m_view->OutputLog(wxConvFromUTF8(str));
+		}
+
+		if (successed) {
+			Mediator::Get()->GetEngine()->ForceUpdateSource();
 		}
 	}
 	};

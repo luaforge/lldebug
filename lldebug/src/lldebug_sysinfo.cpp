@@ -34,20 +34,14 @@
 #include <fstream>
 #include <sstream>
 
-const char *c_configDir =
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
-	"lldebug"
-#else
-	".lldebug"
-#endif
-	;
+/// Get the config dir name.
+static std::string LLDebugGetConfigRoot();
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
 #include <shlobj.h> // use shell32.lib
+static const char *LLDebugConfigDir = "lldebug";
 
-namespace lldebug {
-
-static std::string GetConfigDir() {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+static std::string LLDebugGetConfigRoot() {
 	char szPath[_MAX_PATH];
 	LPITEMIDLIST pidl;
 	IMalloc *pMalloc;
@@ -64,15 +58,23 @@ static std::string GetConfigDir() {
 	pMalloc->Release();
 
 	return szPath;
-#else
-#endif
 }
+#else
+static const char *LLDebugConfigDir = ".lldebug";
+static std::string LLDebugGetConfigDir() {
+}
+#endif
+
+#include <io.h>
+#include <direct.h>
+
+namespace lldebug {
 
 std::string GetConfigFileName(const std::string &filename) {
 	using namespace boost::filesystem;
 	BOOST_ASSERT(!filename.empty());
-	path basePath(GetConfigDir());
-	path configPath = basePath / c_configDir;
+	path basePath(LLDebugGetConfigRoot());
+	path configPath = basePath / LLDebugConfigDir;
 
 	if (!exists(configPath)) {
 		try {
@@ -87,6 +89,48 @@ std::string GetConfigFileName(const std::string &filename) {
 
 	configPath /= filename;
 	return configPath.native_file_string();
+}
+
+void SaveLog(const Command &command) {
+#ifndef NDEBUG
+	using namespace boost::filesystem;
+
+	path logPath("E:\\programs\\develop\\lldebug\\visualc8\\log");
+	static bool s_first = true;
+	if (s_first) {
+		boost::filesystem::remove_all(logPath);
+		boost::filesystem::create_directory(logPath);
+		s_first = false;
+	}
+	
+	/*std::ofstream fp;
+	for (int i = 0; i < 100 && !fp.is_open(); ++i) {
+		char filename[512];
+		snprintf(filename, sizeof(filename), "log%05d_%1d.txt", command.GetCommandId(), i);
+		path filepath = logPath / filename;
+		if (!boost::filesystem::exists(filepath)) {
+			fp.open(filepath.native_file_string().c_str(), std::ios::out);
+		}
+	}
+
+	fp << "type:      " << command.GetType() << std::endl;
+	fp << "commandId: " << command.GetCommandId() << std::endl;
+	fp << "datasize:  " << command.GetDataSize() << std::endl;
+	if (command.GetDataSize() != 0) {
+		fp << "data:" << std::endl << std::endl;
+		fp << command.ToString();
+	}
+	fp.close();*/
+
+	std::cout << std::endl;
+	std::cout << "type:      " << command.GetType() << std::endl;
+	std::cout << "commandId: " << command.GetCommandId() << std::endl;
+	std::cout << "datasize:  " << command.GetDataSize() << std::endl;
+	if (command.GetDataSize() != 0) {
+		std::cout << "data:" << std::endl;
+		std::cout << command.ToString() << std::endl;
+	}
+#endif
 }
 
 
@@ -119,7 +163,7 @@ Breakpoint BreakpointList::Find(const std::string &key, int line) {
 }
 
 Breakpoint BreakpointList::First(const std::string &key) {
-	// Find the breakpoint which has least line number.
+	// Find the breakpoint which has the least line number.
 	Breakpoint tmp(key, -1);
 	ImplSet::const_iterator it = m_breakPoints.lower_bound(tmp);
 	if (it == m_breakPoints.end()) {
@@ -135,7 +179,7 @@ Breakpoint BreakpointList::First(const std::string &key) {
 }
 
 Breakpoint BreakpointList::Next(const Breakpoint &bp) {
-	// Increment the line number and find the next.
+	// Increment line number and find next.
 	Breakpoint tmp(bp.GetKey(), bp.GetLine() + 1);
 	ImplSet::const_iterator it = m_breakPoints.lower_bound(tmp);
 	if (it == m_breakPoints.end()) {
@@ -159,9 +203,10 @@ void BreakpointList::Set(const Breakpoint &bp) {
 	m_engine->SetBreakpoint(bp);
 #else
 	std::pair<ImplSet::iterator,bool> it = m_breakPoints.insert(bp);
-	if (it.second) {
-		m_engine->ChangedBreakpointList(*this);
+	if (!it.second) {
+		*(it.first) = bp;
 	}
+	m_engine->ChangedBreakpointList(*this);
 #endif
 }
 

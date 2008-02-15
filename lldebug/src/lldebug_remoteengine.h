@@ -21,6 +21,7 @@ enum RemoteCommandType {
 
 	REMOTECOMMANDTYPE_CHANGED_STATE,
 	REMOTECOMMANDTYPE_UPDATE_SOURCE,
+	REMOTECOMMANDTYPE_FORCE_UPDATESOURCE,
 	REMOTECOMMANDTYPE_ADDED_SOURCE,
 	REMOTECOMMANDTYPE_SAVE_SOURCE,
 	REMOTECOMMANDTYPE_SET_UPDATECOUNT,
@@ -152,14 +153,37 @@ private:
 	std::vector<char> m_data;
 };
 
+class RemoteEngine;
+class Command;
+class SocketBase;
+
+typedef
+	boost::function1<void, const Command &>
+	CommandCallback;
+typedef
+	boost::function2<void, const Command &, const std::string &>
+	StringCallback;
+typedef
+	boost::function2<void, const Command &, const LuaVarList &>
+	LuaVarListCallback;
+typedef
+	boost::function2<void, const Command &, const BreakpointList &>
+	BreakpointListCallback;
+typedef
+	boost::function2<void, const Command &, const LuaBacktraceList &>
+	BacktraceListCallback;
+
 /**
  * @brief The command using TCP connection.
  */
 class Command {
 public:
-	explicit Command();
-	explicit Command(const CommandHeader &header, const CommandData &data);
-	~Command();
+	Command(const CommandHeader &header, const CommandData &data)
+		: m_header(header), m_data(data) {
+	}
+
+	~Command() {
+	}
 
 	/// Get the type of this command.
 	RemoteCommandType GetType() const {
@@ -211,9 +235,15 @@ public:
 		return m_data.GetImplData();
 	}
 
-	/// Resize the impl data.
-	void ResizeData() {
-		m_data.GetImplData().resize(m_header.dataSize);
+	/// Is this a response command ?
+	bool IsResponse() const {
+		return (m_response != NULL);
+	}
+
+	/// Call response function.
+	void CallResponse() {
+		m_response(*this);
+		m_response.clear();
 	}
 
 	/// Get string for debug.
@@ -222,27 +252,26 @@ public:
 	}
 
 private:
+	friend class SocketBase;
+	friend class RemoteEngine;
+	explicit Command() {
+	}
+
+	/// Resize the impl data.
+	void ResizeData() {
+		m_data.GetImplData().resize(m_header.dataSize);
+	}
+
+	/// Set the response callback.
+	void SetResponse(const CommandCallback &response) {
+		m_response = response;
+	}
+
+private:
 	CommandHeader m_header;
 	CommandData m_data;
+	CommandCallback m_response;
 };
-
-typedef
-	boost::function1<void, const Command &>
-	CommandCallback;
-typedef
-	boost::function2<void, const Command &, const std::string &>
-	StringCallback;
-typedef
-	boost::function2<void, const Command &, const LuaVarList &>
-	LuaVarListCallback;
-typedef
-	boost::function2<void, const Command &, const BreakpointList &>
-	BreakpointListCallback;
-typedef
-	boost::function2<void, const Command &, const LuaBacktraceList &>
-	BacktraceListCallback;
-
-class SocketBase;
 
 /**
  * @brief Remote engine for debugger.
@@ -269,6 +298,7 @@ public:
 
 	void ChangedState(bool isBreak);
 	void UpdateSource(const std::string &key, int line, int updateCount, const CommandCallback &response);
+	void ForceUpdateSource();
 	void AddedSource(const Source &source);
 	void SaveSource(const std::string &key, const string_array &sources);
 	void SetUpdateCount(int updateCount);

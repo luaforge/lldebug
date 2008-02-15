@@ -228,8 +228,11 @@ bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {
 }
 
 int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
-	if (lua_type(L, valueIdx) != LUA_TTABLE) {
-		return -1;
+	if (!lua_istable(L, valueIdx)) {
+		if (lua_getmetatable(L, valueIdx) == 0) {
+			return -1;
+		}
+		lua_pop(L, 1);
 	}
 
 	// OriginalObj couldn't be handle correctly.

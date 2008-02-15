@@ -33,6 +33,8 @@
 
 namespace lldebug {
 
+class SourceView;
+
 /**
  * @brief メインウィンドウです。
  */

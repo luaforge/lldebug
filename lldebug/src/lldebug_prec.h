@@ -45,6 +45,27 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/serialization/serialization.hpp>
 
+#ifdef LLDEBUG_FRAME
+	#include <wx/wxprec.h>
+	#ifndef WX_PRECOMP
+		#include <wx/wx.h>
+	#endif
+#else
+	extern "C" {
+	#include "lua.h"
+	#include "lualib.h"
+	#include "lauxlib.h"
+	}
+#endif // LLDEBUG_FRAME
+
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#endif
+
+#define LLDEBUG_MEMBER_NVP(name) \
+	boost::serialization::make_nvp( \
+		BOOST_STRINGIZE(name), BOOST_PP_CAT(m_, name))
+
 namespace lldebug {
 	using boost::shared_ptr;
 	using boost::shared_static_cast;
@@ -65,35 +86,5 @@ namespace lldebug {
 		return std::max(min_value, std::min(x, max_value));
 	}
 }
-
-#if defined(_MSC_VER)
-#define snprintf _snprintf
-#endif
-
-#define LLDEBUG_MEMBER_NVP(name) \
-	boost::serialization::make_nvp( \
-		BOOST_STRINGIZE(name), BOOST_PP_CAT(m_, name))
-
-#ifdef LLDEBUG_FRAME
-
-#include <wx/wxprec.h>
-
-#ifndef WX_PRECOMP
-	#include <wx/wx.h>
-#endif
-
-namespace lldebug {
-	typedef std::vector<wxString> StringArray;
-}
-
-#else // LLDEBUG_FRAME
-
-extern "C" {
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-}
-
-#endif // LLDEBUG_FRAME
 
 #endif

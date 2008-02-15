@@ -31,13 +31,6 @@
 
 namespace lldebug {
 
-class Mediator;
-class MainFrame;
-class SourceView;
-class InteractiveView;
-class WatchView;
-class TracebackView;
-
 enum {
 	LLDEBUG_FRAMESIZE = 128,
 
@@ -56,11 +49,11 @@ enum {
 };
 
 inline std::string wxConvToUTF8(const wxString &str) {
-	return std::string(wxConvUTF8.cWC2MB(str.c_str()));
+	return std::string(wxConvUTF8.cWX2MB(str.c_str()));
 }
 
 inline wxString wxConvFromUTF8(const std::string &str) {
-	return wxString(wxConvUTF8.cMB2WC(str.c_str()));
+	return wxString(wxConvUTF8.cMB2WX(str.c_str()));
 }
 
 }

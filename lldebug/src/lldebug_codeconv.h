@@ -29,8 +29,15 @@
 
 namespace lldebug {
 
-std::string ConvToUTF8(const std::string &str);
-std::string ConvToUTF8From(const std::string &str, int fromEncoding);
+#ifdef LLDEBUG_FRAME
+/// The encoding of 'str' is converted from default into UTF8.
+std::string wxConvToUTF8(const wxString &str);
+
+/// The encoding of 'str' is converted from UTF8 into default.
+wxString wxConvFromUTF8(const std::string &str);
+#endif
+
+std::string ConvToUTF8(const std::string &str, int fromEncoding);
 std::string ConvFromUTF8(const std::string &str, int toEncoding);
 int GetEncoding(const std::string &str, unsigned int maxcount = 4069);
 

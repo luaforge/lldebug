@@ -31,6 +31,9 @@ namespace lldebug {
 
 std::string GetConfigFileName(const std::string &filename);
 
+class Command;
+void SaveLog(const Command &command);
+
 /**
  * @brief The type of the log message.
  */

@@ -97,7 +97,12 @@ void Mediator::ProcessAllRemoteCommands() {
 		Command command = m_queue.front();
 		m_queue.pop();
 
-		ProcessRemoteCommand(command);
+		if (command.IsResponse()) {
+			command.CallResponse();
+		}
+		else {
+			ProcessRemoteCommand(command);
+		}
 	}
 }
 
@@ -118,7 +123,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 			command.GetData().Get_ChangedState(isBreak);
 
 			wxDebugEvent event(wxEVT_CHANGED_STATE, wxID_ANY, isBreak);
-			frame->AddPendingDebugEvent(event, frame, true);
+			frame->ProcessDebugEvent(event, frame, true);
 		}
 		break;
 
@@ -153,7 +158,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 				wxDebugEvent event(
 					wxEVT_UPDATE_SOURCE, wxID_ANY,
 					key, line, updateCount);
-				frame->AddPendingDebugEvent(event, frame, true);
+				frame->ProcessDebugEvent(event, frame, true);
 				m_engine->ResponseSuccessed(command);
 			}
 		}
@@ -167,7 +172,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 
 			if (frame != NULL) {
 				wxDebugEvent event(wxEVT_ADDED_SOURCE, wxID_ANY, source);
-				frame->AddPendingDebugEvent(event, frame, true);
+				frame->ProcessDebugEvent(event, frame, true);
 			}
 		}
 		break;
@@ -180,7 +185,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 
 			if (frame != NULL) {
 				wxDebugEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY);
-				frame->AddPendingDebugEvent(event, frame, true);
+				frame->ProcessDebugEvent(event, frame, true);
 			}
 		}
 		break;
@@ -194,7 +199,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 
 			wxDebugEvent event(wxEVT_OUTPUT_LOG, wxID_ANY,
 				logType, wxConvFromUTF8(str), key, line);
-			frame->AddPendingDebugEvent(event, frame, true);
+			frame->ProcessDebugEvent(event, frame, true);
 		}
 		break;
 

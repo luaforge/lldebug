@@ -27,9 +27,18 @@
 #include "lldebug_prec.h"
 #include "lldebug_codeconv.h"
 
-#include "babel.h"
+//#include "babel.h"
+#include "wx/strconv.h"
 
 namespace lldebug {
+#if 0
+inline std::string wxConvToUTF8(const wxString &str) {
+	return std::string(wxConvUTF8.cWX2MB(str.c_str()));
+}
+
+inline wxString wxConvFromUTF8(const std::string &str) {
+	return wxString(wxConvUTF8.cMB2WX(str.c_str()));
+}
 
 struct initializer {
 	initializer() {
@@ -66,5 +75,6 @@ int GetEncoding(const std::string &str, unsigned int maxcount) {
 	babel::analyze_result enc = babel::analyze_base_encoding(str, maxcount);
 	return enc.get_strict_result();
 }
+#endif
 
 }

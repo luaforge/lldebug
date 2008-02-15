@@ -134,25 +134,7 @@ private:
 	/// Send the asynchronous write order.
 	/// The memory of the command must be kept somewhere.
 	void asyncWrite(const Command &command) {
-		if (command.GetDataSize() != 0) {
-			static int s_num =
-#ifdef LLDEBUG_FRAME
-			0;
-#else
-			1;
-#endif
-			const char *filedir = "E:\\programs\\develop\\lldebug\\visualc8\\log";
-			char filename[512];
-			if (command.GetCommandId() != 0) {
-				snprintf(filename, sizeof(filename), "%s\\log%05d.txt", filedir, command.GetCommandId());
-			}
-			else {
-				snprintf(filename, sizeof(filename), "%s\\log_%05d.txt", filedir, s_num+=2);
-			}
-			std::ofstream fp(filename);
-			fp << command.ToString().c_str();
-			fp.close();
-		}
+		SaveLog(command);
 
 		if (command.GetDataSize() == 0) {
 			// Delete the command memory.
@@ -588,9 +570,9 @@ void RemoteEngine::ServiceThread() {
 	SetThreadActive(false);
 }
 
-void RemoteEngine::HandleReadCommand(const Command &command) {
+void RemoteEngine::HandleReadCommand(const Command &command_) {
 	scoped_lock lock(m_mutex);
-	bool isResponseCommand = false;
+	Command command = command_;
 
 	// First, find a response command.
 	WaitResponseCommandList::iterator it = m_waitResponseCommandList.begin();
@@ -601,13 +583,9 @@ void RemoteEngine::HandleReadCommand(const Command &command) {
 			&& command.GetCommandId() == header_.commandId) {
 			CommandCallback response = (*it).response;
 			it = m_waitResponseCommandList.erase(it);
-			isResponseCommand = true;
 
-			if (IsThreadActive()) {
-				lock.unlock();
-				response(command);
-				lock.lock();
-			}
+			command.SetResponse(response);
+			break;
 		}
 		else {
 			++it;
@@ -628,14 +606,11 @@ void RemoteEngine::HandleReadCommand(const Command &command) {
 		break;
 	}
 
-	if (!isResponseCommand) {
-		if (m_readCommandCallback) {
-			CommandCallback callback = m_readCommandCallback;
-
-			lock.unlock();
-			callback(command);
-			lock.lock();
-		}
+	if (m_readCommandCallback != NULL) {
+		CommandCallback callback = m_readCommandCallback;
+		lock.unlock();
+		callback(command);
+		lock.lock();
 	}
 }
 
@@ -720,6 +695,12 @@ void RemoteEngine::UpdateSource(const std::string &key, int line, int updateSour
 		REMOTECOMMANDTYPE_UPDATE_SOURCE,
 		data,
 		response);
+}
+
+void RemoteEngine::ForceUpdateSource() {
+	WriteCommand(
+		REMOTECOMMANDTYPE_FORCE_UPDATESOURCE,
+		CommandData());
 }
 
 void RemoteEngine::AddedSource(const Source &source) {
@@ -970,16 +951,6 @@ CommandData::CommandData(const std::vector<char> &data)
 }
 
 CommandData::~CommandData() {
-}
-
-Command::Command() {
-}
-
-Command::Command(const CommandHeader &header, const CommandData &data)
-	: m_header(header), m_data(data) {
-}
-
-Command::~Command() {
 }
 
 void CommandData::Get_ChangedState(bool &isBreak) const {

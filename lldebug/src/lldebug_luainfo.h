@@ -211,14 +211,6 @@ public:
 		return m_hasFields;
 	}
 
-	friend bool operator==(const LuaVar &x, const LuaVar &y) {
-		return (x.m_lua == y.m_lua && x.m_name == y.m_name);
-	}
-
-	friend bool operator!=(const LuaVar &x, const LuaVar &y) {
-		return !(x == y);
-	}
-
 protected:
 #ifndef LLDEBUG_FRAME
 	/// Check weather the variable has fields.

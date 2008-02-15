@@ -362,7 +362,7 @@ std::string Context::ParseLuaError(const std::string &str, std::string *key_,
 	// FILENAME:LINE:str...
 	bool found = false;
 	int line;
-	std::string::size_type pos, prevPos = 0;
+	std::string::size_type pos = 0, prevPos = 0;
 	while ((prevPos = str.find(':', prevPos)) != str.npos) {
 		pos = prevPos;
 
@@ -416,31 +416,31 @@ std::string Context::ParseLuaError(const std::string &str, std::string *key_,
 			const Source *source = m_sourceManager.GetString(filename);
 			if (source != NULL) {
 				if (key_ != NULL) *key_ = source->GetKey();
-				if (key_ != NULL) *line_ = line;
-				if (key_ != NULL) *isDummyFunc_ = false;
+				if (line_ != NULL) *line_ = line;
+				if (isDummyFunc_ != NULL) *isDummyFunc_ = false;
 				return msg;
 			}
 			else if (filename == DUMMY_FUNCNAME) {
 				if (key_ != NULL) *key_ = "";
-				if (key_ != NULL) *line_ = -1;
-				if (key_ != NULL) *isDummyFunc_ = true;
+				if (line_ != NULL) *line_ = -1;
+				if (isDummyFunc_ != NULL) *isDummyFunc_ = true;
 				return msg;
 			}
 		}
 		else {
 			if (key_ != NULL) *key_ = std::string("@") + filename;
-			if (key_ != NULL) *line_ = line;
-			if (key_ != NULL) *isDummyFunc_ = false;
+			if (line_ != NULL) *line_ = line;
+			if (isDummyFunc_ != NULL) *isDummyFunc_ = false;
 			return msg;
 		}
 	}
 
 	// Come here when str can't be parsed or filename is invalid.
 	if (key_ != NULL) *key_ = "";
-	if (key_ != NULL) *line_ = -1;
-	if (key_ != NULL) *isDummyFunc_ = false;
-	return str;
-}
+	if (line_ != NULL) *line_ = -1;
+	if (isDummyFunc_ != NULL) *isDummyFunc_ = false;
+
+	return str;}
 
 void Context::OutputLog(LogType type, const std::string &str) {
 	scoped_lock lock(m_mutex);
@@ -620,6 +620,11 @@ int Context::HandleCommand() {
 		Command command = m_readCommandQueue.front();
 		m_readCommandQueue.pop();
 
+		if (command.IsResponse()) {
+			command.CallResponse();
+			continue;
+		}
+
 		switch (command.GetType()) {
 		case REMOTECOMMANDTYPE_END_CONNECTION:
 			Quit();
@@ -638,6 +643,10 @@ int Context::HandleCommand() {
 			break;
 		case REMOTECOMMANDTYPE_STEPRETURN:
 			SetState(STATE_STEPRETURN);
+			break;
+
+		case REMOTECOMMANDTYPE_FORCE_UPDATESOURCE:
+			m_isMustUpdate = true;
 			break;
 
 		case REMOTECOMMANDTYPE_SAVE_SOURCE:
@@ -816,9 +825,9 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 				m_engine->UpdateSource(
 					ar->source, ar->currentline,
 					++m_updateCount, waiter);
-				lock.unlock();
+/*				lock.unlock();
 				waiter.Wait();
-				lock.lock();
+				lock.lock();*/
 			}
 			prevState = m_state;
 
@@ -930,18 +939,18 @@ public:
 		scoped_lua scoped(L, 1);
 		int type = lua_type(L, 1);
 
-//		lua_pushvalue(L, 1);
-/*		if (luaL_callmeta(L, 1, "__tostring") != 0) {
-lua_pushvalue(L, idx);
-			lua_pushliteral(L, "tostring");
-			lua_gettable(L, LUA_GLOBALSINDEX);
-			lua_insert(L, -2);
-			lua_pcall(L, 1, 1, 0);
-			snprintf(buffer, sizeof(buffer), "%s", lua_tostring(L, -1));
-			str = buffer;
-			lua_pop(L, 1);
-			return 1;
-		}*/
+		if (lua_getmetatable(L, 1) != 0) {
+			lua_pushvalue(L, 1);
+			lua_pushliteral(L, "__tostring");
+			lua_gettable(L, -3);
+			lua_remove(L, -3);
+
+			if (lua_isfunction(L, -1)) {
+				lua_pcall(L, 1, 1, 0);
+				return 1;
+			}
+			lua_pop(L, 2);
+		}
 
 		switch (type) {
 		case LUA_TNONE:
@@ -1409,7 +1418,7 @@ struct variable_finder {
 	}
 	};
 
-static void list_local_funcname(lua_State *L) {
+/*static void list_local_funcname(lua_State *L) {
 	lua_Debug ar;
 
 	for (int level = 0; lua_getstack(L, level, &ar) != 0; ++level) {
@@ -1417,7 +1426,7 @@ static void list_local_funcname(lua_State *L) {
 		std::string fname = LuaMakeFuncName(&ar);
 		printf("level %d: %s\n", level, fname.c_str());
 	}
-	}
+	}*/
 
 int Context::LuaIndexForEval(lua_State *L) {
 	scoped_lock lock(m_mutex);
@@ -1595,7 +1604,6 @@ struct eval_string_reader {
 
 int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 	scoped_lock lock(m_mutex);
-	int top = lua_gettop(L);
 
 	if (str.empty()) {
 		return 0;
@@ -1651,7 +1659,6 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 		return -1;
 	}
 
-	m_isMustUpdate = true;
 	return 0;
 }
 
