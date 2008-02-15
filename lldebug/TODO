@@ -3,8 +3,9 @@
 - eval that can handle local variable
 - interactive view
 - modify 'LuaGetValueLocal' function
-/ consider 'lldebug_serialization.h'
 
+/ consider 'lldebug_serialization.h'
+* error support
 * encoding problem
 * need to refactor RemoteEngine class
 * break, restart, and exit
