@@ -160,7 +160,8 @@ Context *Context::Create() {
 Context::Context()
 	: m_id(0), m_lua(NULL)
 	, m_state(STATE_INITIAL), m_isEnabled(true), m_updateCount(0)
-	, m_isMustUpdate(false), m_engine(new RemoteEngine)
+	, m_waitUpdateCount(0), m_isMustUpdate(false)
+	, m_engine(new RemoteEngine)
 	, m_sourceManager(&*m_engine), m_breakpoints(&*m_engine) {
 
 	m_engine->SetReadCommandCallback(
@@ -551,6 +552,9 @@ void Context::SetState(State state) {
 		}
 		break;
 	case STATE_BREAK:
+		if (m_waitUpdateCount > 0) {
+			return; // ignore
+		}
 		switch (state) {
 		case STATE_NORMAL:
 			m_state = state;
@@ -560,9 +564,7 @@ void Context::SetState(State state) {
 		case STATE_STEPINTO:
 		case STATE_STEPRETURN:
 			m_state = state;
-			if (state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-				//m_engine.ChangedState(false);
-			}
+			m_engine->ChangedState(false);
 			break;
 		default:
 			/* error */
@@ -581,9 +583,7 @@ void Context::SetState(State state) {
 			/* ignore */
 			break;
 		case STATE_BREAK:
-			if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-				//m_engine.ChangedState(true);
-			}
+			m_engine->ChangedState(true);
 			m_state = state;
 			break;
 		default:
@@ -740,13 +740,25 @@ int Context::HandleCommand() {
 	return 0;
 }
 
+struct UpdateResponseWaiter {
+	explicit UpdateResponseWaiter(int *count)
+		: m_count(count) {
+	}
+
+	void operator()(const Command &command) {
+		--*m_count;
+	}
+
+	private:
+	int *m_count;
+	};
+
 void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	if (!m_isEnabled) {
 		return;
 	}
 
 	scoped_lock lock(m_mutex);
-
 	assert(m_state != STATE_INITIAL && "Not initialized !!!");
 
 	switch (ar->event) {
@@ -821,13 +833,11 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 				}
 				m_isMustUpdate = false;
 
-				BooleanCallbackWaiter waiter;
+				++m_waitUpdateCount;
+				UpdateResponseWaiter waiter(&m_waitUpdateCount);
 				m_engine->UpdateSource(
 					ar->source, ar->currentline,
 					++m_updateCount, waiter);
-/*				lock.unlock();
-				waiter.Wait();
-				lock.lock();*/
 			}
 			prevState = m_state;
 
@@ -940,12 +950,12 @@ public:
 		int type = lua_type(L, 1);
 
 		if (lua_getmetatable(L, 1) != 0) {
-			lua_pushvalue(L, 1);
 			lua_pushliteral(L, "__tostring");
-			lua_gettable(L, -3);
-			lua_remove(L, -3);
+			lua_gettable(L, -2);
+			lua_remove(L, -2);
+			lua_pushvalue(L, 1);
 
-			if (lua_isfunction(L, -1)) {
+			if (lua_isfunction(L, -2)) {
 				lua_pcall(L, 1, 1, 0);
 				return 1;
 			}

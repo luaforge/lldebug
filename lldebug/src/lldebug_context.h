@@ -182,6 +182,7 @@ private:
 	lua_State *m_lua;
 	State m_state;
 	bool m_isEnabled;
+	int m_waitUpdateCount;
 	int m_updateCount;
 	bool m_isMustUpdate;
 

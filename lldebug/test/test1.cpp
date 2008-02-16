@@ -14,7 +14,7 @@
 #define snprintf _snprintf
 #endif
 
-const char *c_filename = "test.lua";
+const char *c_filename = "talker.lua";
 
 int init_state(lua_State *L) {
 	const char *s_dirlist[] = {
@@ -27,6 +27,21 @@ int init_state(lua_State *L) {
 	};
 	
 	luaL_openlibs(L);
+
+	lua_getfield(L, LUA_GLOBALSINDEX, "package");
+	int package = lua_gettop(L);
+
+	lua_getfield(L, package, "path");
+	lua_pushliteral(L, ";e:\\programs\\cpp\\library\\external\\bin\\lua\\?.lua");
+	lua_concat(L, 2);
+	lua_setfield(L, package, "path");
+
+	lua_getfield(L, package, "cpath");
+	lua_pushliteral(L, ";e:\\programs\\cpp\\library\\external\\bin\\lua\\?\\core.dll");
+	lua_concat(L, 2);
+	lua_setfield(L, package, "cpath");
+
+	lua_pop(L, 1);
 
 	for (int i = 0; s_dirlist[i] != NULL; ++i) {
 		char buffer[128];

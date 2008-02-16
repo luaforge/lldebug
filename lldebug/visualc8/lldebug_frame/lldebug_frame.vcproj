@@ -66,7 +66,7 @@
 				AdditionalDependencies="wxbase28ud.lib wxmsw28ud_core.lib wxmsw28ud_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_asiod.lib $(TargetDir)wxscintillad.lib $(TargetDir)wxtreelistctrld.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -182,6 +182,10 @@
 			Filter="cpp;c;cc;cxx;h;hpp;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath="..\..\src\echo_stream.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\src\lldebug_application.cpp"
 				>
