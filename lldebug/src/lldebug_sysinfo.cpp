@@ -65,8 +65,7 @@ static std::string LLDebugGetConfigDir() {
 }
 #endif
 
-#include <io.h>
-#include <direct.h>
+#include "echo_stream.h"
 
 namespace lldebug {
 
@@ -90,6 +89,8 @@ std::string GetConfigFileName(const std::string &filename) {
 	configPath /= filename;
 	return configPath.native_file_string();
 }
+
+echo_ostream echo("localhost");
 
 void SaveLog(const Command &command) {
 #ifndef NDEBUG
@@ -122,13 +123,15 @@ void SaveLog(const Command &command) {
 	}
 	fp.close();*/
 
-	std::cout << std::endl;
-	std::cout << "type:      " << command.GetType() << std::endl;
-	std::cout << "commandId: " << command.GetCommandId() << std::endl;
-	std::cout << "datasize:  " << command.GetDataSize() << std::endl;
-	if (command.GetDataSize() != 0) {
-		std::cout << "data:" << std::endl;
-		std::cout << command.ToString() << std::endl;
+	if (echo.is_open()) {
+		echo << "type:      " << command.GetType() << std::endl;
+		echo << "commandId: " << command.GetCommandId() << std::endl;
+		echo << "datasize:  " << command.GetDataSize() << std::endl;
+		if (command.GetDataSize() != 0) {
+			echo << "data:" << std::endl;
+			echo << command.ToString() << std::endl;
+		}
+		echo << std::endl;
 	}
 #endif
 }
