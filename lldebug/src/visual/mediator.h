@@ -30,7 +30,6 @@
 #include "sysinfo.h"
 #include "luainfo.h"
 #include "net/remoteengine.h"
-#include "net/queue_mt.h"
 
 namespace lldebug {
 namespace visual {
@@ -62,7 +61,7 @@ public:
 	void FocusBacktraceLine(const LuaBacktrace &bt);
 
 	/// Process the remote command.
-	void ProcessRemoteCommand(const net::Command &command);
+	void ProcessRemoteCommand(const net::RemoteCommand &command);
 
 	/// Process the all remote commanda.
 	void ProcessAllRemoteCommands();
@@ -145,15 +144,10 @@ private:
 	void SetMainFrame(MainFrame *frame);
 
 private:
-	/// Process the remote command.
-	void OnRemoteCommand(const net::Command &command);
-
-private:
 	static Mediator *ms_instance;
 
 	shared_ptr<net::RemoteEngine> m_engine;
 	MainFrame *m_frame;
-	net::queue_mt<net::Command> m_queue;
 	BreakpointList m_breakpoints;
 	SourceManager m_sourceManager;
 

@@ -29,8 +29,6 @@
 
 namespace lldebug {
 
-const int LuaOriginalObject = 0;
-
 // #define LUA_TNONE		(-1)
 // #define LUA_TNIL		0
 // #define LUA_TBOOLEAN		1
@@ -63,7 +61,9 @@ std::string LuaGetTypeName(int type) {
 	return s_typenames[type];
 }
 
-#ifndef LLDEBUG_VISUAL
+#ifdef LLDEBUG_CONTEXT
+const int LuaOriginalObject = 0;
+
 std::string LuaToString(lua_State *L, int idx) {
 	int type = lua_type(L, idx);
 	std::string str;
@@ -174,6 +174,7 @@ std::string LuaMakeFuncName(lua_Debug *ar) {
 #endif
 
 
+/*-----------------------------------------------------------------*/
 LuaStackFrame::LuaStackFrame(const LuaHandle &lua, int level)
 	: m_lua(lua), m_level(level) {
 }
@@ -182,14 +183,8 @@ LuaStackFrame::~LuaStackFrame() {
 }
 
 
-LuaVar::LuaVar()
-	: m_valueType(-1), m_tableIdx(-1), m_hasFields(false) {
-}
-
-LuaVar::~LuaVar() {
-}
-
-#ifndef LLDEBUG_VISUAL
+/*-----------------------------------------------------------------*/
+#ifdef LLDEBUG_CONTEXT
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
 	: m_lua(lua), m_name(name) {
 	lua_State *L = lua.GetState();
@@ -204,7 +199,16 @@ LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
 	: m_lua(lua), m_name(name), m_value(value), m_valueType(LUA_TNONE)
 	, m_tableIdx(-1), m_hasFields(false) {
 }
+#endif
 
+LuaVar::LuaVar()
+	: m_valueType(-1), m_tableIdx(-1), m_hasFields(false) {
+}
+
+LuaVar::~LuaVar() {
+}
+
+#ifdef LLDEBUG_CONTEXT
 bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {
 	// Check weather 'valueIdx' has metatable.
 	if (lua_getmetatable(L, valueIdx) != 0) {
@@ -335,22 +339,23 @@ int LuaVar::PushTable(lua_State *L) const {
 #endif
 
 
-LuaBacktrace::LuaBacktrace() {
-}
-
-LuaBacktrace::~LuaBacktrace() {
-}
-
-#ifndef LLDEBUG_VISUAL
+/*-----------------------------------------------------------------*/
+#ifdef LLDEBUG_CONTEXT
 LuaBacktrace::LuaBacktrace(const LuaHandle &lua,
-								   const std::string &name,
-								   const std::string &sourceKey,
-								   const std::string &sourceTitle,
-								   int line, int level)
+						   const std::string &name,
+						   const std::string &sourceKey,
+						   const std::string &sourceTitle,
+						   int line, int level)
 	: m_lua(lua), m_funcName(name)
 	, m_key(sourceKey), m_sourceTitle(sourceTitle)
 	, m_line(line), m_level(level) {
 }
 #endif
+
+LuaBacktrace::LuaBacktrace() {
+}
+
+LuaBacktrace::~LuaBacktrace() {
+}
 
 }

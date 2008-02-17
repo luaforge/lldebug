@@ -1,166 +1,39 @@
 /*
- *
+ * Copyright (c) 2005-2008  cielacanth <cielacanth AT s60.xrea.com>
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *    1. Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *    2. Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  */
 
 #ifndef __LLDEBUG_ECHOSTREAM__
 #define __LLDEBUG_ECHOSTREAM__
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include <boost/asio/ip/tcp.hpp>
 
 #include <iostream>
 #include <vector>
-#include <cassert>
 
 namespace lldebug {
 namespace net {
-
-class WinsockInitializer {
-	static int ms_count;
-
-public:
-	static int Start() {
-		if (ms_count == 0) {
-			WSADATA data;
-			WORD version = MAKEWORD(2, 0);
-			if (WSAStartup(version, &data) != 0) {
-				throw std::runtime_error("Failed to call WSAStartup.");
-			}
-		}
-
-		++ms_count;
-		return 0;
-	}
-
-	static void End() {
-		if (ms_count <= 0) {
-			return;
-		}
-		if (--ms_count == 0) {
-			WSACleanup();
-		}
-	}
-
-	static bool Initialized() {
-		return (ms_count > 0);
-	}
-};
-
-int WinsockInitializer::ms_count = 0;
-
-class Socket {
-public:
-	explicit Socket()
-		: m_socket(INVALID_SOCKET) {
-		WinsockInitializer::Start();
-	}
-
-	virtual ~Socket() {
-		if (m_socket != INVALID_SOCKET) {
-			closesocket(m_socket);
-		}
-
-		WinsockInitializer::End();
-	}
-
-	int Initialize(const std::string &hostname, const std::string &port) {
-		addrinfo hints;
-		addrinfo *res;
-
-		if (hostname.empty() || port.empty()) {
-			return -1;
-		}
-
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_INET;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_protocol = IPPROTO_TCP;
-		if (getaddrinfo(hostname.c_str(), port.c_str(), &hints, &res) != 0) {
-			return -1;
-		}
-
-		SOCKET sock = INVALID_SOCKET;
-		for (addrinfo *it = res; it != NULL; it = it->ai_next) {
-			sock = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
-			if (sock == INVALID_SOCKET) {
-				continue;
-			}
-
-			if (connect(sock, it->ai_addr, (int)it->ai_addrlen) != 0) {
-				closesocket(sock);
-				sock = INVALID_SOCKET;
-				continue;
-			}
-
-			break;
-		}
-
-		freeaddrinfo(res);
-
-		if (sock == INVALID_SOCKET) {
-			return -1;
-		}
-
-		// success!!
-		if (m_socket != INVALID_SOCKET) {
-			closesocket(m_socket);
-		}
-		m_socket = sock;
-		return 0;
-	}
-
-	bool Initialized() const {
-		return (m_socket != INVALID_SOCKET);
-	}
-
-	size_t Send(const char *buffer, size_t maxsize) {
-		if (m_socket == INVALID_SOCKET) {
-			return 0;
-		}
-
-		if (buffer == NULL || maxsize == 0) {
-			return 0;
-		}
-
-		size_t pos = 0;
-		while (pos < maxsize) {
-			int size = send(m_socket, &buffer[pos], (int)(maxsize - pos), 0);
-			if (size == SOCKET_ERROR) {
-				return pos;
-			}
-
-			pos += (size_t)size;
-		}
-
-		return pos;
-	}
-
-	size_t Recv(char *buffer, size_t maxsize) {
-		if (m_socket == INVALID_SOCKET) {
-			return 0;
-		}
-
-		if (buffer == NULL || maxsize == 0) {
-			return 0;
-		}
-
-		size_t pos = 0;
-		while (pos < maxsize) {
-			int size = recv(m_socket, &buffer[pos], (int)(maxsize - pos), 0);
-			if (size == SOCKET_ERROR) {
-				return pos;
-			}
-
-			pos += (size_t)size;
-		}
-
-		return pos;
-	}
-
-private:
-	SOCKET m_socket;
-};
-
 
 /**
  * @brief Echo client.
@@ -170,6 +43,8 @@ class basic_echo_ostreambuf : public std::basic_streambuf<Ch,Tr> {
 public:
 	typedef typename std::basic_streambuf<Ch,Tr> base_type;
 	typedef typename base_type::int_type int_type;
+
+	//namespace tcp = boost::asio::ip::tcp;
 
 public:
 	explicit basic_echo_ostreambuf()
@@ -181,16 +56,42 @@ public:
 		flush_internal(false);
 	}
 
+	/// Open the tcp connection.
 	bool open(const std::string &hostname, const std::string &port) {
-		if (m_socket.Initialize(hostname, port) != 0) {
+		try {
+			using namespace boost::asio::ip;
+			shared_ptr<tcp::socket> sock(new tcp::socket(m_service));
+
+			tcp::resolver resolver(m_service);
+			tcp::resolver_query query(tcp::v4(), hostname, port);
+			tcp::resolver_iterator it;
+			for (it = resolver.resolve(query); 
+				it != tcp::resolver_iterator();
+				++it) {
+				boost::system::error_code error;
+				if (!sock->connect(*it, error)) {
+					break;
+				}
+			}
+
+			// Not found.
+			if (it == tcp::resolver_iterator()) {
+				return false;
+			}
+
+			m_socket = sock;
+			return true;
+		}
+		catch (std::exception &) {
 			return false;
 		}
-
+		
 		return true;
 	}
 
+	/// Is the tcp connection opened ?
 	bool is_open() const {
-		return m_socket.Initialized();
+		return (m_socket != NULL);
 	}
 
 protected:
@@ -205,20 +106,28 @@ protected:
 		return Tr::eof();
 	}
 
+	/// Flush the data.
 	int flush_internal(bool force) {
+		if (m_socket == NULL) {
+			return -1;
+		}
+
 		if (!force && m_buffer.empty()) {
 			return 0;
 		}
 
+		// Add CRLF.
 		m_buffer.push_back('\r');
 		m_buffer.push_back('\n');
 
-		size_t size = m_socket.Send(&m_buffer[0], m_buffer.size());
+		// Write data.
+		size_t size = m_socket->write_some(boost::asio::buffer(m_buffer));
 		if (size == 0) {
 			return -1;
 		}
 
-		m_socket.Recv(&m_buffer[0], size);
+		// Receive the echo back.
+		m_socket->read_some(boost::asio::buffer(m_buffer));
 		m_buffer.clear();
 		return 0;
 	}
@@ -258,7 +167,8 @@ protected:
 	}
 
 private:
-	Socket m_socket;
+	boost::asio::io_service m_service;
+	shared_ptr<boost::asio::ip::tcp::socket> m_socket;
 	std::vector<Ch> m_buffer;
 	bool m_prev_cr;
 };
@@ -269,7 +179,8 @@ private:
 template <class Ch,class Tr=std::char_traits<Ch> >
 class basic_echo_ostream : public std::basic_ostream<Ch,Tr> {
 public:
-	explicit basic_echo_ostream(const std::string &hostname="localhost", const std::string &port="7")
+	explicit basic_echo_ostream(const std::string &hostname="localhost",
+								const std::string &port="7")
 		: std::basic_ostream<Ch,Tr>(NULL) {
 		this->init(&m_buf);
 		open(hostname, port);
@@ -278,10 +189,13 @@ public:
 	~basic_echo_ostream() {
 	}
 
-	bool open(const std::string &hostname="localhost", const std::string &port="7") {
+	/// Open the tcp connection.
+	bool open(const std::string &hostname="localhost",
+			  const std::string &port="7") {
 		return m_buf.open(hostname, port);
 	}
 
+	/// Is the tcp connection opened.
 	bool is_open() const {
 		return m_buf.is_open();
 	}
@@ -289,6 +203,7 @@ public:
 private:
 	basic_echo_ostreambuf<Ch> m_buf;
 };
+
 
 typedef basic_echo_ostream<char> echo_ostream;
 typedef basic_echo_ostream<wchar_t> echo_wostream;

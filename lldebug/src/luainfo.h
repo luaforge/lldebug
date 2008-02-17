@@ -29,13 +29,13 @@
 
 namespace lldebug {
 
-/// A dummy object that offers original address for lua.
-extern const int LuaOriginalObject;
-
 /// Get the typename.
 std::string LuaGetTypeName(int type);
 
-#ifndef LLDEBUG_VISUAL
+#ifdef LLDEBUG_CONTEXT
+/// A dummy object that offers original address for lua.
+extern const int LuaOriginalObject;
+
 /// Convert the lua object placed on idx to string.
 /// It doesn't use any lua functions.
 std::string LuaToString(lua_State *L, int idx);
@@ -50,7 +50,7 @@ std::string LuaMakeFuncName(lua_Debug *ar);
 
 
 /**
- * @brief 異なるアプリケーション間でlua_Stateの値を共有するために必要なクラスです。
+ * @brief Handle of the lua_State* object.
  */
 class LuaHandle {
 public:
@@ -70,7 +70,7 @@ public:
 		return *this;
 	}
 
-#ifndef LLDEBUG_VISUAL
+#ifdef LLDEBUG_CONTEXT
 	LuaHandle(lua_State *L) {
 		SetState(L);
 	}
@@ -80,19 +80,18 @@ public:
 		return *this;
 	}
 
-	lua_State *oprator() const {
-		return GetState();
-	}
-
+	/// Get lua_State* object.
 	lua_State *GetState() const {
 		return reinterpret_cast<lua_State *>(m_luaState);
 	}
 
+	/// Set lua_State* object.
 	void SetState(lua_State *L) {
 		m_luaState = reinterpret_cast<boost::uint64_t>(L);
 	}
 #endif
 
+public:
 	friend bool operator==(const LuaHandle &x, const LuaHandle &y) {
 		return (x.m_luaState == y.m_luaState);
 	}
@@ -161,58 +160,57 @@ private:
 
 
 /**
- * @brief luaの変数情報を保持します。
+ * @brief Infomation of a lua variable.
  */
 class LuaVar {
 public:
-	explicit LuaVar();
-	virtual ~LuaVar();
-
-#ifndef LLDEBUG_VISUAL
+#ifdef LLDEBUG_CONTEXT
 	LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx);
 	LuaVar(const LuaHandle &lua, const std::string &name, const std::string &value);
 
 	/// Push the table value.
 	int PushTable(lua_State *L) const;
 #endif
+	explicit LuaVar();
+	virtual ~LuaVar();
 	
-	/// このオブジェクトが有効かどうか取得します。
+	/// Is this object valid ?
 	bool IsOk() const {
 		return (m_valueType >= 0);
 	}
 
-	/// この変数があるlua_State *を取得します。
+	/// Get the lua handle.
 	const LuaHandle &GetLua() const {
 		return m_lua;
 	}
 
-	/// 変数名orテーブルのキー名を取得します。
+	/// Get the name of the variable or table's key.
 	const std::string &GetName() const {
 		return m_name;
 	}
 
-	/// 変数の値を文字列で取得します。
+	/// Get the value by string.
 	const std::string &GetValue() const {
 		return m_value;
 	}
 
-	/// 変数の値型を取得します。
+	/// Get the type by integer.
 	int GetValueType() const {
 		return m_valueType;
 	}
 
-	/// 変数の値型を文字列で取得します。
+	/// Get the type name.
 	std::string GetValueTypeName() const {
 		return LuaGetTypeName(m_valueType);
 	}
 
-	/// 変数がフィールドを持つかどうかを取得します。
+	/// Does this have any fields (metatable of child elements) ?
 	bool HasFields() const {
 		return m_hasFields;
 	}
 
 protected:
-#ifndef LLDEBUG_VISUAL
+#ifdef LLDEBUG_CONTEXT
 	/// Check weather the variable has fields.
 	bool CheckHasFields(lua_State *L, int valueIdx) const;
 
@@ -243,47 +241,46 @@ private:
 
 
 /**
- * @brief 関数の呼び出し履歴を保持します。
+ * @brief Infomation of the function call.
  */
 class LuaBacktrace {
 public:
-	explicit LuaBacktrace();
-	~LuaBacktrace();
-
-#ifndef LLDEBUG_VISUAL
+#ifdef LLDEBUG_CONTEXT
 	explicit LuaBacktrace(const LuaHandle &lua,
 						  const std::string &name,
 						  const std::string &sourceKey,
 						  const std::string &sourceTitle,
 						  int line, int level);
 #endif
+	explicit LuaBacktrace();
+	~LuaBacktrace();
 
-	/// このコールがなされたlua_Stateです。
+	/// Get the lua handle.
 	const LuaHandle &GetLua() const {
 		return m_lua;
 	}
 
-	/// 呼び出し元の関数の名前です。
+	/// Get the function name that calls from.
 	const std::string &GetFuncName() const {
 		return m_funcName;
 	}
 
-	/// このコールがなされたソースの識別子です。
+	/// Get the source key.
 	const std::string &GetKey() const {
 		return m_key;
 	}
 
-	/// このコールがなされたソースのタイトルです。
+	/// Get the source title.
 	const std::string &GetTitle() const {
 		return m_sourceTitle;
 	}
 
-	/// このコールがなされたソースの行番号です。
+	/// Get the line number.
 	int GetLine() const {
 		return m_line;
 	}
 
-	/// 関数のスタックレベルです。
+	/// Get the local stack level.
 	int GetLevel() const {
 		return m_level;
 	}

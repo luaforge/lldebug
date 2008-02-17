@@ -81,7 +81,10 @@ namespace lldebug {
 
 	typedef std::vector<std::string> string_array;
 
-	namespace net {}
+	namespace net {
+		class RemoteEngine;
+		class RemoteCommand;
+	}
 	using namespace net;
 
 	template<class Ty>

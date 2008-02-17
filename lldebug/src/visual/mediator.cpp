@@ -35,14 +35,9 @@ namespace visual {
 Mediator *Mediator::ms_instance = NULL;
 
 Mediator::Mediator()
-	: m_engine(new net::RemoteEngine), m_frame(NULL)
+	: m_engine(new RemoteEngine), m_frame(NULL)
 	, m_breakpoints(m_engine.get()), m_sourceManager(m_engine.get())
 	, m_updateCount(0) {
-
-	// Set the callback function called when the end of the reading commands.
-	net::CommandCallback callback = boost::bind1st(
-		boost::mem_fn(&Mediator::OnRemoteCommand), this);
-	m_engine->SetReadCommandCallback(callback);
 }
 
 Mediator::~Mediator() {
@@ -89,14 +84,10 @@ void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 	frame->AddPendingDebugEvent(event, frame, true);
 }
 
-void Mediator::OnRemoteCommand(const net::Command &command) {
-	m_queue.push(command);
-}
-
 void Mediator::ProcessAllRemoteCommands() {
-	while (!m_queue.empty()) {
-		net::Command command = m_queue.front();
-		m_queue.pop();
+	while (m_engine->HasCommand()) {
+		RemoteCommand command = m_engine->GetCommand();
+		m_engine->PopCommand();
 
 		if (command.IsResponse()) {
 			command.CallResponse();
@@ -107,7 +98,7 @@ void Mediator::ProcessAllRemoteCommands() {
 	}
 }
 
-void Mediator::ProcessRemoteCommand(const net::Command &command) {
+void Mediator::ProcessRemoteCommand(const RemoteCommand &command) {
 	MainFrame *frame = GetFrame();
 
 	// Process remote commands.

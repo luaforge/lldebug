@@ -34,21 +34,26 @@
 #include <fstream>
 #include <sstream>
 
-/// Get the config dir name.
+/// @brief Get the root config dir name.
+/// For example, config file 'config.xml' is located on
+/// 'Root/ConfigDir/config.xml' or 'Root/ConfigDir/config.xml', and so on.
 static std::string LLDebugGetConfigRoot();
+
+/// Get the config dir name like 'lldebug' or '.lldebug'.
+static std::string LLDebugConfigDir();
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
 #include <shlobj.h> // use shell32.lib
 #pragma comment(lib, "shell32")
-static const char *LLDebugConfigDir = "lldebug";
 
-static std::string LLDebugGetConfigRoot() {
+std::string LLDebugGetConfigRoot() {
 	char szPath[_MAX_PATH];
 	LPITEMIDLIST pidl;
 	IMalloc *pMalloc;
 
 	::SHGetMalloc(&pMalloc);
 
+	// Get the app data folder.
 	if (FAILED(::SHGetSpecialFolderLocation(NULL, CSIDL_APPDATA, &pidl))) {
 		pMalloc->Release();
 		return std::string("");
@@ -57,12 +62,19 @@ static std::string LLDebugGetConfigRoot() {
 	::SHGetPathFromIDListA(pidl, szPath);
 	pMalloc->Free(pidl);
 	pMalloc->Release();
-
 	return szPath;
 }
+
+std::string LLDebugConfigDir() {
+	return "lldebug";
+}
 #else
-static const char *LLDebugConfigDir = ".lldebug";
-static std::string LLDebugGetConfigDir() {
+std::string LLDebugGetConfigDir() {
+	return "~/";
+}
+
+std::string LLDebugConfigDir() {
+	return ".lldebug";
 }
 #endif
 
@@ -74,7 +86,7 @@ std::string GetConfigFileName(const std::string &filename) {
 	using namespace boost::filesystem;
 	BOOST_ASSERT(!filename.empty());
 	path basePath(LLDebugGetConfigRoot());
-	path configPath = basePath / LLDebugConfigDir;
+	path configPath = basePath / LLDebugConfigDir();
 
 	if (!exists(configPath)) {
 		try {
@@ -92,38 +104,10 @@ std::string GetConfigFileName(const std::string &filename) {
 }
 
 namespace net {
-echo_ostream echo("localhost");
 
-void SaveLog(const Command &command) {
+void SaveLog(const RemoteCommand &command) {
 #ifndef NDEBUG
-	using namespace boost::filesystem;
-
-	path logPath("E:\\programs\\develop\\lldebug\\visualc8\\log");
-	static bool s_first = true;
-	if (s_first) {
-		boost::filesystem::remove_all(logPath);
-		boost::filesystem::create_directory(logPath);
-		s_first = false;
-	}
-	
-	/*std::ofstream fp;
-	for (int i = 0; i < 100 && !fp.is_open(); ++i) {
-		char filename[512];
-		snprintf(filename, sizeof(filename), "log%05d_%1d.txt", command.GetCommandId(), i);
-		path filepath = logPath / filename;
-		if (!boost::filesystem::exists(filepath)) {
-			fp.open(filepath.native_file_string().c_str(), std::ios::out);
-		}
-	}
-
-	fp << "type:      " << command.GetType() << std::endl;
-	fp << "commandId: " << command.GetCommandId() << std::endl;
-	fp << "datasize:  " << command.GetDataSize() << std::endl;
-	if (command.GetDataSize() != 0) {
-		fp << "data:" << std::endl << std::endl;
-		fp << command.ToString();
-	}
-	fp.close();*/
+	static echo_ostream echo("localhost");
 
 	if (echo.is_open()) {
 		echo << "type:      " << command.GetType() << std::endl;
@@ -269,7 +253,8 @@ Source::~Source() {
 }
 
 
-SourceManager::SourceManager(net::RemoteEngine *engine)
+/*-----------------------------------------------------------------*/
+SourceManager::SourceManager(RemoteEngine *engine)
 	: m_engine(engine), m_textCounter(0) {
 }
 
@@ -354,7 +339,8 @@ int SourceManager::Add(const std::string &key) {
 		m_engine->AddedSource(src);
 	}
 	else {
-		// ソースがテキストの場合は長すぎる可能性があるので、タイトルを別に作成します。
+		// We make the original source title and don't use the key,
+		// because it may be too long.
 		std::stringstream title;
 		title << "[string " << m_textCounter++ << "]";
 		title.flush();
@@ -378,17 +364,18 @@ int SourceManager::Add(const Source &source) {
 int SourceManager::Save(const std::string &key, const string_array &source) {
 	scoped_lock lock(m_mutex);
 
+	// Find the source from key.
 	ImplMap::iterator it = m_sourceMap.find(key);
 	if (it == m_sourceMap.end()) {
 		return -1;
 	}
 
-	// ソースファイルではありません。
 	Source &src = it->second;
 	if (src.GetPath().empty()) {
 		return -1;
 	}
 
+	// Save the new source.
 	std::ofstream fp(src.GetPath().c_str());
 	if (fp.fail()) {
 		return -1;

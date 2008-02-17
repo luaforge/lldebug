@@ -32,8 +32,8 @@ namespace lldebug {
 std::string GetConfigFileName(const std::string &filename);
 
 namespace net {
-class Command;
-void SaveLog(const Command &command);
+class RemoteCommand;
+void SaveLog(const RemoteCommand &command);
 }
 
 /**
@@ -100,16 +100,12 @@ private:
 	bool m_isTemp;
 };
 
-namespace net {
-class RemoteEngine;
-}
-
 /**
  * @brief ブレイクポイントのリストを取得します。
  */
 class BreakpointList {
 public:
-	explicit BreakpointList(net::RemoteEngine *engine);
+	explicit BreakpointList(RemoteEngine *engine);
 	virtual ~BreakpointList();
 
 	/// Find the breakpoint from key and line.
@@ -213,7 +209,7 @@ private:
  */
 class SourceManager {
 public:
-	explicit SourceManager(net::RemoteEngine *engine);
+	explicit SourceManager(RemoteEngine *engine);
 	~SourceManager();
 
 	/// Get the source infomation from key.

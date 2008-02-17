@@ -156,7 +156,7 @@ struct EvalResponseHandler {
 		: m_view(view), m_isVar(isVar) {
 	}
 
-	void operator()(const net::Command &command, const std::string &str) {
+	void operator()(const net::RemoteCommand &command, const std::string &str) {
 		bool successed = false;
 
 		if (str.empty()) {

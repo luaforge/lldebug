@@ -29,8 +29,7 @@
 
 #include "sysinfo.h"
 #include "luainfo.h"
-#include "net/remoteengine.h"
-#include "net/queue_mt.h"
+#include "net/remotecommand.h"
 
 namespace lldebug {
 
@@ -155,7 +154,6 @@ private:
 	virtual int LoadConfig();
 	virtual int SaveConfig();
 	virtual void SetState(State state);
-	virtual void CommandCallback(const Command &command);
 	virtual int HandleCommand();
 
 	static void SetHook(lua_State *L);
@@ -203,10 +201,6 @@ private:
 	SourceManager m_sourceManager;
 	BreakpointList m_breakpoints;
 	std::string m_rootFileKey;
-
-	typedef queue_mt<Command> CommandQueue;
-	CommandQueue m_readCommandQueue;
-	boost::condition m_readCommandQueueCond;
 };
 
 /**

@@ -26,7 +26,8 @@
 
 #include "precomp.h"
 #include "lldebug.h"
-#include "net/serialization.h"
+#include "configfile.h"
+#include "net/remoteengine.h"
 #include "context/codeconv.h"
 #include "context/context.h"
 
@@ -161,8 +162,6 @@ Context::Context()
 	, m_engine(new RemoteEngine)
 	, m_sourceManager(&*m_engine), m_breakpoints(&*m_engine) {
 
-	m_engine->SetReadCommandCallback(
-		boost::bind1st(boost::mem_fn(&Context::CommandCallback), this));
 	m_id = ms_idCounter++;
 }
 
@@ -522,7 +521,6 @@ void Context::SetState(State state) {
 
 	if (state == STATE_QUIT) {
 		m_state = state;
-		m_readCommandQueueCond.notify_all();
 		return;
 	}
 
@@ -604,18 +602,12 @@ void Context::SetState(State state) {
 	}
 }
 
-/// This function must be thread safe.
-void Context::CommandCallback(const Command &command) {
-	m_readCommandQueue.push(command);
-	m_readCommandQueueCond.notify_all();
-}
-
 int Context::HandleCommand() {
 	scoped_lock lock(m_mutex);
 
-	while (!m_readCommandQueue.empty()) {
-		Command command = m_readCommandQueue.front();
-		m_readCommandQueue.pop();
+	while (m_engine->HasCommand()) {
+		RemoteCommand command = m_engine->GetCommand();
+		m_engine->PopCommand();
 
 		if (command.IsResponse()) {
 			command.CallResponse();
@@ -742,7 +734,7 @@ struct UpdateResponseWaiter {
 		: m_count(count) {
 	}
 
-	void operator()(const Command &command) {
+	void operator()(const RemoteCommand &command) {
 		--*m_count;
 	}
 
@@ -838,11 +830,11 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 			}
 			prevState = m_state;
 
-			if (m_readCommandQueue.empty()) {
+			if (!m_engine->HasCommand()) {
 				boost::xtime xt;
 				boost::xtime_get(&xt, boost::TIME_UTC);
-				xt.sec += 1;
-				m_readCommandQueueCond.timed_wait(lock, xt);
+				xt.nsec += 10 * 1000 * 1000;
+				boost::thread::sleep(xt);
 			}
 		}
 	}
@@ -1715,7 +1707,7 @@ LuaVarList Context::LuaGetEvalVarList(const string_array &array,
 			std::string error = lua_tostring(L, -1);
 			lua_pop(L, 1);
 
-			// The value string of the var is error value^^
+			// The value of this var is error string^^
 			result.push_back(LuaVar(
 				LuaHandle(L), *it,
 				ParseLuaError(error, NULL, NULL, NULL)));
@@ -1759,7 +1751,7 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 			lua_getinfo(L1, "Snl", &ar);
 
 			// Source title is also set,
-			// because is is used when backtrace is shown.
+			// because it is always used when backtrace is shown.
 			std::string sourceTitle;
 			const Source *source = GetSource(ar.source);
 			if (source != NULL) {

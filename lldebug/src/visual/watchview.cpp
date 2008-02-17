@@ -144,7 +144,7 @@ private:
 		}
 		/// This method may be called from the other thread.
 		/// @param vars    result of the request
-		void operator()(const lldebug::Command &command, const LuaVarList &vars) {
+		void operator()(const lldebug::RemoteCommand &command, const LuaVarList &vars) {
 			static int count = 0;
 			Mediator::Get()->GetFrame()->SetTitle(wxString::Format(_T("%d"), ++count));
 			if (m_updateCount < Mediator::Get()->GetUpdateCount()) {
