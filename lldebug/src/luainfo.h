@@ -32,23 +32,6 @@ namespace lldebug {
 /// Get the typename.
 std::string LuaGetTypeName(int type);
 
-#ifdef LLDEBUG_CONTEXT
-/// A dummy object that offers original address for lua.
-extern const int LuaOriginalObject;
-
-/// Convert the lua object placed on idx to string.
-/// It doesn't use any lua functions.
-std::string LuaToString(lua_State *L, int idx);
-
-/// Convert the lua object placed on idx to string.
-/// It uses lua functions.
-std::string LuaConvertString(lua_State *L, int idx);
-
-/// Get the original name of the lua function.
-std::string LuaMakeFuncName(lua_Debug *ar);
-#endif
-
-
 /**
  * @brief Handle of the lua_State* object.
  */

@@ -27,6 +27,10 @@
 #include "precomp.h"
 #include "luainfo.h"
 
+#ifdef LLDEBUG_CONTEXT
+#include "context/contextutils.h"
+#endif
+
 namespace lldebug {
 
 // #define LUA_TNONE		(-1)
@@ -60,118 +64,6 @@ std::string LuaGetTypeName(int type) {
 
 	return s_typenames[type];
 }
-
-#ifdef LLDEBUG_CONTEXT
-const int LuaOriginalObject = 0;
-
-std::string LuaToString(lua_State *L, int idx) {
-	int type = lua_type(L, idx);
-	std::string str;
-	char buffer[512];
-
-	switch (type) {
-	case LUA_TNONE:
-		str = "none";
-		break;
-	case LUA_TNIL:
-		str = "nil";
-		break;
-	case LUA_TBOOLEAN:
-		str = (lua_toboolean(L, idx) ? "true" : "false");
-		break;
-	case LUA_TNUMBER: {
-		lua_Number d = lua_tonumber(L, idx);
-		lua_Integer i;
-		lua_number2int(i, d);
-		if ((lua_Number)i == d) {
-			snprintf(buffer, sizeof(buffer), "%d", i);
-		}
-		else {
-			snprintf(buffer, sizeof(buffer), "%f", d);
-		}
-		str = buffer;
-		}
-		break;
-	case LUA_TSTRING:
-		str = lua_tostring(L, idx);
-		break;
-	case LUA_TFUNCTION:
-	case LUA_TTHREAD:
-	case LUA_TTABLE:
-	case LUA_TUSERDATA:
-	case LUA_TLIGHTUSERDATA:
-		snprintf(buffer, sizeof(buffer), "%s: %p", lua_typename(L, type), lua_topointer(L, idx));
-		str = buffer;
-		break;
-	default:
-		return std::string("");
-	}
-
-	return str;
-}
-
-std::string LuaConvertString(lua_State *L, int idx) {
-	int top = lua_gettop(L);
-	const char *cstr;
-	std::string str;
-
-	lua_pushliteral(L, "lldebug");
-	lua_gettable(L, LUA_GLOBALSINDEX);
-	if (!lua_istable(L, -1)) {
-		lua_pop(L, 1);
-		goto on_error;
-	}
-
-	lua_pushliteral(L, "tostring");
-	lua_gettable(L, -2);
-	if (!lua_isfunction(L, -1)) {
-		lua_pop(L, 2);
-		goto on_error;
-	}
-	lua_remove(L, -2); // eliminate 'lldebug'.
-
-	lua_pushvalue(L, idx);
-	if (lua_pcall(L, 1, 1, 0) != 0) {
-		lua_pop(L, 1); // error string
-		goto on_error;
-	}
-
-	cstr = lua_tostring(L, -1);
-	str = (cstr != NULL ? cstr : "");
-	lua_pop(L, 1);
-
-	assert(top == lua_gettop(L));
-	return str;
-
-on_error:;
-	assert(top == lua_gettop(L));
-	return std::string("error on lldebug.tostring");
-}
-
-std::string LuaMakeFuncName(lua_Debug *ar) {
-	std::string name;
-
-	if (*ar->namewhat != '\0') { /* is there a name? */
-		name = ar->name;
-	}
-	else {
-		if (*ar->what == 'm') { /* main? */
-			name = "main_chunk";
-		}
-		else if (*ar->what == 'C' || *ar->what == 't') {
-			name = std::string("?");  /* C function or tail call */
-		}
-		else {
-			std::stringstream stream;
-			stream << "no name [defined <" << ar->short_src << ":" << ar->linedefined << ">]";
-			stream.flush();
-			name = stream.str();
-		}
-	}
-
-	return name;
-}
-#endif
 
 
 /*-----------------------------------------------------------------*/

@@ -40,6 +40,7 @@
 #include "boost/asio/io_service.hpp"
 
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <boost/thread.hpp>
 #include <boost/functional.hpp>
 #include <boost/lexical_cast.hpp>
@@ -83,7 +84,7 @@ namespace lldebug {
 
 	namespace net {
 		class RemoteEngine;
-		class RemoteCommand;
+		class Command;
 	}
 	using namespace net;
 

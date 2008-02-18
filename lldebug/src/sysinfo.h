@@ -29,13 +29,6 @@
 
 namespace lldebug {
 
-std::string GetConfigFileName(const std::string &filename);
-
-namespace net {
-class RemoteCommand;
-void SaveLog(const RemoteCommand &command);
-}
-
 /**
  * @brief The type of the log message.
  */
