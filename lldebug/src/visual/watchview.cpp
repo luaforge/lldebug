@@ -25,7 +25,6 @@
  */
 
 #include "precomp.h"
-#include "net/queue_mt.h"
 #include "visual/mediator.h"
 #include "visual/watchview.h"
 #include "visual/mainframe.h"
@@ -142,27 +141,26 @@ private:
 			: m_watch(watch), m_item(item), m_isExpanded(isExpanded)
 			, m_updateCount(Mediator::Get()->GetUpdateCount()) {
 		}
+
 		/// This method may be called from the other thread.
 		/// @param vars    result of the request
-		void operator()(const lldebug::RemoteCommand &command, const LuaVarList &vars) {
+		void operator()(const lldebug::Command &command, const LuaVarList &vars) {
 			static int count = 0;
 			Mediator::Get()->GetFrame()->SetTitle(wxString::Format(_T("%d"), ++count));
 			if (m_updateCount < Mediator::Get()->GetUpdateCount()) {
 				return;
 			}
-			VariableWatch::UpdateData data;
-			data.item = m_item;
-			data.vars = vars;
-			data.isExpanded = m_isExpanded;
-			data.updateCount = Mediator::Get()->GetUpdateCount();
-			m_watch->m_queue.push(data);
+
+			m_watch->DoUpdateVars(m_item, vars, m_isExpanded);
 		}
+
 	private:
 		VariableWatch *m_watch;
 		wxTreeItemId m_item;
 		bool m_isExpanded;
 		int m_updateCount;
 	};
+
 	friend struct RequestVarsCallback;
 
 public:
@@ -375,19 +373,6 @@ private:
 	}
 
 private:
-	void OnIdle(wxIdleEvent &event) {
-		event.Skip();
-
-		while (!m_queue.empty()) {
-			UpdateData data = m_queue.front();
-			m_queue.pop();
-
-			if (data.updateCount >= Mediator::Get()->GetUpdateCount()) {
-				DoUpdateVars(data.item, data.vars, data.isExpanded);
-			}
-		}
-	}
-
 	void OnExpanded(wxTreeEvent &event) {
 		event.Skip();
 
@@ -487,7 +472,7 @@ private:
 		LuaVarList vars;
 		bool isExpanded;
 	};
-	queue_mt<UpdateData> m_queue;
+	std::queue<UpdateData> m_queue;
 
 	bool m_isLabelEditable;
 	VarListRequester m_requester;
@@ -496,7 +481,6 @@ private:
 };
 
 BEGIN_EVENT_TABLE(VariableWatch, wxTreeListCtrl)
-	EVT_IDLE(VariableWatch::OnIdle)
 	EVT_SIZE(VariableWatch::OnSize)
 	EVT_TREE_ITEM_EXPANDED(wxID_ANY, VariableWatch::OnExpanded)
 	EVT_TREE_END_LABEL_EDIT(wxID_ANY, VariableWatch::OnEndLabelEdit)

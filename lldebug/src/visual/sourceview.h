@@ -42,14 +42,15 @@ class SourceView : public wxAuiNotebook {
 public:
 	explicit SourceView(wxWindow *parent);
 	virtual ~SourceView();
+
 	void ToggleBreakpoint();
+	void CreatePage(const Source &source);
 
 private:
 	void CreateGUIControls();
 	size_t FindPageFromKey(const std::string &key);
 	SourceViewPage *GetPage(size_t i);
 	SourceViewPage *GetSelected();
-	void CreatePage(const Source &source);
 
 private:
 	void OnChangedState(wxDebugEvent &event);

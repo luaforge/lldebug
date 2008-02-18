@@ -165,8 +165,7 @@ void OutputView::OnSize(wxSizeEvent &event) {
 }
 
 void OutputView::OutputLog(LogType logType, const wxString &str, const std::string &key, int line) {
-	wxDebugEvent event(wxEVT_OUTPUT_LOG, GetId(), logType, str, key, line);
-	AddPendingEvent(event);
+	m_text->OutputLog(logType, str, key, line);
 }
 
 void OutputView::OnOutputLog(wxDebugEvent &event) {

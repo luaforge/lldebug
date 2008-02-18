@@ -44,6 +44,10 @@ Application::Application()
 }
 
 Application::~Application() {
+	if (m_mediator != NULL) {
+		delete m_mediator;
+		m_mediator = NULL;
+	}
 }
 
 //wxFile file;

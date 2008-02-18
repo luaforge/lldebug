@@ -87,11 +87,11 @@ private:
 		SetLayoutCache(wxSCI_CACHE_PAGE);
 
 		// set spaces and indention
-		SetTabWidth(4);
+		SetTabWidth(8);
 		SetUseTabs(true);
 		SetTabIndents(true);
 		SetBackSpaceUnIndents(true);
-		SetIndent(true ? 2 : 0);
+		SetIndent(true ? 4 : 0);
 		SetIndentationGuides(false);
 
 		SetVisiblePolicy(wxSCI_VISIBLE_STRICT | wxSCI_VISIBLE_SLOP, 1);
@@ -361,7 +361,7 @@ public:
 		}
 
 		// Set current line.
-		if (line > 0) {
+		if (line >= 0) {
 			EnsureVisible(line);
 			int pos = PositionFromLine(line);
 			SetSelection(pos, pos);
@@ -495,6 +495,7 @@ SourceView::~SourceView() {
 void SourceView::CreateGUIControls() {
 	std::list<Source> sources = Mediator::Get()->GetSourceManager().GetList();
 	std::list<Source>::iterator it;
+
 	for (it = sources.begin(); it != sources.end(); ++it) {
 		CreatePage(*it);
 	}
@@ -548,7 +549,25 @@ void SourceView::ToggleBreakpoint() {
 	}
 }
 
+struct RequestSourceHandler {
+	SourceView *m_view;
+	wxDebugEvent m_event;
+
+	explicit RequestSourceHandler(SourceView *view, wxDebugEvent &event)
+		: m_view(view), m_event(event) {
+	}
+
+	void operator()(const Command &command, const Source &source) {
+		if (!source.GetKey().empty()) {
+			m_view->CreatePage(source);
+			m_view->AddPendingEvent(m_event);
+		}
+	}
+};
+
 void SourceView::OnUpdateSource(wxDebugEvent &event) {
+	bool found = false;
+
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 
@@ -559,10 +578,19 @@ void SourceView::OnUpdateSource(wxDebugEvent &event) {
 			if (i != GetSelection()) {
 				SetSelection(i);
 			}
+
+			found = true;
 		}
 		else {
 			page->FocusCurrentLine(-1);
 		}
+	}
+
+	// If there is no appropriate source, request it.
+	if (!found) {
+		Mediator::Get()->GetEngine()->RequestSource(
+			event.GetKey(),
+			RequestSourceHandler(this, event));
 	}
 }
 

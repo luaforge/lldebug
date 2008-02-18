@@ -48,9 +48,6 @@ public:
 		return ms_instance;
 	}
 
-	/// Get the ID of the 'lldebug::Context' class.
-	int GetCtxId();
-
 	/// Increment the update count.
 	void IncUpdateCount();
 
@@ -61,7 +58,7 @@ public:
 	void FocusBacktraceLine(const LuaBacktrace &bt);
 
 	/// Process the remote command.
-	void ProcessRemoteCommand(const net::RemoteCommand &command);
+	void ProcessRemoteCommand(const Command &command);
 
 	/// Process the all remote commanda.
 	void ProcessAllRemoteCommands();

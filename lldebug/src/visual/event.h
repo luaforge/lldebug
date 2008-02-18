@@ -39,7 +39,6 @@ DECLARE_EVENT_TYPE(wxEVT_UPDATE_SOURCE, 2653)
 DECLARE_EVENT_TYPE(wxEVT_ADDED_SOURCE, 2654)
 DECLARE_EVENT_TYPE(wxEVT_CHANGED_BREAKPOINTS, 2655)
 DECLARE_EVENT_TYPE(wxEVT_OUTPUT_LOG, 2656)
-DECLARE_EVENT_TYPE(wxEVT_OUTPUT_INTERACTIVEVIEW, 2657)
 DECLARE_EVENT_TYPE(wxEVT_FOCUS_ERRORLINE, 2658)
 DECLARE_EVENT_TYPE(wxEVT_FOCUS_BACKTRACELINE, 2659)
 END_DECLARE_EVENT_TYPES()
@@ -96,13 +95,6 @@ public:
 		: wxEvent(winid, type), m_str(str)
 		, m_key(key), m_line(line), m_logType(logType) {
 		wxASSERT(type == wxEVT_OUTPUT_LOG);
-	}
-
-	/// OutputInteractiveView event
-	explicit wxDebugEvent(wxEventType type, int winid,
-						 const wxString &str)
-		: wxEvent(winid, type), m_str(str) {
-		wxASSERT(type == wxEVT_OUTPUT_INTERACTIVEVIEW);
 	}
 
 	virtual ~wxDebugEvent() {
@@ -169,7 +161,6 @@ typedef void (wxEvtHandler::*wxDebugEventFunction)(wxDebugEvent &);
 #define EVT_LLDEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_OUTPUT_LOG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_OUTPUT_LOG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_OUTPUT_INTERACTIVEVIEW(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_OUTPUT_INTERACTIVEVIEW, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_FOCUS_ERRORLINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_FOCUS_ERRORLINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_LLDEBUG_FOCUS_BACKTRACELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_FOCUS_BACKTRACELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #endif

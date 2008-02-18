@@ -93,7 +93,6 @@ END_EVENT_TABLE()
 /*-----------------------------------------------------------------*/
 BEGIN_EVENT_TABLE(InteractiveView, wxPanel)
 	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, InteractiveView::OnChangedState)
-	EVT_LLDEBUG_OUTPUT_INTERACTIVEVIEW(wxID_ANY, InteractiveView::OnOutputInteractiveView)
 END_EVENT_TABLE()
 
 InteractiveView::InteractiveView(wxWindow *parent)
@@ -134,15 +133,8 @@ void InteractiveView::OnChangedState(wxDebugEvent &event) {
 
 /// Output log str. (thread safe)
 void InteractiveView::OutputLog(const wxString &str) {
-	wxDebugEvent event(
-		wxEVT_OUTPUT_INTERACTIVEVIEW,
-		GetId(), str);
-	AddPendingEvent(event);
-}
-
-void InteractiveView::OnOutputInteractiveView(wxDebugEvent &event) {
 	m_text->AppendText(_T("\n"));
-	m_text->AppendText(event.GetStr());
+	m_text->AppendText(str);
 }
 
 /**
@@ -156,7 +148,7 @@ struct EvalResponseHandler {
 		: m_view(view), m_isVar(isVar) {
 	}
 
-	void operator()(const net::RemoteCommand &command, const std::string &str) {
+	void operator()(const net::Command &command, const std::string &str) {
 		bool successed = false;
 
 		if (str.empty()) {
