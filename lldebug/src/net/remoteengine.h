@@ -27,25 +27,30 @@
 #ifndef __LLDEBUG_REMOTEENGINE_H__
 #define __LLDEBUG_REMOTEENGINE_H__
 
-#include "remotecommand.h"
+#include "net/command.h"
 
 namespace lldebug {
 namespace net {
 
+class Connection;
+
 typedef
-	RemoteCommand::RemoteCommandCallback
-	RemoteCommandCallback;
+	Command::CommandCallback
+	CommandCallback;
 typedef
-	boost::function2<void, const RemoteCommand &, const std::string &>
+	boost::function2<void, const Command &, const std::string &>
 	StringCallback;
 typedef
-	boost::function2<void, const RemoteCommand &, const LuaVarList &>
-	LuaVarListCallback;
+	boost::function2<void, const Command &, const Source &>
+	SourceCallback;
 typedef
-	boost::function2<void, const RemoteCommand &, const BreakpointList &>
+	boost::function2<void, const Command &, const BreakpointList &>
 	BreakpointListCallback;
 typedef
-	boost::function2<void, const RemoteCommand &, const LuaBacktraceList &>
+	boost::function2<void, const Command &, const LuaVarList &>
+	LuaVarListCallback;
+typedef
+	boost::function2<void, const Command &, const LuaBacktraceList &>
 	BacktraceListCallback;
 
 /**
@@ -56,25 +61,46 @@ public:
 	explicit RemoteEngine();
 	virtual ~RemoteEngine();
 
-	/// Start the debuggee program (context).
-	int StartContext(int portNum, int ctxId, int waitSeconds);
+	/// Get the asio::io_service object.
+	boost::asio::io_service &GetService() {
+		return m_service;
+	}
+
+	/// Is this connecting ?
+	bool IsConnecting() {
+		scoped_lock lock(m_mutex);
+		return (m_connection != NULL);
+	}
+
+	/// Get the read command.
+	Command GetCommand() {
+		scoped_lock lock(m_mutex);
+		return m_readCommandQueue.front();
+	}
+
+	/// Pop the read command.
+	void PopCommand() {
+		scoped_lock lock(m_mutex);
+		m_readCommandQueue.pop();
+	}
+
+	/// Has this any read commands ?
+	bool HasCommands() {
+		scoped_lock lock(m_mutex);
+		return !m_readCommandQueue.empty();
+	}
 
 	/// Start the debugger program (frame).
-	int StartFrame(const std::string &hostName, const std::string &portName,
-				   int waitSeconds);
+	int StartFrame(const std::string &serviceName);
 
-	/// Is the socket connected ?
-	bool IsConnected();
+	/// Start the debuggee program (context).
+	int StartContext(const std::string &hostName, const std::string &serviceName, int waitSeconds);
 
-	RemoteCommand GetCommand();
-	void PopCommand();
-	bool HasCommand();
-
-	void ResponseSuccessed(const RemoteCommand &command);
-	void ResponseFailed(const RemoteCommand &command);
+	void ResponseSuccessed(const Command &command);
+	void ResponseFailed(const Command &command);
 
 	void ChangedState(bool isBreak);
-	void UpdateSource(const std::string &key, int line, int updateCount, const RemoteCommandCallback &response);
+	void UpdateSource(const std::string &key, int line, int updateCount, const CommandCallback &response);
 	void ForceUpdateSource();
 	void AddedSource(const Source &source);
 	void SaveSource(const std::string &key, const string_array &sources);
@@ -101,60 +127,54 @@ public:
 	void RequestGlobalVarList(const LuaVarListCallback &callback);
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);
+	void RequestSource(const std::string &key, const SourceCallback &callback);
 
-	void ResponseString(const RemoteCommand &command, const std::string &str);
-	void ResponseVarList(const RemoteCommand &command, const LuaVarList &vars);
-	void ResponseBacktraceList(const RemoteCommand &command, const LuaBacktraceList &backtraces);
-
-	/// Get id of the Context object.
-	int GetCtxId() {
-		scoped_lock lock(m_mutex);
-		return m_ctxId;
-	}
+	void ResponseString(const Command &command, const std::string &str);
+	void ResponseSource(const Command &command, const Source &source);
+	void ResponseBacktraceList(const Command &command, const LuaBacktraceList &backtraces);
+	void ResponseVarList(const Command &command, const LuaVarList &vars);
 
 private:
 	bool IsThreadActive();
-	void SetThreadActive(bool is);
-	void StartThread();
-	void StopThread();
-	void DoStartConnection(int ctxId);
-	void DoEndConnection();
-	void SetCtxId(int ctxId);
-	RemoteCommandHeader InitCommandHeader(RemoteCommandType type,
-									size_t dataSize,
-									int commandId = 0);
-	void WriteCommand(RemoteCommandType type,
-					  const RemoteCommandData &data);
-	void WriteCommand(RemoteCommandType type,
-					  const RemoteCommandData &data,
-					  const RemoteCommandCallback &callback);
-	void WriteResponse(const RemoteCommand &readCommand,
-					   RemoteCommandType type,
-					   const RemoteCommandData &data);
-	void HandleReadCommand(const RemoteCommand &command);
-	void ServiceThread();
-
-	friend class SocketBase;
+	void ConnectionThread();
 
 private:
+	friend class Connection;
+	bool OnConnectionConnected(shared_ptr<Connection> connection);
+	void OnConnectionClosed(shared_ptr<Connection> connection,
+							const boost::system::error_code &error);
+	void OnRemoteCommand(const Command &command);
+
+private:
+	CommandHeader InitCommandHeader(RemoteCommandType type,
+										  size_t dataSize,
+										  int commandId = 0);
+	void WriteCommand(RemoteCommandType type,
+					  const CommandData &data);
+	void WriteCommand(RemoteCommandType type,
+					  const CommandData &data,
+					  const CommandCallback &callback);
+	void WriteResponse(const Command &readCommand,
+					   RemoteCommandType type,
+					   const CommandData &data);
+
+private:
+	boost::asio::io_service m_service;
+	boost::shared_ptr<Connection> m_connection;
+	boost::uint32_t m_commandIdCounter;
+
 	shared_ptr<thread> m_thread;
 	bool m_isThreadActive;
 	mutex m_mutex;
-	condition m_ctxCond;
-
-	boost::asio::io_service m_ioService;
-	boost::shared_ptr<SocketBase> m_socket;
-	int m_ctxId;
-	boost::uint32_t m_commandIdCounter;
 
 	struct WaitResponseCommand {
-		RemoteCommandHeader header;
-		RemoteCommandCallback response;
+		CommandHeader header;
+		CommandCallback response;
 	};
 	typedef std::list<WaitResponseCommand> WaitResponseCommandList;
 	WaitResponseCommandList m_waitResponseCommandList;
 
-	typedef std::queue<RemoteCommand> ReadCommandQueue;
+	typedef std::queue<Command> ReadCommandQueue;
 	ReadCommandQueue m_readCommandQueue; // commands that were read.
 };
 

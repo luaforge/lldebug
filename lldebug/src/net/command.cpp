@@ -25,9 +25,8 @@
  */
 
 #include "precomp.h"
-#include "net/remotecommand.h"
+#include "net/command.h"
 #include "net/vectorstream.h"
-//#include "net/serialization.h"
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -144,142 +143,156 @@ struct Serializer {
 
 
 /*-----------------------------------------------------------------*/
-RemoteCommandData::RemoteCommandData() {
+CommandData::CommandData() {
 }
 
-RemoteCommandData::RemoteCommandData(const std::vector<char> &data)
+CommandData::CommandData(const std::vector<char> &data)
 	: m_data(data) {
 }
 
-RemoteCommandData::~RemoteCommandData() {
+CommandData::~CommandData() {
 }
 
-void RemoteCommandData::Get_ChangedState(bool &isBreak) const {
+void CommandData::Get_ChangedState(bool &isBreak) const {
 	Serializer::ToValue(m_data, isBreak);
 }
-void RemoteCommandData::Set_ChangedState(bool isBreak) {
+void CommandData::Set_ChangedState(bool isBreak) {
 	m_data = Serializer::ToData(isBreak);
 }
 
-void RemoteCommandData::Get_UpdateSource(std::string &key, int &line,
+void CommandData::Get_UpdateSource(std::string &key, int &line,
 										 int &updateCount) const {
 	Serializer::ToValue(m_data, key, line, updateCount);
 }
-void RemoteCommandData::Set_UpdateSource(const std::string &key, int line,
+void CommandData::Set_UpdateSource(const std::string &key, int line,
 										 int updateCount) {
 	m_data = Serializer::ToData(key, line, updateCount);
 }
 
-void RemoteCommandData::Get_AddedSource(Source &source) const {
+void CommandData::Get_AddedSource(Source &source) const {
 	Serializer::ToValue(m_data, source);
 }
-void RemoteCommandData::Set_AddedSource(const Source &source) {
+void CommandData::Set_AddedSource(const Source &source) {
 	m_data = Serializer::ToData(source);
 }
 
-void RemoteCommandData::Get_SaveSource(std::string &key,
+void CommandData::Get_SaveSource(std::string &key,
 									   string_array &sources) const {
 	Serializer::ToValue(m_data, key, sources);
 }
-void RemoteCommandData::Set_SaveSource(const std::string &key,
+void CommandData::Set_SaveSource(const std::string &key,
 									   const string_array &sources) {
 	m_data = Serializer::ToData(key, sources);
 }
 
-void RemoteCommandData::Get_SetUpdateCount(int &updateCount) const {
+void CommandData::Get_SetUpdateCount(int &updateCount) const {
 	Serializer::ToValue(m_data, updateCount);
 }
-void RemoteCommandData::Set_SetUpdateCount(int updateCount) {
+void CommandData::Set_SetUpdateCount(int updateCount) {
 	m_data = Serializer::ToData(updateCount);
 }
 
-void RemoteCommandData::Get_SetBreakpoint(Breakpoint &bp) const {
+void CommandData::Get_SetBreakpoint(Breakpoint &bp) const {
 	Serializer::ToValue(m_data, bp);
 }
-void RemoteCommandData::Set_SetBreakpoint(const Breakpoint &bp) {
+void CommandData::Set_SetBreakpoint(const Breakpoint &bp) {
 	m_data = Serializer::ToData(bp);
 }
 
-void RemoteCommandData::Get_RemoveBreakpoint(Breakpoint &bp) const {
+void CommandData::Get_RemoveBreakpoint(Breakpoint &bp) const {
 	Serializer::ToValue(m_data, bp);
 }
-void RemoteCommandData::Set_RemoveBreakpoint(const Breakpoint &bp) {
+void CommandData::Set_RemoveBreakpoint(const Breakpoint &bp) {
 	m_data = Serializer::ToData(bp);
 }
 
-void RemoteCommandData::Get_ChangedBreakpointList(BreakpointList &bps) const {
+void CommandData::Get_ChangedBreakpointList(BreakpointList &bps) const {
 	Serializer::ToValue(m_data, bps);
 }
-void RemoteCommandData::Set_ChangedBreakpointList(const BreakpointList &bps) {
+void CommandData::Set_ChangedBreakpointList(const BreakpointList &bps) {
 	m_data = Serializer::ToData(bps);
 }
 
-void RemoteCommandData::Get_OutputLog(LogType &type, std::string &str,
+void CommandData::Get_OutputLog(LogType &type, std::string &str,
 									  std::string &key, int &line) const {
 	Serializer::ToValue(m_data, type, str, key, line);
 }
-void RemoteCommandData::Set_OutputLog(LogType type, const std::string &str,
+void CommandData::Set_OutputLog(LogType type, const std::string &str,
 									  const std::string &key, int line) {
 	m_data = Serializer::ToData(type, str, key, line);
 }
 
-void RemoteCommandData::Get_Eval(std::string &str,
+void CommandData::Get_Eval(std::string &str,
 								 LuaStackFrame &stackFrame) const {
 	Serializer::ToValue(m_data, str, stackFrame);
 }
-void RemoteCommandData::Set_Eval(const std::string &str,
+void CommandData::Set_Eval(const std::string &str,
 								 const LuaStackFrame &stackFrame) {
 	m_data = Serializer::ToData(str, stackFrame);
 }
 
-void RemoteCommandData::Get_RequestFieldVarList(LuaVar &var) const {
+void CommandData::Get_RequestFieldVarList(LuaVar &var) const {
 	Serializer::ToValue(m_data, var);
 }
-void RemoteCommandData::Set_RequestFieldVarList(const LuaVar &var) {
+void CommandData::Set_RequestFieldVarList(const LuaVar &var) {
 	m_data = Serializer::ToData(var);
 }
 
-void RemoteCommandData::Get_RequestLocalVarList(LuaStackFrame &stackFrame) const {
+void CommandData::Get_RequestLocalVarList(LuaStackFrame &stackFrame) const {
 	Serializer::ToValue(m_data, stackFrame);
 }
-void RemoteCommandData::Set_RequestLocalVarList(const LuaStackFrame &stackFrame) {
+void CommandData::Set_RequestLocalVarList(const LuaStackFrame &stackFrame) {
 	m_data = Serializer::ToData(stackFrame);
 }
 
-void RemoteCommandData::Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const {
+void CommandData::Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const {
 	Serializer::ToValue(m_data, stackFrame);
 }
-void RemoteCommandData::Set_RequestEnvironVarList(const LuaStackFrame &stackFrame) {
+void CommandData::Set_RequestEnvironVarList(const LuaStackFrame &stackFrame) {
 	m_data = Serializer::ToData(stackFrame);
 }
 
-void RemoteCommandData::Get_RequestEvalVarList(string_array &array,
+void CommandData::Get_RequestEvalVarList(string_array &array,
 											   LuaStackFrame &stackFrame) const {
 	Serializer::ToValue(m_data, array, stackFrame);
 }
-void RemoteCommandData::Set_RequestEvalVarList(const string_array &array,
+void CommandData::Set_RequestEvalVarList(const string_array &array,
 											   const LuaStackFrame &stackFrame) {
 	m_data = Serializer::ToData(array, stackFrame);
 }
 
-void RemoteCommandData::Get_ValueString(std::string &str) const {
+void CommandData::Get_RequestSource(std::string &key) {
+	Serializer::ToValue(m_data, key);
+}
+void CommandData::Set_RequestSource(const std::string &key) {
+	m_data = Serializer::ToData(key);
+}
+
+void CommandData::Get_ValueString(std::string &str) const {
 	Serializer::ToValue(m_data, str);
 }
-void RemoteCommandData::Set_ValueString(const std::string &str) {
+void CommandData::Set_ValueString(const std::string &str) {
 	m_data = Serializer::ToData(str);
 }
 
-void RemoteCommandData::Get_ValueVarList(LuaVarList &vars) const {
+void CommandData::Get_ValueSource(Source &source) const {
+	Serializer::ToValue(m_data, source);
+}
+void CommandData::Set_ValueSource(const Source &source) {
+	m_data = Serializer::ToData(source);
+}
+
+void CommandData::Get_ValueVarList(LuaVarList &vars) const {
 	Serializer::ToValue(m_data, vars);
 }
-void RemoteCommandData::Set_ValueVarList(const LuaVarList &vars) {
+void CommandData::Set_ValueVarList(const LuaVarList &vars) {
 	m_data = Serializer::ToData(vars);
 }
 
-void RemoteCommandData::Get_ValueBacktraceList(LuaBacktraceList &backtraces) const {
+void CommandData::Get_ValueBacktraceList(LuaBacktraceList &backtraces) const {
 	Serializer::ToValue(m_data, backtraces);
 }
-void RemoteCommandData::Set_ValueBacktraceList(const LuaBacktraceList &backtraces) {
+void CommandData::Set_ValueBacktraceList(const LuaBacktraceList &backtraces) {
 	m_data = Serializer::ToData(backtraces);
 }
 

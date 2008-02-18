@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __LLDEBUG_REMOTECOMMAND_H__
-#define __LLDEBUG_REMOTECOMMAND_H__
+#ifndef __LLDEBUG_COMMAND_H__
+#define __LLDEBUG_COMMAND_H__
 
 #include "sysinfo.h"
 #include "luainfo.h"
@@ -34,8 +34,9 @@ namespace lldebug {
 namespace net {
 
 class RemoteEngine;
-class SocketBase;
+class Connection;
 
+/// Internal type of the command data impl.
 typedef std::vector<char> container_type;
 
 /**
@@ -74,20 +75,21 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_EVALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_STACKLIST,
+	REMOTECOMMANDTYPE_REQUEST_SOURCE,
 	REMOTECOMMANDTYPE_REQUEST_BACKTRACE,
 
 	REMOTECOMMANDTYPE_VALUE_STRING,
+	REMOTECOMMANDTYPE_VALUE_SOURCE,
+	REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST,
 	REMOTECOMMANDTYPE_VALUE_VARLIST,
 	REMOTECOMMANDTYPE_VALUE_BACKTRACELIST,
-	REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST,
 };
 
 /**
  * @brief The header of the command using TCP connection.
  */
-struct RemoteCommandHeader {
+struct CommandHeader {
 	RemoteCommandType type;
-	boost::int32_t ctxId;
 	boost::uint32_t commandId;
 	boost::uint32_t dataSize;
 };
@@ -95,11 +97,11 @@ struct RemoteCommandHeader {
 /**
  * @brief Data type for command contents.
  */
-class RemoteCommandData {
+class CommandData {
 public:
-	explicit RemoteCommandData();
-	explicit RemoteCommandData(const container_type &data);
-	~RemoteCommandData();
+	explicit CommandData();
+	explicit CommandData(const container_type &data);
+	~CommandData();
 
 	/// Get the size of this data.
 	container_type::size_type GetSize() const {
@@ -169,8 +171,14 @@ public:
 	void Get_RequestEvalVarList(string_array &array, LuaStackFrame &stackFrame) const;
 	void Set_RequestEvalVarList(const string_array &array, const LuaStackFrame &stackFrame);
 
+	void Get_RequestSource(std::string &key);
+	void Set_RequestSource(const std::string &key);
+
 	void Get_ValueString(std::string &str) const;
 	void Set_ValueString(const std::string &str);
+
+	void Get_ValueSource(Source &source) const;
+	void Set_ValueSource(const Source &source);
 
 	void Get_ValueVarList(LuaVarList &vars) const;
 	void Set_ValueVarList(const LuaVarList &vars);
@@ -185,31 +193,27 @@ private:
 /**
  * @brief The command using TCP connection.
  */
-class RemoteCommand {
+class Command {
 public:
 	typedef
-		boost::function1<void, const RemoteCommand &>
-		RemoteCommandCallback;
+		boost::function1<void, const Command &>
+		CommandCallback;
 
 public:
-	RemoteCommand(const RemoteCommandHeader &header, const RemoteCommandData &data)
+	Command(const CommandHeader &header,
+				  const CommandData &data)
 		: m_header(header), m_data(data) {
 	}
 
-	explicit RemoteCommand() {
+	explicit Command() {
 	}
 
-	~RemoteCommand() {
+	~Command() {
 	}
 
 	/// Get the type of this command.
 	RemoteCommandType GetType() const {
 		return m_header.type;
-	}
-
-	/// Get the context id.
-	int GetCtxId() const {
-		return m_header.ctxId;
 	}
 
 	/// Get the command id.
@@ -223,22 +227,22 @@ public:
 	}
 
 	/// Get the header of this command.
-	RemoteCommandHeader &GetHeader() {
+	CommandHeader &GetHeader() {
 		return m_header;
 	}
 
 	/// Get the const header of this command.
-	const RemoteCommandHeader &GetHeader() const {
+	const CommandHeader &GetHeader() const {
 		return m_header;
 	}
 
 	/// Get the const data of the command.
-	RemoteCommandData &GetData() {
+	CommandData &GetData() {
 		return m_data;
 	}
 
 	/// Get the data of the command.
-	const RemoteCommandData &GetData() const {
+	const CommandData &GetData() const {
 		return m_data;
 	}
 
@@ -270,7 +274,7 @@ public:
 
 private:
 	friend class RemoteEngine;
-	friend class SocketBase;
+	friend class Connection;
 
 	/// Resize the impl data.
 	void ResizeData() {
@@ -278,14 +282,14 @@ private:
 	}
 
 	/// Set the response callback.
-	void SetResponse(const RemoteCommandCallback &response) {
+	void SetResponse(const CommandCallback &response) {
 		m_response = response;
 	}
 
 private:
-	RemoteCommandHeader m_header;
-	RemoteCommandData m_data;
-	RemoteCommandCallback m_response;
+	CommandHeader m_header;
+	CommandData m_data;
+	CommandCallback m_response;
 };
 
 } // end of namespace net
