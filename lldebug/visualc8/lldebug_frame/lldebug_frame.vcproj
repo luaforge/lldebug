@@ -41,12 +41,13 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\treelistctrl\include;..\..\extralib\wxscintilla\include;..\..\extralib\boost_asio_0_3_9;E:\programs\cpp\library\external\include\mswud"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;LLDEBUG_FRAME"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;LLDEBUG_VISUAL"
+				IgnoreStandardIncludePath="false"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="2"
-				PrecompiledHeaderThrough="lldebug_prec.h"
+				PrecompiledHeaderThrough="precomp.h"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
@@ -123,7 +124,7 @@
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;LLDEBUG_FRAME"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="2"
-				PrecompiledHeaderThrough="lldebug_prec.h"
+				PrecompiledHeaderThrough="precomp.h"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -183,91 +184,23 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\src\echo_stream.h"
+				RelativePath="..\..\src\configfile.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_application.cpp"
+				RelativePath="..\..\src\configfile.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_application.h"
+				RelativePath="..\..\src\luainfo.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_backtraceview.cpp"
+				RelativePath="..\..\src\luainfo.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_backtraceview.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_context.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_controls.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_event.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_event.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_interactiveview.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_interactiveview.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_langsettings.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_langsettings.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_luainfo.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_luainfo.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_mainframe.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_mainframe.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_mediator.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_mediator.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_outputview.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_outputview.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_prec.cpp"
+				RelativePath="..\..\src\precomp.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -287,53 +220,149 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_prec.h"
+				RelativePath="..\..\src\precomp.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_queue.h"
+				RelativePath="..\..\src\sysinfo.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\lldebug_remoteengine.cpp"
+				RelativePath="..\..\src\sysinfo.h"
 				>
 			</File>
-			<File
-				RelativePath="..\..\src\lldebug_remoteengine.h"
+			<Filter
+				Name="visual"
 				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_serialization.h"
+				<File
+					RelativePath="..\..\src\visual\application.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\application.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\backtraceview.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\backtraceview.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\controls.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\event.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\event.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\interactiveview.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\interactiveview.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\langsettings.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\langsettings.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\mainframe.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\mainframe.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\mediator.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\mediator.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\outputview.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\outputview.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\sourceview.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\sourceview.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\watchview.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\watchview.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="net"
 				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_sourceview.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_sourceview.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_sysinfo.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_sysinfo.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_vectorstream.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_watchview.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\lldebug_watchview.h"
-				>
-			</File>
+				<File
+					RelativePath="..\..\src\net\command.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\command.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\connection.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\connection.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\echostream.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\netutils.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\netutils.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\remoteengine.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\remoteengine.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\net\vectorstream.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="リソース ファイル"

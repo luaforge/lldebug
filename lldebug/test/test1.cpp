@@ -14,7 +14,7 @@
 #define snprintf _snprintf
 #endif
 
-const char *c_filename = "talker.lua";
+const char *c_filename = "fft.lua";
 
 int init_state(lua_State *L) {
 	const char *s_dirlist[] = {
