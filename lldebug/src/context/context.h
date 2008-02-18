@@ -29,7 +29,7 @@
 
 #include "sysinfo.h"
 #include "luainfo.h"
-#include "net/remotecommand.h"
+#include "net/command.h"
 
 namespace lldebug {
 
@@ -104,48 +104,6 @@ public:
 		return m_lua;
 	}
 
-	/// Get the source contents.
-	const Source *GetSource(const std::string &key) {
-		scoped_lock lock(m_mutex);
-		return m_sourceManager.Get(key);
-	}
-
-	/// Save the source.
-	int SaveSource(const std::string &key, const string_array &source) {
-		scoped_lock lock(m_mutex);
-		return m_sourceManager.Save(key, source);
-	}
-
-	/// Find the breakpoint.
-	Breakpoint FindBreakpoint(const std::string &key, int line) {
-		scoped_lock lock(m_mutex);
-		return m_breakpoints.Find(key, line);
-	}
-
-	/// Find the next breakpoint.
-	Breakpoint NextBreakpoint(const Breakpoint &bp) {
-		scoped_lock lock(m_mutex);
-		return m_breakpoints.Next(bp);
-	}
-
-	/// Set the breakpoint.
-	void SetBreakpoint(const Breakpoint &bp) {
-		scoped_lock lock(m_mutex);
-		m_breakpoints.Set(bp);
-	}
-
-	/// Toggle on/off of the breakpoint.
-	void ToggleBreakpoint(const std::string &key, int line) {
-		scoped_lock lock(m_mutex);
-		m_breakpoints.Toggle(key, line);
-	}
-
-	/// Toggle on/off of the breakpoint.
-	void ChangedBreakpointList(const BreakpointList &bps) {
-		scoped_lock lock(m_mutex);
-		m_breakpoints = bps;
-	}
-
 private:
 	explicit Context();
 	virtual ~Context();
@@ -203,54 +161,6 @@ private:
 	std::string m_rootFileKey;
 };
 
-/**
- * @brief 特定のスコープでluaを使うためのクラスです。
- */
-class scoped_lua {
-public:
-	explicit scoped_lua(lua_State *L)
-		: m_L(L), m_top(-1), m_n(-1), m_npop(0) {
-		m_ctx = Context::Find(L);
-		if (m_ctx != NULL) {
-			m_isOldEnabled = m_ctx->IsDebugEnabled();
-			m_ctx->SetDebugEnable(false);
-		}
-	}
-
-	explicit scoped_lua(lua_State *L, int n, int npop = 0)
-		: m_L(L), m_n(n), m_npop(npop) {
-		m_ctx = Context::Find(L);
-		if (m_ctx != NULL) {
-			m_isOldEnabled = m_ctx->IsDebugEnabled();
-			m_ctx->SetDebugEnable(false);
-		}
-		m_top = lua_gettop(L);
-	}
-
-	~scoped_lua() {
-		if (m_top >= 0) {
-			assert(m_top + m_n == lua_gettop(m_L));
-		}
-		lua_pop(m_L, m_npop);
-
-		if (m_ctx != NULL) {
-			m_ctx->SetDebugEnable(m_isOldEnabled);
-		}
-	}
-
-	void reset_stackn(int n) {
-		m_n = n;
-	}
-
-private:
-	Context *m_ctx;
-	lua_State *m_L;
-	int m_top, m_n;
-	int m_npop;
-	bool m_isOldEnabled;
-};
-
 }
 
 #endif
-

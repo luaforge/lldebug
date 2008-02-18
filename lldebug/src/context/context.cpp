@@ -30,9 +30,24 @@
 #include "net/remoteengine.h"
 #include "context/codeconv.h"
 #include "context/context.h"
+#include "context/contextutils.h"
+#include "context/luaiterate.h"
 
+#include <boost/archive/xml_oarchive.hpp>
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/nvp.hpp>
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/set.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 #include <fstream>
 
+/// Dummy function name for eval.
 #define DUMMY_FUNCNAME "__LLDEBUG_DUMMY_TEMPORARY_FUNCTION_NAME__"
 
 namespace lldebug {
@@ -46,15 +61,11 @@ public:
 	}
 
 	~ContextManager() {
-		// 'lock' must be unlocked
-		// at the end of this function.
-		{
-			scoped_lock lock(m_mutex);
+		scoped_lock lock(m_mutex);
 
-			while (!m_map.empty()) {
-				Context *ctx = (*m_map.begin()).second;
-				ctx->Delete();
-			}
+		while (!m_map.empty()) {
+			Context *ctx = (*m_map.begin()).second;
+			ctx->Delete();
 		}
 	}
 
@@ -179,7 +190,7 @@ int Context::CreateDebuggerFrame() {
 		return -1;
 	}*/
 
-	if (m_engine->StartContext(51123, m_id, 20) != 0) {
+	if (m_engine->StartContext("localhost", "51123", 10) != 0) {
 		return -1;
 	}
 
@@ -238,61 +249,16 @@ void Context::Delete() {
 	delete this;
 }
 
-class scoped_locale {
-public:
-	explicit scoped_locale() {
-		m_prev = std::locale::global(std::locale(""));
-	}
-
-	~scoped_locale() {
-		std::locale::global(m_prev);
-	}
-
-private:
-	std::locale m_prev;
-};
-
-/// Transform key string that may contain all characters such as "!"#$%&'()"
-/// to string that can use a filename.
-static std::string TransformKey(const std::string &key) {
-	const char * s_lookupTable = 
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		"abcdefghijklmnopqrstuvwxyz"
-		"0123456789"
-		"_-";
-	std::string result;
-	unsigned int c = 0;
-	int bcount = 0;
-
-	for (std::string::size_type i = 0; i <= key.size(); ++i) {
-		c = (c << 8) | (i == key.size() ? 0 : key[i]);
-		bcount += 8;
-
-		while (bcount >= 6) {
-			const unsigned int shiftcount = bcount - 6;
-			const unsigned int mask = ((1 << 6) - 1);
-			result += s_lookupTable[(c >> shiftcount) & mask];
-			c &= (1 << shiftcount) - 1;
-			bcount -= 6;
-		}
-	}
-
-	return result;
-}
-
 int Context::LoadConfig() {
 	scoped_lock lock(m_mutex);
-	scoped_locale scoped;
 
 	try {
-		std::string filename = TransformKey(m_rootFileKey);
-		std::string path = GetConfigFileName(filename + ".xml");
-		std::ifstream ifs;
-		ifs.open(path.c_str(), std::ios::in);
-		if (!ifs.is_open()) {
+		std::string filename = EncodeToFilename(m_rootFileKey);
+		std::fstream ifs;
+		if (OpenConfigFile(filename + "xml", ifs, false) != 0) {
 			return -1;
 		}
-
+	
 		boost::archive::xml_iarchive ar(ifs);
 		BreakpointList bps(&*m_engine);
 		ar & BOOST_SERIALIZATION_NVP(bps);
@@ -310,14 +276,11 @@ int Context::LoadConfig() {
 
 int Context::SaveConfig() {
 	scoped_lock lock(m_mutex);
-	scoped_locale scoped;
 
 	try {
-		std::string filename = TransformKey(m_rootFileKey);
-		std::string path = GetConfigFileName(filename + ".xml");
-		std::ofstream ofs;
-		ofs.open(path.c_str(), std::ios::out);
-		if (!ofs.is_open()) {
+		std::string filename = EncodeToFilename(m_rootFileKey);
+		std::fstream ofs;
+		if (OpenConfigFile(filename + "xml", ofs, true) != 0) {
 			return -1;
 		}
 
@@ -436,8 +399,8 @@ std::string Context::ParseLuaError(const std::string &str, std::string *key_,
 	if (key_ != NULL) *key_ = "";
 	if (line_ != NULL) *line_ = -1;
 	if (isDummyFunc_ != NULL) *isDummyFunc_ = false;
-
-	return str;}
+	return str;
+}
 
 void Context::OutputLog(LogType type, const std::string &str) {
 	scoped_lock lock(m_mutex);
@@ -605,8 +568,8 @@ void Context::SetState(State state) {
 int Context::HandleCommand() {
 	scoped_lock lock(m_mutex);
 
-	while (m_engine->HasCommand()) {
-		RemoteCommand command = m_engine->GetCommand();
+	while (m_engine->HasCommands()) {
+		Command command = m_engine->GetCommand();
 		m_engine->PopCommand();
 
 		if (command.IsResponse()) {
@@ -643,7 +606,7 @@ int Context::HandleCommand() {
 				std::string key;
 				string_array sources;
 				command.GetData().Get_SaveSource(key, sources);
-				SaveSource(key, sources);
+				m_sourceManager.Save(key, sources);
 			}
 			break;
 
@@ -720,6 +683,14 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_REQUEST_STACKLIST:
 			m_engine->ResponseVarList(command, LuaGetStack());
 			break;
+		case REMOTECOMMANDTYPE_REQUEST_SOURCE:
+			{
+				std::string key;
+				command.GetData().Get_RequestSource(key);
+				const Source *source = m_sourceManager.Get(key);
+				m_engine->ResponseSource(command, (source != NULL ? *source : Source()));
+			}
+			break;
 		case REMOTECOMMANDTYPE_REQUEST_BACKTRACE:
 			//m_engine->ResponseBacktrace(command, LuaGetBacktrace());
 			break;
@@ -732,9 +703,10 @@ int Context::HandleCommand() {
 struct UpdateResponseWaiter {
 	explicit UpdateResponseWaiter(int *count)
 		: m_count(count) {
+		++*count;
 	}
 
-	void operator()(const RemoteCommand &command) {
+	void operator()(const Command &command) {
 		--*m_count;
 	}
 
@@ -797,7 +769,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	lua_getinfo(L, "nSl", ar);
 
 	// Break and stop program, if any.
-	Breakpoint bp = FindBreakpoint(ar->source, ar->currentline - 1);
+	Breakpoint bp = m_breakpoints.Find(ar->source, ar->currentline - 1);
 	if (bp.IsOk()) {
 		SetState(STATE_BREAK);
 	}
@@ -806,7 +778,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	State prevState = STATE_NORMAL;
 	for (;;) {
 		// handle event and message queue
-		if (HandleCommand() != 0 || !m_engine->IsConnected()) {
+		if (HandleCommand() != 0 || !m_engine->IsConnecting()) {
 			luaL_error(L, "quited");
 			return;
 		}
@@ -822,15 +794,14 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 				}
 				m_isMustUpdate = false;
 
-				++m_waitUpdateCount;
-				UpdateResponseWaiter waiter(&m_waitUpdateCount);
 				m_engine->UpdateSource(
 					ar->source, ar->currentline,
-					++m_updateCount, waiter);
+					++m_updateCount,
+					UpdateResponseWaiter(&m_waitUpdateCount));
 			}
 			prevState = m_state;
 
-			if (!m_engine->HasCommand()) {
+			if (!m_engine->HasCommands()) {
 				boost::xtime xt;
 				boost::xtime_get(&xt, boost::TIME_UTC);
 				xt.nsec += 10 * 1000 * 1000;
@@ -1146,169 +1117,6 @@ void Context::LuaOpenLibs(lua_State *L) {
 
 
 /*-----------------------------------------------------------------*/
-/// Iterate the all fields of idx object.
-template<class Fn>
-static int iterate_fields(Fn &callback, lua_State *L, int idx) {
-	scoped_lua scoped(L, 0);
-
-	// check metatable
-	if (lua_getmetatable(L, idx)) {
-		int top = lua_gettop(L);
-		// name of metatable is "(*metatable)"
-		int ret = callback(L, std::string("(*metatable)"), top);
-		lua_pop(L, 1);
-		if (ret != 0) {
-			return ret;
-		}
-	}
-		
-	if (lua_type(L, idx) != LUA_TTABLE) {
-		return 0;
-	}
-
-	lua_pushnil(L);  // first key
-	for (int i = 0; lua_next(L, idx) != 0; ++i) {
-		// key index: top - 1, value index: top
-		int top = lua_gettop(L);
-		if (idx == LUA_REGISTRYINDEX && lua_islightuserdata(L, -2)
-			&& lua_topointer(L, -2) == &LuaOriginalObject) {
-		}
-		else {
-			int ret = callback(L, LuaToString(L, top - 1), top);
-			if (ret != 0) {
-				lua_pop(L, 2);
-				return ret;
-			}
-		}
-
-		// eliminate the value index and pushed value and key index
-		lua_pop(L, 1);
-	}
-
-	return 0;
-}
-
-/// Iterate the all fields of var.
-template<class Fn>
-static int iterate_var(Fn &callback, const LuaVar &var) {
-	lua_State *L = var.GetLua().GetState();
-
-	if (var.PushTable(L) != 0) {
-		return -1;
-	}
-
-	scoped_lua scoped(L, 0, 1);
-	return iterate_fields(callback, L, lua_gettop(L));
-}
-
-/// Iterate the stacks.
-template<class Fn>
-static int iterate_stacks(Fn &callback, lua_State *L) {
-	scoped_lua scoped(L, 0);
-	int top = lua_gettop(L);
-
-	for (int idx = 1; idx <= top; ++idx) {
-		char buffer[32];
-		snprintf(buffer, sizeof(buffer), "stack:%d", idx);
-		int ret = callback(L, buffer, idx);
-		if (ret != 0) {
-			return ret;
-		}
-	}
-
-	return 0;
-}
-
-/// Iterates the local fields.
-template<class Fn>
-static int iterate_locals(Fn &callback, lua_State *L, int level,
-						  bool checkLocal, bool checkUpvalue,
-						  bool checkEnviron) {
-	scoped_lua scoped(L, 0);
-	lua_Debug ar;
-	const char *name;
-
-	if (lua_getstack(L, level, &ar) == 0) {
-		// The stack level don't exist.
-		return -1;
-	}
-
-	// Check the local value. (1 is the initial value)
-	if (checkLocal) {
-		for (int i = 1; (name = lua_getlocal(L, &ar, i)) != NULL; ++i) {
-			if (strcmp(name, "(*temporary)") != 0) {
-				int ret = callback(L, name, lua_gettop(L));
-				if (ret != 0) {
-					lua_pop(L, 1);
-					return ret;
-				}
-			}
-			lua_pop(L, 1); // Eliminate the local value.
-		}
-	}
-	
-	// Get the local function.
-	if (lua_getinfo(L, "f", &ar) != 0) {
-		// Check the upvalue.
-		if (checkUpvalue) {
-			for (int i = 1; (name = lua_getupvalue(L, -1, i)) != NULL; ++i) {
-				if (strcmp(name, "(*temporary)") != 0) {
-					int ret = callback(L, name, lua_gettop(L));
-					if (ret != 0) {
-						lua_pop(L, 2);
-						return ret;
-					}
-				}
-				lua_pop(L, 1); // eliminate the local value.
-			}
-		}
-
-		// Check the environ table.
-		if (checkEnviron) {
-			lua_getfenv(L, -1);
-			int tableIdx = lua_gettop(L);
-
-			lua_pushnil(L);  // first key
-			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
-				// key index: top - 1, value index: top
-				int top = lua_gettop(L);
-				int ret = callback(L, LuaToString(L, top - 1), top);
-				if (ret != 0) {
-					lua_pop(L, 4);
-					return ret;
-				}
-
-				// eliminate the value index.
-				lua_pop(L, 1);
-			}
-
-			lua_pop(L, 1); // eliminate the environ table.
-		}
-
-		lua_pop(L, 1); // eliminate the local function.
-	}
-
-	return 0;
-}
-
-/**
- * @brief Make a LuaVarList object.
- */
-struct varlist_maker {
-	int operator()(lua_State *L, const std::string &name, int valueIdx) {
-		m_result.push_back(LuaVar(LuaHandle(L), name, valueIdx));
-		return 0;
-	}
-
-	LuaVarList &get_result() {
-		return m_result;
-	}
-
-	private:
-	LuaVarList m_result;
-	};
-
-
 LuaVarList Context::LuaGetFields(TableType type) {
 	scoped_lock lock(m_mutex);
 	int rootType = 0;
@@ -1384,39 +1192,6 @@ LuaStackList Context::LuaGetStack() {
 	return callback.get_result();
 }
 
-/**
- * @brief variable finder
- */
-struct variable_finder {
-	lua_State *L;
-	std::string target;
-	int nilpos;
-	bool replaced;
-
-	explicit variable_finder(lua_State *L_, const std::string &target_)
-		: L(L_), target(target_), replaced(false) {
-		lua_pushnil(L); // for replace
-		nilpos = lua_gettop(L);
-	}
-
-	~variable_finder() {
-		if (!replaced) {
-			lua_remove(L, nilpos);
-		}
-	}
-
-	int operator()(lua_State *L, const std::string &name, int valueIdx) {
-		if (target == name) {
-			lua_pushvalue(L, valueIdx);
-			lua_replace(L, nilpos); // replace valueIdx with nil
-			replaced = true;
-			return 0xffff;
-		}
-
-		return 0;
-	}
-	};
-
 /*static void list_local_funcname(lua_State *L) {
 	lua_Debug ar;
 
@@ -1431,8 +1206,6 @@ int Context::LuaIndexForEval(lua_State *L) {
 	scoped_lock lock(m_mutex);
 	scoped_lua scoped(L, 1);
 
-	//list_local_funcname(L);
-
 	if (!lua_isstring(L, 2)) {
 		lua_pushnil(L);
 		return 1;
@@ -1444,99 +1217,17 @@ int Context::LuaIndexForEval(lua_State *L) {
 	// level 1: __lldebug_dummy__ function
 	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
 	// level 3: current running function
-	{
-		variable_finder finder(L, target);
-		if (iterate_locals(finder, L, 1, true, true, false) == 0xffff) {
-			return 1;
-		}
+	if (find_localvalue(L, level + 1, target, true, true, false) == 0) {
+		return 1;
 	}
 
-	{
-		variable_finder finder(L, target);
-		if (iterate_locals(finder, L, 3 + level, true, true, true) == 0xffff) {
-			return 1;
-		}
+	if (find_localvalue(L, level + 3, target, true, true, true) == 0) {
+		return 1;
 	}
 
 	lua_pushnil(L);
 	return 1; // return nil
 }
-
-/// Set the new value to the local variable.
-static int LuaSetValueLocal(lua_State *L, int level,
-							const std::string &target,
-							int valueIdx, bool checkEnv) {
-	scoped_lua scoped(L, 0);
-	const char *cname;
-	lua_Debug ar;
-
-	if (lua_getstack(L, level, &ar) == 0) {
-		// The stack level don't exist.
-		return -1;
-	}
-
-	// Check the local value. (1 is the initial value)
-	for (int i = 1; (cname = lua_getlocal(L, &ar, i)) != NULL; ++i) {
-		if (target == cname) {
-			lua_pushvalue(L, valueIdx); // new value
-			lua_setlocal(L, &ar, i);
-			lua_pop(L, 1);
-			return 0;
-		}
-		lua_pop(L, 1); // Eliminate the local value.
-	}
-
-	// Get the local function.
-	if (lua_getinfo(L, "f", &ar) != 0) {
-		// Check the upvalue.
-		for (int i = 1; (cname = lua_getupvalue(L, -1, i)) != NULL; ++i) {
-			if (target == cname) {
-				lua_pushvalue(L, 3); // new value
-				lua_setupvalue(L, -1, i);
-				lua_pop(L, 2); // Eliminate the upvalue and the local function.
-				return 0;
-			}
-			lua_pop(L, 1); // Eliminate the upvalue.
-		}
-
-		// Check the environment of the function.
-		if (checkEnv) {
-			lua_getfenv(L, -1); // Push the environment table.
-			int tableIdx = lua_gettop(L);
-
-			lua_pushnil(L); // first key
-			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
-				// key index: -2, value index: -1
-				std::string name = LuaToString(L, -2);
-				if (target == name) {
-					lua_pop(L, 1); // Eliminate the old value.
-					lua_pushvalue(L, valueIdx);
-					lua_settable(L, -3);
-					lua_pop(L, 2);
-					return 0;
-				}
-
-				// eliminate the value index and pushed value and key index
-				lua_pop(L, 1);
-			}
-
-			// Force create
-			if (true) {
-				lua_pushlstring(L, target.c_str(), target.length());
-				lua_pushvalue(L, valueIdx);
-				lua_settable(L, tableIdx);
-				lua_pop(L, 2);
-				return 0;
-			}
-
-			lua_pop(L, 1); // Eliminate the environment table.
-		}
-
-		lua_pop(L, 1); // Eliminate the local function.
-	}
-
-	return -1;
-	}
 
 int Context::LuaNewindexForEval(lua_State *L) {
 	scoped_lock lock(m_mutex);
@@ -1552,11 +1243,11 @@ int Context::LuaNewindexForEval(lua_State *L) {
 	// level 1: __lldebug_dummy__ function
 	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
 	// level 3: current running function
-	if (LuaSetValueLocal(L, 1, target, 3, false) == 0) {
+	if (set_localvalue(L, level + 1, target, 3, true, true, false, false) == 0) {
 		return 0;
 	}
 
-	if (LuaSetValueLocal(L, 3 + level, target, 3, true) == 0) {
+	if (set_localvalue(L, level + 3, target, 3, true, true, true, true) == 0) {
 		return 0;
 	}
 
@@ -1753,7 +1444,7 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 			// Source title is also set,
 			// because it is always used when backtrace is shown.
 			std::string sourceTitle;
-			const Source *source = GetSource(ar.source);
+			const Source *source = m_sourceManager.Get(ar.source);
 			if (source != NULL) {
 				sourceTitle = source->GetTitle();
 			}
@@ -1767,4 +1458,3 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 }
 
 }
-
