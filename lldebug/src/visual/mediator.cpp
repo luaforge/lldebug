@@ -119,6 +119,10 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 		if (frame != NULL) {
 			frame->Close(true);
 		}
+		else {
+			wxExit();
+			wxWakeUpIdle();
+		}
 		break;
 
 	case REMOTECOMMANDTYPE_CHANGED_STATE:

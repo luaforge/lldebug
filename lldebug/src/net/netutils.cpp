@@ -32,9 +32,8 @@ namespace lldebug {
 namespace net {
 
 void EchoCommand(const Command &command) {
-#ifndef NDEBUG
-	static echo_ostream echo("localhost");
-
+#if 1 //ndef NDEBUG
+	echo_ostream echo("localhost");
 	if (echo.is_open()) {
 		echo << "type:      " << command.GetType() << std::endl;
 		echo << "commandId: " << command.GetCommandId() << std::endl;

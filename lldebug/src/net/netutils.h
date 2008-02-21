@@ -32,6 +32,7 @@
 namespace lldebug {
 namespace net {
 
+/// Echo the command info.
 void EchoCommand(const Command &command);
 
 } // end of namespace net

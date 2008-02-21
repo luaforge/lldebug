@@ -28,7 +28,7 @@
 #include "context/codeconv.h"
 
 //#include "babel.h"
-#include "wx/strconv.h"
+//#include "wx/strconv.h"
 
 namespace lldebug {
 #if 0

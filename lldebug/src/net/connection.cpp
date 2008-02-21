@@ -134,7 +134,8 @@ void ClientConnector::Start(const std::string &hostName,
 void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 									const boost::system::error_code &error) {
 	if (!error) {
-		m_connection->GetSocket().async_connect(*nextEndpoint,
+		tcp::endpoint endpoint = *nextEndpoint;
+		m_connection->GetSocket().async_connect(endpoint,
 			boost::bind(
 				&ClientConnector::HandleConnect, shared_from_this(),
 				++nextEndpoint, boost::asio::placeholders::error));
@@ -165,9 +166,10 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 				readHeader, boost::asio::placeholders::error));
 	}
 	else if (nextEndpoint != tcp::resolver::iterator()) {
+		tcp::endpoint endpoint = *nextEndpoint;
 		// Try the next endpoint in the list.
 		m_connection->GetSocket().close();
-		m_connection->GetSocket().async_connect(*nextEndpoint,
+		m_connection->GetSocket().async_connect(endpoint,
 			boost::bind(
 				&ClientConnector::HandleConnect, shared_from_this(),
 				++nextEndpoint, boost::asio::placeholders::error));

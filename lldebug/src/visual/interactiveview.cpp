@@ -25,6 +25,7 @@
  */
 
 #include "precomp.h"
+#include "configfile.h"
 #include "net/remoteengine.h"
 #include "visual/interactiveview.h"
 #include "visual/mediator.h"
@@ -32,10 +33,13 @@
 namespace lldebug {
 namespace visual {
 
+/**
+ * @brief Run button
+ */
 class InteractiveView::RunButton : public wxButton {
 public:
 	explicit RunButton(InteractiveView *parent, wxPoint pos, wxSize size)
-		: wxButton(parent, wxID_ANY, wxT("Run"), pos, size)
+		: wxButton(parent, wxID_ANY, _("Run"), pos, size)
 		, m_parent(parent) {
 	}
 
@@ -53,37 +57,83 @@ private:
 	DECLARE_EVENT_TABLE();
 };
 
+BEGIN_EVENT_TABLE(InteractiveView::RunButton, wxButton)
+	EVT_BUTTON(wxID_ANY, InteractiveView::RunButton::OnButton)
+END_EVENT_TABLE()
+
+
+/*-----------------------------------------------------------------*/
+/**
+ * @brief 
+ */
 class InteractiveView::TextInput : public wxTextCtrl {
+private:
+	typedef std::list<wxString> HistoryTexts;
+
 public:
 	explicit TextInput(InteractiveView *parent, wxPoint pos, wxSize size)
 		: wxTextCtrl(parent, wxID_ANY, wxT(""), pos, size
-			, wxTE_MULTILINE)
-		, m_parent(parent) {
-		Clear();
+			, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB)
+		, m_parent(parent), m_historyPos(m_historyTexts.end()) {
 	}
 
 	virtual ~TextInput() {
 	}
 
+	/// Add the runned string.
+	void AddHistory(const wxString &str) {
+		// Delete the old history, if any.
+		while (m_historyTexts.size() > 300) {
+			m_historyTexts.pop_front();
+		}
+
+		m_historyTexts.push_back(str);
+		m_historyPos = m_historyTexts.end();
+		m_inputText.Clear();
+	}
+
 private:
 	void OnChar(wxKeyEvent &event) {
-		if (!event.ShiftDown() && event.GetKeyCode() == WXK_RETURN) {
-			m_parent->Run();
+		if (!event.ShiftDown()) {
+			switch (event.GetKeyCode()) {
+			case WXK_RETURN:
+				m_parent->Run();
+				return;
+			case WXK_TAB:
+				return;
+			case WXK_UP:
+				if (m_historyPos != m_historyTexts.begin()) {
+					if (m_historyPos == m_historyTexts.end()) {
+						m_inputText = GetValue();
+					}
+
+					ChangeValue(*(--m_historyPos));
+				}
+				return;
+			case WXK_DOWN:
+				if (m_historyPos != m_historyTexts.end()) {
+					if (++m_historyPos == m_historyTexts.end()) {
+						ChangeValue(m_inputText);
+					}
+					else {
+						ChangeValue(*m_historyPos);
+					}
+				}
+				return;
+			}
 		}
-		else {
-			event.Skip();
-		}
+
+		event.Skip();
 	}
 
 private:
 	InteractiveView *m_parent;
+	HistoryTexts m_historyTexts;
+	HistoryTexts::iterator m_historyPos;
+	wxString m_inputText;
 
 	DECLARE_EVENT_TABLE();
 };
-
-BEGIN_EVENT_TABLE(InteractiveView::RunButton, wxButton)
-	EVT_BUTTON(wxID_ANY, InteractiveView::RunButton::OnButton)
-END_EVENT_TABLE()
 
 BEGIN_EVENT_TABLE(InteractiveView::TextInput, wxTextCtrl)
 	EVT_CHAR(InteractiveView::TextInput::OnChar)
@@ -113,17 +163,15 @@ void InteractiveView::CreateGUIControls() {
 
 	wxBoxSizer *sizer2 = new wxBoxSizer(wxHORIZONTAL);
 	m_input = new TextInput(this, wxPoint(0,200), wxSize(300,GetCharHeight() + 8));
-	sizer2->Add(m_input, 1, wxALIGN_LEFT | wxEXPAND | wxALL, 4);
+	sizer2->Add(m_input, 1, wxALIGN_LEFT | wxEXPAND | wxALL, 0);
 
 	RunButton *m_run = new RunButton(this, wxPoint(300,300), wxSize(64, 1));
-	sizer2->Add(m_run, 0, wxALIGN_RIGHT | wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, 4);
+	sizer2->Add(m_run, 0, wxALIGN_RIGHT | wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, 1);
 
 	sizer->Add(sizer2, 0, wxALIGN_BOTTOM | wxEXPAND);
 
 	SetAutoLayout(true);
 	SetSizer(sizer);
-	sizer->Layout();
-	sizer->Fit(this);
 	sizer->SetSizeHints(this);
 }
 
@@ -131,7 +179,7 @@ void InteractiveView::OnChangedState(wxDebugEvent &event) {
 	Enable(event.IsBreak());
 }
 
-/// Output log str. (thread safe)
+/// Output log str.
 void InteractiveView::OutputLog(const wxString &str) {
 	m_text->AppendText(_T("\n"));
 	m_text->AppendText(str);
@@ -207,6 +255,7 @@ void InteractiveView::Run() {
 	m_text->AppendText(_T("\n"));
 	m_text->AppendText(_T("> "));
 	m_text->AppendText(str);
+	m_input->AddHistory(str);
 	m_input->SetFocus();
 	m_input->Clear();
 }

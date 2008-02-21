@@ -135,7 +135,6 @@ public:
 	void ResponseVarList(const Command &command, const LuaVarList &vars);
 
 private:
-	bool IsThreadActive();
 	void ConnectionThread();
 
 private:
@@ -164,7 +163,7 @@ private:
 	boost::uint32_t m_commandIdCounter;
 
 	shared_ptr<thread> m_thread;
-	bool m_isThreadActive;
+	bool m_isExitThread;
 	mutex m_mutex;
 
 	struct WaitResponseCommand {

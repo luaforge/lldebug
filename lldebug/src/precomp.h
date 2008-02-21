@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __LLDEBUG_PREC_H__
-#define __LLDEBUG_PREC_H__
+#ifndef __LLDEBUG_PRECOMP_H__
+#define __LLDEBUG_PRECOMP_H__
 
 #include <string>
 #include <vector>
@@ -36,7 +36,9 @@
 
 #define BOOST_SYSTEM_NO_LIB
 #define NOMINMAX
+#ifndef _WIN32_WINDOWS
 #define _WIN32_WINDOWS 0x400
+#endif
 #include "boost/asio/io_service.hpp"
 
 #include <boost/shared_ptr.hpp>

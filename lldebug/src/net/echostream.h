@@ -30,10 +30,50 @@
 #include <boost/asio/ip/tcp.hpp>
 
 #include <iostream>
-#include <vector>
 
 namespace lldebug {
 namespace net {
+
+/**
+ * @brief Thread functions of basic_echo_ostreambuf.
+ * 
+ * basic_echo_ostreambuf is a template class,
+ * so if I include those in it, I can't put those in a .cpp file.
+ */
+struct echo_thread {
+public:
+	/// Get the io_service object.
+	static echo_thread &get_instance() {
+		return ms_thread;
+	}
+
+	/// Get the io_service object.
+	boost::asio::io_service &get_service() {
+		return m_service;
+	}
+
+	/// Add the echo request to the queue.
+	void add_request(shared_ptr<boost::asio::ip::tcp::socket> sock,
+					 const std::vector<char> &buffer);
+
+private:
+	explicit echo_thread();
+	~echo_thread();
+	void exit_thread();
+	void thread_main();
+
+	struct request;
+	shared_ptr<request> get_request();
+
+private:
+	static echo_thread ms_thread;
+	shared_ptr<boost::thread> m_thread;
+	boost::asio::io_service m_service;
+	mutex m_mutex;
+	condition m_cond;
+	bool m_is_exit_thread;
+	std::queue<shared_ptr<request> > m_request_queue;
+};
 
 /**
  * @brief Echo client.
@@ -43,8 +83,6 @@ class basic_echo_ostreambuf : public std::basic_streambuf<Ch,Tr> {
 public:
 	typedef typename std::basic_streambuf<Ch,Tr> base_type;
 	typedef typename base_type::int_type int_type;
-
-	//namespace tcp = boost::asio::ip::tcp;
 
 public:
 	explicit basic_echo_ostreambuf()
@@ -60,9 +98,11 @@ public:
 	bool open(const std::string &hostname, const std::string &port) {
 		try {
 			using namespace boost::asio::ip;
-			shared_ptr<tcp::socket> sock(new tcp::socket(m_service));
+			boost::asio::io_service &service =
+				echo_thread::get_instance().get_service();
+			shared_ptr<tcp::socket> sock(new tcp::socket(service));
 
-			tcp::resolver resolver(m_service);
+			tcp::resolver resolver(service);
 			tcp::resolver_query query(tcp::v4(), hostname, port);
 			tcp::resolver_iterator it;
 			for (it = resolver.resolve(query); 
@@ -106,32 +146,6 @@ protected:
 		return Tr::eof();
 	}
 
-	/// Flush the data.
-	int flush_internal(bool force) {
-		if (m_socket == NULL) {
-			return -1;
-		}
-
-		if (!force && m_buffer.empty()) {
-			return 0;
-		}
-
-		// Add CRLF.
-		m_buffer.push_back('\r');
-		m_buffer.push_back('\n');
-
-		// Write data.
-		size_t size = m_socket->write_some(boost::asio::buffer(m_buffer));
-		if (size == 0) {
-			return -1;
-		}
-
-		// Receive the echo back.
-		m_socket->read_some(boost::asio::buffer(m_buffer));
-		m_buffer.clear();
-		return 0;
-	}
-
 	virtual int_type overflow(int c = Tr::eof()) {
 		if (m_prev_cr) {
 			m_prev_cr = false;
@@ -166,12 +180,29 @@ protected:
 		return flush_internal(false);
 	}
 
+	/// Flush the data.
+	int flush_internal(bool force) {
+		if (m_socket == NULL) {
+			m_buffer.clear();
+			return -1;
+		}
+
+		if (!force && m_buffer.empty()) {
+			return 0;
+		}
+
+		// Do echo.
+		echo_thread::get_instance().add_request(m_socket, m_buffer);
+		m_buffer.clear();
+		return 0;
+	}
+
 private:
-	boost::asio::io_service m_service;
 	shared_ptr<boost::asio::ip::tcp::socket> m_socket;
 	std::vector<Ch> m_buffer;
 	bool m_prev_cr;
 };
+
 
 /**
  * @brief Echo client.

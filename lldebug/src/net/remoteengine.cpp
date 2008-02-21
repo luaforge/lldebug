@@ -32,7 +32,7 @@
 namespace lldebug {
 namespace net {
 
-using boost::asio::ip::tcp;
+using namespace boost::asio::ip;
 
 /**
  * @brief The connection thread starter.
@@ -41,22 +41,22 @@ class ThreadObj {
 public:
 	typedef void (RemoteEngine::* Method)();
 
-	explicit ThreadObj(RemoteEngine &engine, const Method &method)
+	explicit ThreadObj(RemoteEngine *engine, const Method &method)
 		: m_engine(engine), m_method(method) {
 	}
 
 	void operator()() const {
-		(m_engine.*m_method)();
+		(m_engine->*m_method)();
 	}
 
 private:
-	RemoteEngine &m_engine;
+	RemoteEngine *m_engine;
 	Method m_method;
 };
 
 
 RemoteEngine::RemoteEngine()
-	: m_isThreadActive(true), m_commandIdCounter(0) {
+	: m_isExitThread(false), m_commandIdCounter(0) {
 
 	// To avoid duplicating the number.
 #ifdef LLDEBUG_CONTEXT
@@ -65,20 +65,21 @@ RemoteEngine::RemoteEngine()
 	m_commandIdCounter = 2;
 #endif
 
-	ThreadObj fn(*this, &RemoteEngine::ConnectionThread);
+	ThreadObj fn(this, &RemoteEngine::ConnectionThread);
 	m_thread.reset(new boost::thread(fn));
 }
 
 RemoteEngine::~RemoteEngine() {
 	if (m_connection != NULL) {
-		m_connection->Close();
+		OnConnectionClosed(m_connection, boost::system::error_code());
 	}
 
 	{
 		scoped_lock lock(m_mutex);
-		m_isThreadActive = false;
+		m_isExitThread = true;
 	}
 
+	// We must join the thread.
 	if (m_thread != NULL) {
 		m_thread->join();
 		m_thread.reset();
@@ -121,10 +122,6 @@ int RemoteEngine::StartContext(const std::string &hostName,
 			return -1;
 		}
 
-		if (!IsThreadActive()) {
-			return -1;
-		}
-
 		current.nsec += 100 * 1000 * 1000;
 		boost::thread::sleep(current);
 	}
@@ -132,42 +129,37 @@ int RemoteEngine::StartContext(const std::string &hostName,
 	return 0;
 }
 
-/// Is the connection thread active ?
-bool RemoteEngine::IsThreadActive() {
-	scoped_lock lock(m_mutex);
-	return m_isThreadActive;
-}
-
 /// Connection thread.
 void RemoteEngine::ConnectionThread() {
-	try {
-		while (true) {
-			size_t count = 0;
-			// 10 works are set.
-			for (int i = 0; i < 10; ++i) {
-				count += m_service.poll_one();
-			}
-			m_service.reset();
-
-			if (count == 0 && !IsThreadActive()) {
+	for (;;) {
+		{ scoped_lock lock(m_mutex);
+			if (m_isExitThread) {
 				break;
 			}
+		}
 
+		// Do works.
+		size_t doneWorks = 0;
+		try {
+			// 10 works are set.
+			for (int i = 0; i < 100; ++i) {
+				doneWorks += m_service.poll_one();
+			}
+
+			m_service.reset();
+		}
+		catch (std::exception &ex) {
+			echo_ostream echo;
+			echo << ex.what() << std::endl;
+		}
+
+		// Wait, if any ...
+		if (doneWorks == 0) {
 			boost::xtime xt;
 			boost::xtime_get(&xt, boost::TIME_UTC);
 			xt.nsec += 10 * 1000 * 1000; // 1ms = 1000 * 1000nsec
 			boost::thread::sleep(xt);
 		}
-	}
-	catch (std::exception &ex) {
-		echo_ostream echo;
-		echo << ex.what() << std::endl;
-	}
-
-	{
-		scoped_lock lock(m_mutex);
-		m_isThreadActive = false;
-		m_connection.reset();
 	}
 }
 
@@ -190,9 +182,10 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 	scoped_lock lock(m_mutex);
 
 	if (m_connection == connection) {
-		WriteCommand(
-			REMOTECOMMANDTYPE_END_CONNECTION,
+		Command command(
+			InitCommandHeader(REMOTECOMMANDTYPE_END_CONNECTION, 0),
 			CommandData());
+		m_readCommandQueue.push(command);
 
 		m_connection.reset();
 	}

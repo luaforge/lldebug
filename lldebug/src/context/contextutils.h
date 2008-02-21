@@ -31,20 +31,6 @@ namespace lldebug {
 
 class Context;
 
-/// A dummy object that offers original address for lua.
-extern const int LuaOriginalObject;
-
-/// Convert the lua object placed on idx to string.
-/// It doesn't use any lua functions.
-std::string LuaToString(lua_State *L, int idx);
-
-/// Convert the lua object placed on idx to string.
-/// It uses lua script functions.
-std::string LuaConvertString(lua_State *L, int idx);
-
-/// Get the original name of the lua function.
-std::string LuaMakeFuncName(lua_Debug *ar);
-
 /**
  * @brief Guarantee the consistency of lua_State.
  */
@@ -64,6 +50,20 @@ private:
 	int m_npop;
 	bool m_isOldEnabled;
 };
+
+/// A dummy object that offers original address for lua.
+extern const int LuaOriginalObject;
+
+/// Convert the lua object placed on idx to string.
+/// It doesn't use any lua functions.
+std::string LuaToString(lua_State *L, int idx);
+
+/// Convert the lua object placed on idx to string.
+/// It uses lua script functions.
+std::string LuaConvertString(lua_State *L, int idx);
+
+/// Get the original name of the lua function.
+std::string LuaMakeFuncName(lua_Debug *ar);
 
 } // end of namespace lldebug
 
