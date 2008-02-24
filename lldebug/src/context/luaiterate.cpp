@@ -27,7 +27,7 @@
 #include "precomp.h"
 #include "context/luaiterate.h"
 #include "context/context.h"
-#include "context/contextutils.h"
+#include "context/luautils.h"
 
 namespace lldebug {
 
@@ -128,7 +128,7 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 				lua_pushnil(L); // first key
 				for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
 					// key index: -2, value index: -1
-					std::string name = LuaToString(L, -2);
+					std::string name = LuaToStringFast(L, -2);
 					if (target == name) {
 						lua_pop(L, 1); // Eliminate the old value.
 						lua_pushvalue(L, valueIdx);

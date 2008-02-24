@@ -85,10 +85,10 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 		// key index: top - 1, value index: top
 		int top = lua_gettop(L);
 		if (idx == LUA_REGISTRYINDEX && lua_islightuserdata(L, -2)
-			&& lua_topointer(L, -2) == &LuaOriginalObject) {
+			&& lua_topointer(L, -2) == &LuaAddressForInternalTable) {
 		}
 		else {
-			int ret = callback(L, LuaToString(L, top - 1), top);
+			int ret = callback(L, LuaToStringFast(L, top - 1), top);
 			if (ret != 0) {
 				lua_pop(L, 2);
 				return ret;
@@ -186,7 +186,7 @@ int iterate_locals(Fn &callback, lua_State *L, int level,
 			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
 				// key index: top - 1, value index: top
 				int top = lua_gettop(L);
-				int ret = callback(L, LuaToString(L, top - 1), top);
+				int ret = callback(L, LuaToStringFast(L, top - 1), top);
 				if (ret != 0) {
 					lua_pop(L, 4);
 					return ret;

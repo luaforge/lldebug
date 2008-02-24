@@ -65,8 +65,17 @@ public:
 	}
 
 	/// 文字列をウィンドウに出力します。
-	std::string ParseLuaError(const std::string &cstr, std::string *key_,
-							  int *line_, bool *isDummyFunc_);
+	struct ParseData {
+		ParseData(const std::string &msg_, const std::string &key_,
+				  int line_, bool isDummyFunc_)
+			: message(msg_), key(key_), line(line_), isDummyFunc(isDummyFunc_) {
+		}
+		std::string message;
+		std::string key;
+		int line;
+		bool isDummyFunc;
+	};
+	ParseData ParseLuaError(const std::string &str);
 	void OutputLuaError(const char *str);
 	void OutputError(const std::string &str);
 	void OutputLog(const std::string &str);
@@ -82,12 +91,13 @@ public:
 	LuaVarList LuaGetFields(const LuaVar &var);
 	LuaVarList LuaGetLocals(const LuaStackFrame &stackFrame);
 	LuaVarList LuaGetEnviron(const LuaStackFrame &stackFrame);
-	LuaVarList LuaGetEvalVarList(const string_array &array, const LuaStackFrame &stackFrame);
-	std::string LuaGetEval(const std::string &str, const LuaStackFrame &stackFrame);
-	LuaStackList LuaGetStack();
+	LuaVarList LuaGetStack();
 	LuaBacktraceList LuaGetBacktrace();
 
 	int LuaEval(lua_State *L, int level, const std::string &str);
+	LuaVarList LuaEvalsToVarList(const string_array &array, const LuaStackFrame &stackFrame);
+	LuaVarList LuaEvalToMultiVar(const std::string &str, const LuaStackFrame &stackFrame);
+	LuaVar LuaEvalToVar(const std::string &str, const LuaStackFrame &stackFrame);
 
 	/// コンテキストのＩＤを取得します。
 	int GetId() const {
