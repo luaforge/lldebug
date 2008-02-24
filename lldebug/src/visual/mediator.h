@@ -30,6 +30,7 @@
 #include "sysinfo.h"
 #include "luainfo.h"
 #include "net/remoteengine.h"
+#include "visual/event.h"
 
 namespace lldebug {
 namespace visual {
@@ -86,11 +87,6 @@ public:
 	/// Get the source contents.
 	const Source *GetSource(const std::string &key) {
 		return m_sourceManager.Get(key);
-	}
-
-	/// Save the source.
-	int SaveSource(const std::string &key, const string_array &source) {
-		return m_sourceManager.Save(key, source);
 	}
 
 	/// Find the breakpoint.

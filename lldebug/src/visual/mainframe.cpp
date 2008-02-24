@@ -25,15 +25,13 @@
  */
 
 #include "precomp.h"
-#include "net/remoteengine.h"
 #include "visual/mediator.h"
 #include "visual/mainframe.h"
 #include "visual/sourceview.h"
 #include "visual/outputview.h"
 #include "visual/interactiveview.h"
 #include "visual/watchview.h"
-//#include "visual/backtraceview.h"
-
+#include "visual/backtraceview.h"
 
 namespace lldebug {
 namespace visual {
@@ -281,11 +279,11 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 			new WatchView(this, WatchView::TYPE_WATCH),
 			_("Watch"));
 		break;
-	/*case ID_BACKTRACEVIEW:
+	case ID_BACKTRACEVIEW:
 		auiNotebook->AddPage(
-			new BacktraceView(m_ctx, this),
+			new BacktraceView(this),
 			_("BackTrace"));
-		break;*/
+		break;
 	default:
 		return;
 	}

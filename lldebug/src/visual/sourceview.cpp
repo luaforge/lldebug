@@ -28,7 +28,9 @@
 #include "visual/mediator.h"
 #include "visual/watchview.h"
 #include "visual/sourceview.h"
+#include "visual/strutils.h"
 #include "visual/langsettings.h"
+
 #include "wx/wxscintilla.h"
 
 namespace lldebug {
@@ -653,7 +655,7 @@ void SourceView::OnFocusBacktraceLine(wxDebugEvent &event) {
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 
-		if (page->GetKey() == event.GetKey()) {
+		if (page->GetKey() == event.GetBacktrace().GetKey()) {
 			page->FocusCurrentLine(event.GetLine(), false);
 			SetSelection(i);
 		}

@@ -26,9 +26,9 @@
 
 #include "precomp.h"
 #include "configfile.h"
-#include "net/remoteengine.h"
 #include "visual/interactiveview.h"
 #include "visual/mediator.h"
+#include "visual/strutils.h"
 
 namespace lldebug {
 namespace visual {
@@ -80,7 +80,7 @@ public:
 	virtual ~TextInput() {
 	}
 
-	/// Add the runned string.
+	/// Add the evaled string.
 	void AddHistory(const wxString &str) {
 		// Delete the old history, if any.
 		while (m_historyTexts.size() > 300) {
@@ -93,6 +93,7 @@ public:
 	}
 
 private:
+	/// Set the text of the history.
 	void SetHistory(HistoryTexts::iterator it) {
 		if (it == m_historyTexts.end()) {
 			ChangeValue(m_inputText);
@@ -105,6 +106,7 @@ private:
 		SetSelection(pos, pos);
 	}
 
+	/// Iterate the history.
 	void OnChar(wxKeyEvent &event) {
 		if (!event.ShiftDown()) {
 			switch (event.GetKeyCode()) {
@@ -163,7 +165,7 @@ InteractiveView::~InteractiveView() {
 void InteractiveView::CreateGUIControls() {
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_text = new wxTextCtrl(this, wxID_ANY, wxT("output\n")
+	m_text = new wxTextCtrl(this, wxID_ANY, wxT("output")
 		, wxPoint(0,0), wxSize(400,300)
 		, wxTE_READONLY | wxTE_MULTILINE | wxVSCROLL);
 	sizer->Add(m_text, 1, wxALIGN_TOP | wxEXPAND);

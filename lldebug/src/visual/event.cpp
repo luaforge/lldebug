@@ -26,7 +26,6 @@
 
 #include "precomp.h"
 #include "visual/event.h"
-#include "visual/controls.h"
 
 namespace lldebug {
 namespace visual {

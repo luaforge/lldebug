@@ -27,8 +27,6 @@
 #ifndef __LLDEBUG_APPLICATION_H__
 #define __LLDEBUG_APPLICATION_H__
 
-#include "visual/controls.h"
-
 namespace lldebug {
 namespace visual {
 

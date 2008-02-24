@@ -28,6 +28,7 @@
 #include "visual/mediator.h"
 #include "visual/mainframe.h"
 #include "visual/application.h"
+#include "visual/strutils.h"
 
 IMPLEMENT_APP(lldebug::visual::Application)
 

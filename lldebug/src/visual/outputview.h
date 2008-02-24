@@ -27,7 +27,7 @@
 #ifndef __LLDEBUG_OUTPUTVIEW_H__
 #define __LLDEBUG_OUTPUTVIEW_H__
 
-#include "visual/controls.h"
+#include "visual/event.h"
 
 namespace lldebug {
 namespace visual {

@@ -27,8 +27,9 @@
 #ifndef __LLDEBUG_BACKTRACEVIEW_H__
 #define __LLDEBUG_BACKTRACEVIEW_H__
 
-#include "visual/controls.h"
 #include "luainfo.h"
+#include "visual/event.h"
+
 #include "wx/treelistctrl.h"
 
 namespace lldebug {
@@ -48,8 +49,12 @@ public:
 
 private:
 	void CreateGUIControls();
-	void UpdateBackTrace();
+	void BeginUpdating();
+	void DoUpdate(const LuaBacktraceList &backtraces);
 	void LayoutColumn(int column);
+
+	struct UpdateHandler;
+	friend struct UpdateHandler;
 
 private:
 	void OnChangedState(wxDebugEvent &event);
@@ -59,10 +64,8 @@ private:
 	void OnSize(wxSizeEvent &event);
 	void OnColEndDrag(wxListEvent &event);
 
-	DECLARE_EVENT_TABLE();
-
 private:
-	mutex m_mutex;
+	DECLARE_EVENT_TABLE();
 };
 
 } // end of namespace visual

@@ -33,6 +33,23 @@
 namespace lldebug {
 namespace visual {
 
+enum {
+	LLDEBUG_FRAMESIZE = 128,
+
+	ID_MAINFRAME = wxID_HIGHEST + 2560,
+	ID_WINDOWHOLDER,
+	ID_SOURCEVIEW,
+	ID_OUTPUTVIEW,
+	ID_INTERACTIVEVIEW,
+	ID_LOCALWATCHVIEW,
+	ID_GLOBALWATCHVIEW,
+	ID_REGISTRYWATCHVIEW,
+	ID_ENVIRONWATCHVIEW,
+	ID_STACKWATCHVIEW,
+	ID_WATCHVIEW,
+	ID_BACKTRACEVIEW,
+};
+
 BEGIN_DECLARE_EVENT_TYPES()
 DECLARE_EVENT_TYPE(wxEVT_CHANGED_STATE, 2652)
 DECLARE_EVENT_TYPE(wxEVT_UPDATE_SOURCE, 2653)
@@ -77,7 +94,8 @@ public:
 	/// FocusBacktraceLine event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  const LuaBacktrace &bt)
-		: wxEvent(winid, type), m_backtrace(bt) {
+		: wxEvent(winid, type), m_backtrace(bt)
+		, m_key(bt.GetKey()), m_line(bt.GetLine()) {
 		wxASSERT(type == wxEVT_FOCUS_BACKTRACELINE);
 	}
 
@@ -104,9 +122,14 @@ public:
 		return new wxDebugEvent(*this);
 	}
 
-	/// Get source object.
+	/// Get the source object.
 	const Source &GetSource() const {
 		return m_source;
+	}
+
+	/// Get the backtrace object.
+	const LuaBacktrace &GetBacktrace() const {
+		return m_backtrace;
 	}
 
 	/// Get the string object.

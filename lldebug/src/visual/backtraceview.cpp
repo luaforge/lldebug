@@ -25,8 +25,9 @@
  */
 
 #include "precomp.h"
-#include "visual/backtraceview.h"
 #include "visual/mediator.h"
+#include "visual/backtraceview.h"
+#include "visual/strutils.h"
 
 namespace lldebug {
 namespace visual {
@@ -70,8 +71,6 @@ BacktraceView::~BacktraceView() {
 }
 
 void BacktraceView::CreateGUIControls() {
-	scoped_lock lock(m_mutex);
-
 	AddColumn(_("File"), 80, wxALIGN_LEFT, -1, true, true);
 	AddColumn(_("Line"), 40, wxALIGN_LEFT, -1, true, true);
 	AddColumn(_("Function"), 120, wxALIGN_LEFT, -1, true, true);
@@ -82,12 +81,25 @@ void BacktraceView::CreateGUIControls() {
 }
 
 BacktraceViewItemData *BacktraceView::GetItemData(const wxTreeItemId &item) {
-	scoped_lock lock(m_mutex);
 	return static_cast<BacktraceViewItemData *>(wxTreeListCtrl::GetItemData(item));
 }
 
-void BacktraceView::UpdateBackTrace() {
-	LuaBacktraceList backtraces;
+struct BacktraceView::UpdateHandler {
+	BacktraceView *m_view;
+	explicit UpdateHandler(BacktraceView *view)
+		: m_view(view) {
+	}
+	void operator()(const lldebug::net::Command &command, const LuaBacktraceList &bts) {
+		m_view->DoUpdate(bts);
+	}
+	};
+
+void BacktraceView::BeginUpdating() {
+	Mediator::Get()->GetEngine()->RequestBacktraceList(
+		UpdateHandler(this));
+}
+
+void BacktraceView::DoUpdate(const LuaBacktraceList &backtraces) {
 	wxTreeItemId root = GetRootItem();
 	DeleteChildren(root);
 
@@ -118,26 +130,23 @@ void BacktraceView::UpdateBackTrace() {
 }
 
 void BacktraceView::OnChangedState(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	Enable(event.IsBreak());
 	if (event.IsBreak() && IsEnabled() && IsShown()) {
-		//UpdateBacktrace();
+		BeginUpdating();
 	}
 }
 
 void BacktraceView::OnUpdateSource(wxDebugEvent &event) {
-	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	if (IsEnabled() && IsShown()) {
-//		UpdateBacktrace();
+		BeginUpdating();
 	}
 }
 
 void BacktraceView::OnItemActivated(wxTreeEvent &event) {
-	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	if (IsEnabled() && IsShown()) {
@@ -147,18 +156,15 @@ void BacktraceView::OnItemActivated(wxTreeEvent &event) {
 }
 
 void BacktraceView::OnShow(wxShowEvent &event) {
-	scoped_lock lock(m_mutex);
 	event.Skip();
 
 	if (event.GetShow() && IsEnabled() && IsShown()) {
-		UpdateBackTrace();
+		BeginUpdating();
 	}
 }
 
 void BacktraceView::LayoutColumn(int selectedColumn) {
-	scoped_lock lock(m_mutex);
-
-	// 合計カラムサイズを取得します。
+	// Calc the amount of the columns.
 	int col_w = 0;
 	int sel_w = 0;
 	for (int i = 0; i < GetColumnCount(); ++i) {

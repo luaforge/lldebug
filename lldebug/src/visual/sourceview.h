@@ -27,7 +27,7 @@
 #ifndef __LLDEBUG_SOURCEVIEW_H__
 #define __LLDEBUG_SOURCEVIEW_H__
 
-#include "visual/controls.h"
+#include "visual/event.h"
 #include <wx/aui/auibook.h>
 
 namespace lldebug {

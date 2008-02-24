@@ -27,7 +27,6 @@
 #ifndef __LLDEBUG_MAINFRAME_H__
 #define __LLDEBUG_MAINFRAME_H__
 
-#include "visual/controls.h"
 #include <wx/aui/aui.h>
 #include <wx/aui/auibook.h>
 

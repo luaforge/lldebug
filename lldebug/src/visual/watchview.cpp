@@ -1,4 +1,4 @@
-/*
+z/*
  * Copyright (c) 2005-2008  cielacanth <cielacanth AT s60.xrea.com>
  * All rights reserved.
  * 
@@ -26,8 +26,9 @@
 
 #include "precomp.h"
 #include "visual/mediator.h"
-#include "visual/watchview.h"
 #include "visual/mainframe.h"
+#include "visual/watchview.h"
+#include "visual/strutils.h"
 
 #include "wx/treelistctrl.h"
 
@@ -67,7 +68,6 @@ private:
 	LuaVar m_var;
 	int m_updateCount;
 };
-
 
 /// The type of a function that requests the LuaVarList from RemoteEngine.
 typedef
@@ -574,6 +574,7 @@ BEGIN_EVENT_TABLE(WatchView, wxPanel)
 	EVT_SHOW(WatchView::OnShow)
 	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, WatchView::OnChangedState)
 	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, WatchView::OnUpdateSource)
+	EVT_LLDEBUG_FOCUS_BACKTRACELINE(wxID_ANY, WatchView::OnFocusBacktraceLine)
 END_EVENT_TABLE()
 
 static int GetWatchViewId(WatchView::Type type) {
@@ -662,6 +663,14 @@ void WatchView::OnChangedState(wxDebugEvent &event) {
 }
 
 void WatchView::OnUpdateSource(wxDebugEvent &event) {
+	event.Skip();
+
+	if (IsEnabled() && IsShown()) {
+		BeginUpdating();
+	}
+}
+
+void WatchView::OnFocusBacktraceLine(wxDebugEvent &event) {
 	event.Skip();
 
 	if (IsEnabled() && IsShown()) {

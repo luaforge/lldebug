@@ -1,4 +1,4 @@
-/*
+z/*
  * Copyright (c) 2005-2008  cielacanth <cielacanth AT s60.xrea.com>
  * All rights reserved.
  * 
@@ -25,9 +25,9 @@
  */
 
 #include "precomp.h"
-#include "net/remoteengine.h"
 #include "visual/mediator.h"
 #include "visual/mainframe.h"
+#include "visual/strutils.h"
 
 namespace lldebug {
 namespace visual {
@@ -176,7 +176,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 		{
 			Source source;
 			command.GetData().Get_AddedSource(source);
-			m_sourceManager.Add(source);
+			m_sourceManager.AddSource(source);
 
 			if (frame != NULL) {
 				wxDebugEvent event(wxEVT_ADDED_SOURCE, wxID_ANY, source);
@@ -217,7 +217,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 	case REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_STACKLIST:
-	case REMOTECOMMANDTYPE_REQUEST_BACKTRACE:
+	case REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST:
 	case REMOTECOMMANDTYPE_VALUE_VARLIST:
 	case REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST:
 	case REMOTECOMMANDTYPE_VALUE_BACKTRACELIST:

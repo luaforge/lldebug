@@ -28,7 +28,7 @@
 #define __LLDEBUG_WATCHVIEW_H__
 
 #include "luainfo.h"
-#include "visual/controls.h"
+#include "visual/event.h"
 
 namespace lldebug {
 namespace visual {
@@ -57,6 +57,7 @@ private:
 	void BeginUpdating();
 	void OnChangedState(wxDebugEvent &event);
 	void OnUpdateSource(wxDebugEvent &event);
+	void OnFocusBacktraceLine(wxDebugEvent &event);
 	void OnShow(wxShowEvent &event);
 
 private:
