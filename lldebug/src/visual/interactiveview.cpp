@@ -93,6 +93,18 @@ public:
 	}
 
 private:
+	void SetHistory(HistoryTexts::iterator it) {
+		if (it == m_historyTexts.end()) {
+			ChangeValue(m_inputText);
+		}
+		else {
+			ChangeValue(*it);
+		}
+
+		long pos = GetLastPosition();
+		SetSelection(pos, pos);
+	}
+
 	void OnChar(wxKeyEvent &event) {
 		if (!event.ShiftDown()) {
 			switch (event.GetKeyCode()) {
@@ -107,17 +119,12 @@ private:
 						m_inputText = GetValue();
 					}
 
-					ChangeValue(*(--m_historyPos));
+					SetHistory(--m_historyPos);
 				}
 				return;
 			case WXK_DOWN:
 				if (m_historyPos != m_historyTexts.end()) {
-					if (++m_historyPos == m_historyTexts.end()) {
-						ChangeValue(m_inputText);
-					}
-					else {
-						ChangeValue(*m_historyPos);
-					}
+					SetHistory(++m_historyPos);
 				}
 				return;
 			}
@@ -156,7 +163,7 @@ InteractiveView::~InteractiveView() {
 void InteractiveView::CreateGUIControls() {
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_text = new wxTextCtrl(this, wxID_ANY, wxT("output")
+	m_text = new wxTextCtrl(this, wxID_ANY, wxT("output\n")
 		, wxPoint(0,0), wxSize(400,300)
 		, wxTE_READONLY | wxTE_MULTILINE | wxVSCROLL);
 	sizer->Add(m_text, 1, wxALIGN_TOP | wxEXPAND);
@@ -196,10 +203,10 @@ struct EvalResponseHandler {
 		: m_view(view), m_isVar(isVar) {
 	}
 
-	void operator()(const net::Command &command, const std::string &str) {
+	void operator()(const net::Command &command, const LuaVarList &vars) {
 		bool successed = false;
 
-		if (str.empty()) {
+		if (vars.empty()) {
 			if (m_isVar) {
 				m_view->OutputLog(_T("error"));
 			}
@@ -213,7 +220,7 @@ struct EvalResponseHandler {
 				successed = true;
 			}
 
-			m_view->OutputLog(wxConvFromUTF8(str));
+			m_view->OutputLog(wxConvFromUTF8(vars[0].GetValue()));
 		}
 
 		if (successed) {
@@ -232,12 +239,12 @@ void InteractiveView::Run() {
 		return;
 	}
 
-	// '$' is the symbol indicates the variable.
+	// '$' is the symbol that indicates to print the variable.
 	if (str[0] == wxT('$')) {
 		wxString stripped = str;
 		stripped = stripped.Remove(0, 1).Strip(wxString::both);
 
-		evalstr = "return tostring(";
+		evalstr = "return lldebug.tostring_detail(";
 		evalstr += wxConvToUTF8(stripped);
 		evalstr += ")";
 		isVar = true;
@@ -247,14 +254,17 @@ void InteractiveView::Run() {
 		isVar = false;
 	}
 
-	Mediator::Get()->GetEngine()->Eval(
+	// Eval the string.
+	Mediator::Get()->GetEngine()->EvalToMultiVar(
 		evalstr,
 		Mediator::Get()->GetStackFrame(),
 		EvalResponseHandler(this, isVar));
 
+	// Show evaled text.
 	m_text->AppendText(_T("\n"));
 	m_text->AppendText(_T("> "));
 	m_text->AppendText(str);
+
 	m_input->AddHistory(str);
 	m_input->SetFocus();
 	m_input->Clear();

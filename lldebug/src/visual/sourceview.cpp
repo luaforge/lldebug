@@ -26,6 +26,7 @@
 
 #include "precomp.h"
 #include "visual/mediator.h"
+#include "visual/watchview.h"
 #include "visual/sourceview.h"
 #include "visual/langsettings.h"
 #include "wx/wxscintilla.h"
@@ -64,9 +65,9 @@ class SourceViewPage : public wxScintilla {
 public:
 	explicit SourceViewPage(SourceView *parent)
 		: wxScintilla(parent, wxID_ANY)
-		, m_parent(parent), m_initialized(false)
-		, m_isModified(false)
-		, m_currentLine(-1), m_markedLine(-1) {
+		, m_parent(parent), m_initialized(false), m_isModified(false)
+		, m_currentLine(-1), m_markedLine(-1)
+		, m_watch(NULL) {
 		CreateGUIControls();
 	}
 
@@ -285,9 +286,42 @@ private:
 		}
 	}
 
+	void CloseWatch() {
+		if (m_watch != NULL) {
+			m_watch->Close();
+			m_watch = NULL;
+		}
+	}
+
 	void OnHotSpotClick(wxScintillaEvent &event) {
-		//int pos = event.GetPosition();
-		//CallTipShow(pos, event.GetText());
+		AutoCompCancel();
+		CallTipCancel();
+
+		wxPoint clientPos = PointFromPosition(event.GetPosition());
+		wxPoint screenPos = ClientToScreen(clientPos);
+		int lineHeight = TextHeight(LineFromPosition(event.GetPosition()));
+
+		CloseWatch();
+		m_watch = new OneVariableWatchView(
+			this, event.GetText(),
+			wxPoint(screenPos.x - 50, screenPos.y + lineHeight), 
+			wxSize(100, 400));
+		m_watch->Show();
+	}
+
+	void OnLeftDown(wxMouseEvent &event) {
+		event.Skip();
+		CloseWatch();
+	}
+
+	void OnMotion(wxMouseEvent &event) {
+		event.Skip();
+
+		if (m_watch != NULL) {
+			if (m_watch->WasInMouse()) {
+				CloseWatch();
+			}
+		}
 	}
 
 	/// Refresh the breakpoint marks.
@@ -381,6 +415,7 @@ public:
 			m_markedLine = line;
 		}
 
+		CloseWatch();
 		return 0;
 	}
 
@@ -408,7 +443,7 @@ public:
 			GetLineEndPosition(line - 1));
 	}
 
-	/// Change weather this object is enable.
+	/// Change whether this object is enable.
 	void ChangeEnable(bool enable) {
 		if (!enable) {
 			FocusCurrentLine(-1, true);
@@ -460,11 +495,15 @@ private:
 	int m_currentLine;
 	int m_markedLine;
 
+	OneVariableWatchView *m_watch;
+
 	DECLARE_EVENT_TABLE();
 };
 
 BEGIN_EVENT_TABLE(SourceViewPage, wxScintilla)
 	EVT_KEY_DOWN(SourceViewPage::OnKeyDown)
+	EVT_LEFT_DOWN(SourceViewPage::OnLeftDown)
+	EVT_MOTION(SourceViewPage::OnMotion)
 	EVT_SCI_MODIFIED(wxID_ANY, SourceViewPage::OnModified)
 	EVT_SCI_MARGINCLICK(wxID_ANY, SourceViewPage::OnMarginClick)
 	EVT_SCI_CHARADDED(wxID_ANY, SourceViewPage::OnCharAdded)

@@ -70,7 +70,9 @@ private:
 
 
 /// The type of a function that requests the LuaVarList from RemoteEngine.
-typedef boost::function1<void, const net::LuaVarListCallback &> VarListRequester;
+typedef
+	boost::function1<void, const LuaVarListCallback &>
+	VarListRequester;
 
 /**
  * @brief The common implementation of 'VariableWatch'.
@@ -79,17 +81,18 @@ class VariableWatch : public wxTreeListCtrl {
 public:
 	explicit VariableWatch(wxWindow *parent, int id,
 						   bool isShowColumn, bool isShowType,
-						   bool isLabelEditable,
+						   bool isLabelEditable, bool isEvalLabels,
 						   const VarListRequester &requester)
 		: wxTreeListCtrl(parent, id
 			, wxDefaultPosition, wxDefaultSize
 			, wxTR_HAS_BUTTONS | wxTR_LINES_AT_ROOT | wxTR_HIDE_ROOT
-			| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
-			| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB
-			| (isShowColumn ? 0 : wxTR_HIDE_COLUMNS))
-		, m_isLabelEditable(isLabelEditable), m_requester(requester) {
+				| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
+				| wxTR_FULL_ROW_HIGHLIGHT | wxALWAYS_SHOW_SB
+				| (isShowColumn ? 0 : wxTR_HIDE_COLUMNS))
+		, m_isLabelEditable(isLabelEditable), m_isEvalLabels(isEvalLabels)
+		, m_requester(requester) {
 
-		if (isShowColumn) {
+		if (true) {
 			// Set the header font.
 			wxFont font(GetFont());
 			font.SetPointSize(9);
@@ -192,7 +195,7 @@ public:
 		explicit FieldsRequester(const LuaVar &var)
 			: m_var(var) {
 		}
-		void operator()(const net::LuaVarListCallback &callback) {
+		void operator()(const LuaVarListCallback &callback) {
 			Mediator::Get()->GetEngine()->RequestFieldsVarList(m_var, callback);
 		}
 	private:
@@ -209,7 +212,7 @@ public:
 		explicit EvalLabelRequester(VariableWatch *watch)
 			: m_watch(watch) {
 		}
-		void operator()(const net::LuaVarListCallback &callback) {
+		void operator()(const LuaVarListCallback &callback) {
 			wxTreeItemId item = m_watch->GetRootItem();
 			wxTreeItemIdValue cookie;
 			string_array labels;
@@ -223,14 +226,13 @@ public:
 					labels.push_back("");
 				}
 				else {
-					std::string str = "return (";
+					std::string str = "return ";
 					str += wxConvToUTF8(label);
-					str += ")";
 					labels.push_back(str);
 				}
 			}
 
-			Mediator::Get()->GetEngine()->RequestEvalVarList(
+			Mediator::Get()->GetEngine()->EvalsToVarList(
 				labels,
 				Mediator::Get()->GetStackFrame(),
 				callback);
@@ -275,8 +277,7 @@ private:
 		// The current chilren list.
 		// If the item is updated, it is removed.
 		wxTreeItemIdList children = GetItemChildren(parent);
-		bool isEvalLabels =
-			(m_isLabelEditable && parent == GetRootItem());
+		bool isEvalLabels = (m_isEvalLabels && parent == GetRootItem());
 
 		// If each tree's label were evaluted...
 		if (isEvalLabels) {
@@ -323,7 +324,7 @@ private:
 				SetItemText(item, 1, value);
 			}
 
-			// Check weather it has the type column.
+			// Check whether it has the type column.
 			if (GetColumnCount() >= 3) {
 				wxString type = wxConvFromUTF8(var.GetValueTypeName());
 				if (GetItemText(item, 2) != type) {
@@ -345,7 +346,7 @@ private:
 			}
 			else {
 				if (HasChildren(item)) {
-					// The state weather the item is expanded or collapsed
+					// The state whether the item is expanded or collapsed
 					// has been saved, so collapse it carefully.
 					if (IsExpanded(item)) {
 						Collapse(item);
@@ -403,6 +404,9 @@ private:
 				Mediator::Get()->IncUpdateCount();
 				BeginUpdating();
 			}
+		}
+		else {
+			event.Veto();
 		}
 	}
 
@@ -475,6 +479,7 @@ private:
 	std::queue<UpdateData> m_queue;
 
 	bool m_isLabelEditable;
+	bool m_isEvalLabels;
 	VarListRequester m_requester;
 
 	DECLARE_EVENT_TABLE();
@@ -485,6 +490,82 @@ BEGIN_EVENT_TABLE(VariableWatch, wxTreeListCtrl)
 	EVT_TREE_ITEM_EXPANDED(wxID_ANY, VariableWatch::OnExpanded)
 	EVT_TREE_END_LABEL_EDIT(wxID_ANY, VariableWatch::OnEndLabelEdit)
 	EVT_LIST_COL_END_DRAG(wxID_ANY, VariableWatch::OnColEndDrag)
+END_EVENT_TABLE()
+
+
+/*-----------------------------------------------------------------*/
+/**
+ * @brief Request for the val value evalution.
+ */
+struct OneVariableWatchView::VariableRequester {
+	explicit VariableRequester(const wxString &valName) {
+		m_valNameUTF8 = wxConvToUTF8(valName);
+	}
+
+	void operator()(const LuaVarListCallback &callback) {
+		std::string eval = "return ";
+		eval += m_valNameUTF8;
+
+		Mediator::Get()->GetEngine()->EvalToMultiVar(
+			eval,
+			LuaStackFrame(LuaHandle(), 0),
+			callback);
+	}
+
+private:
+	std::string m_valNameUTF8;
+};
+
+OneVariableWatchView::OneVariableWatchView(wxWindow *parent,
+										   const wxString &valName,
+										   const wxPoint &pos,
+										   const wxSize &size)
+	: wxFrame(parent, wxID_ANY, _T(""), pos, size
+		, wxFRAME_TOOL_WINDOW | wxRESIZE_BORDER
+		| wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT)
+	, m_wasInMouse(false) {
+
+	m_watch = new VariableWatch(
+		this, wxID_ANY,
+		true, true, false, true,
+		VariableRequester(valName));
+	m_watch->AppendItem(
+		m_watch->GetRootItem(), valName, -1, -1,
+		new VariableWatchItemData(LuaVar()));
+	m_watch->BeginUpdating();
+	SetHandler(m_watch);
+
+	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+	sizer->Add(m_watch, 1, wxEXPAND);
+	SetSizer(sizer);
+	sizer->SetSizeHints(this);
+}
+
+OneVariableWatchView::~OneVariableWatchView() {
+}
+
+void OneVariableWatchView::SetHandler(wxWindow *target) {
+	if (target == NULL) {
+		return;
+	}
+
+	// Set the handler.
+	target->SetNextHandler(this);
+
+	// Set the handler to the children.
+	wxWindowList children = target->GetChildren();
+	for (size_t i = 0; i < children.GetCount(); ++i) {
+		SetHandler(children[i]);
+	}
+}
+
+void OneVariableWatchView::OnMotion(wxMouseEvent &event) {
+	event.Skip();
+	m_wasInMouse = true;
+}
+
+BEGIN_EVENT_TABLE(OneVariableWatchView, wxFrame)
+	EVT_MOTION(OneVariableWatchView::OnMotion)
 END_EVENT_TABLE()
 
 
@@ -513,25 +594,6 @@ static int GetWatchViewId(WatchView::Type type) {
 
 	return -1;
 }
-
-/*class TestView : public wxFrame {
-	wxTreeListCtrl *m_tree;
-public:
-	explicit TestView(wxWindow *parent)
-		: wxFrame(parent, wxID_ANY, _T("")
-			, wxDefaultPosition, wxDefaultSize
-			, wxFRAME_TOOL_WINDOW | wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT) {
-
-		wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
-		sizer->Add(m_tree = new wxTreeListCtrl(this, wxID_ANY
-			, wxDefaultPosition, wxDefaultSize
-			, wxTR_HAS_BUTTONS | wxTR_HIDE_COLUMNS | wxTR_LINES_AT_ROOT
-			| wxTR_EDIT_LABELS | wxTR_ROW_LINES | wxTR_COL_LINES
-			| wxTR_FULL_ROW_HIGHLIGHT | wxTR_HIDE_ROOT), 1, wxEXPAND);
-		SetSizer(sizer);
-		sizer->SetSizeHints(this);
-	}
-};*/
 
 struct VarUpdateRequester {
 	explicit VarUpdateRequester(WatchView::Type type)
@@ -572,12 +634,12 @@ WatchView::WatchView(wxWindow *parent, Type type)
 	if (type == TYPE_WATCH) {
 		m_watch = new VariableWatch(
 			this, wxID_ANY, true, true,
-			true, VarListRequester());
+			true, true, VarListRequester());
 	}
 	else {
 		m_watch = new VariableWatch(
 			this, wxID_ANY, true, true,
-			false, VarUpdateRequester(type));
+			false, false, VarUpdateRequester(type));
 	}
 
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
