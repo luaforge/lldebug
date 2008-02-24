@@ -27,6 +27,7 @@
 #include "precomp.h"
 #include "lldebug.h"
 #include "context/context.h"
+#include "context/codeconv.h"
 
 static lldebug_InitState s_callbackInitState = NULL;
 
@@ -93,4 +94,12 @@ void lldebug_openlibs(lua_State *L) {
 	}
 
 	ctx->LuaOpenLibs(L);
+}
+
+int lldebug_setencoding(lldebug_Encoding encoding) {
+	return lldebug::SetEncoding(encoding);
+}
+
+lldebug_Encoding lldebug_getencoding() {
+	return lldebug::GetEncoding();
 }

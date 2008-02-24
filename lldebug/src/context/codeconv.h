@@ -27,20 +27,22 @@
 #ifndef __LLDEBUG_CODECONV_H__
 #define __LLDEBUG_CODECONV_H__
 
+#include "lldebug_encoding.h"
+
 namespace lldebug {
 
-#ifdef LLDEBUG_VISUAL
-/// The encoding of 'str' is converted from default into UTF8.
-std::string wxConvToUTF8(const wxString &str);
+/// Set the encoding type.
+int SetEncoding(lldebug_Encoding encoding);
 
-/// The encoding of 'str' is converted from UTF8 into default.
-wxString wxConvFromUTF8(const std::string &str);
-#endif
+/// Get the encoding type.
+lldebug_Encoding GetEncoding();
 
-std::string ConvToUTF8(const std::string &str, int fromEncoding);
-std::string ConvFromUTF8(const std::string &str, int toEncoding);
-int GetEncoding(const std::string &str, unsigned int maxcount = 4069);
+/// Convert string from current encoding to UTF8 one.
+std::string ConvToUTF8(const std::string &input);
 
-}
+/// Convert string from UTF8 encoding to current one.
+std::string ConvFromUTF8(const std::string &input);
+
+} // end of namespace lldebug
 
 #endif

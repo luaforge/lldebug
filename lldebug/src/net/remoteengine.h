@@ -54,7 +54,7 @@ typedef
 	LuaVarCallback;
 typedef
 	boost::function2<void, const Command &, const LuaBacktraceList &>
-	BacktraceListCallback;
+	LuaBacktraceListCallback;
 
 /**
  * @brief Remote engine for debugger.
@@ -134,6 +134,7 @@ public:
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);
 	void RequestSource(const std::string &key, const SourceCallback &callback);
+	void RequestBacktraceList(const LuaBacktraceListCallback &callback);
 
 	void ResponseString(const Command &command, const std::string &str);
 	void ResponseSource(const Command &command, const Source &source);

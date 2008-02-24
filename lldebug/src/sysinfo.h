@@ -175,11 +175,6 @@ public:
 		return m_sources[l];
 	}
 
-	/// 読み込み時のソースのエンコーディングを取得します。
-	/*int GetSourceEncoding() const {
-		return m_sourceEncoding;
-	}*/
-
 private:
 	friend class boost::serialization::access;
 	template<class Archive>
@@ -215,13 +210,15 @@ public:
 	std::list<Source> GetList();
 
 	/// Add a source.
-	int Add(const std::string &key);
+	int AddSource(const Source &source);
 
+#ifdef LLDEBUG_CONTEXT
 	/// Add a source.
-	int Add(const Source &source);
+	int Add(const std::string &key);
 
 	/// Save a source.
 	int Save(const std::string &key, const string_array &source);
+#endif
 
 private:
 	mutex m_mutex;
@@ -232,6 +229,6 @@ private:
 	int m_textCounter;
 };
 
-}
+} // end of namespace lldebug
 
 #endif

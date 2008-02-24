@@ -25,56 +25,233 @@
  */
 
 #include "precomp.h"
+#include "lldebug.h"
 #include "context/codeconv.h"
 
-//#include "babel.h"
-//#include "wx/strconv.h"
+#define LLDEBUG_USE_ICU
+
+#if defined(LLDEBUG_USE_ICU)
+	#include "unicode/ucnv.h"
+#elif defined(LLDEBUG_USE_ICONV)
+	#include "iconv.h"
+#elif defined(LLDEBUG_USE_BABEL)
+	#include "babel.h"
+#endif
 
 namespace lldebug {
-#if 0
-inline std::string wxConvToUTF8(const wxString &str) {
-	return std::string(wxConvUTF8.cWX2MB(str.c_str()));
+
+/// The current encoding.
+static lldebug_Encoding s_lldebugEncoding = LLDEBUG_ENCODING_UTF8;
+
+lldebug_Encoding GetEncoding() {
+	return s_lldebugEncoding;
 }
 
-inline wxString wxConvFromUTF8(const std::string &str) {
-	return wxString(wxConvUTF8.cMB2WX(str.c_str()));
+#if defined(LLDEBUG_USE_ICU)
+/// Encoding name.
+static std::string s_icuEncoding = "";
+
+int SetEncoding(lldebug_Encoding encoding) {
+	switch (encoding) {
+	case LLDEBUG_ENCODING_UTF8:
+		s_icuEncoding = "";
+		break;
+	case LLDEBUG_ENCODING_SJIS:
+		s_icuEncoding = "sjis";
+		break;
+	case LLDEBUG_ENCODING_EUC:
+		s_icuEncoding = "euc-jp";
+		break;
+	case LLDEBUG_ENCODING_ISO2022JP:
+		s_icuEncoding = "iso2022jp";
+		break;
+	default:
+		return -1;
+	}
+	
+	s_lldebugEncoding = encoding;
+	return 0;
 }
 
-struct initializer {
-	initializer() {
+std::string ConvToUTF8(const std::string &input) {
+	if (s_icuEncoding.empty() || input.empty()) {
+		return input;
+	}
+	UErrorCode error = U_ZERO_ERROR;
+	std::vector<UChar> buffer;
+
+	{
+		// Make input string converter.
+		UConverter* inputConverter = ucnv_open(
+			s_icuEncoding.c_str(),
+			&error);
+		assert(U_SUCCESS(error));
+
+		// Allocate the intermediate buffer.
+		size_t bufferLength = input.length() / ucnv_getMinCharSize(inputConverter);
+		buffer.resize(bufferLength + 1);
+
+		// Convert 'input' to unicode(UTF16) character.
+		const char *inputPtr = input.c_str();
+		UChar *bufferPtr = &buffer[0];
+		ucnv_toUnicode(
+			inputConverter,
+			&bufferPtr, &buffer[bufferLength] + 1,
+			&inputPtr, &input[input.length() - 1] + 1,
+			// &input[input.length()] can't do
+			NULL, true, &error);
+		assert(U_SUCCESS(error));
+		ucnv_close(inputConverter);
+
+		// Create the string object from vector.
+		buffer.resize(bufferPtr - &buffer[0]);
+	}
+
+	{
+		// Make utf8 string converter.
+		UConverter* outputConverter = ucnv_open("utf-8", &error);
+		assert(U_SUCCESS(error));
+
+		// Allocate the output buffer.
+		size_t outputLength = buffer.size() * ucnv_getMaxCharSize(outputConverter);
+		std::vector<char> output(outputLength + 1);
+
+		// Convert buffer string to 'output'.
+		const UChar *bufferPtr = &buffer[0];
+		char *outputPtr = &output[0];
+		ucnv_fromUnicode(
+			outputConverter,
+			&outputPtr, &output[outputLength],
+			&bufferPtr, &buffer[buffer.size() - 1] + 1,
+			// &buffer[buffer.size()] can't do
+			NULL, true, &error);
+		assert(U_SUCCESS(error));
+		ucnv_close(outputConverter);
+
+		return std::string(&output[0], outputPtr - &output[0]);
+	}
+}
+
+std::string ConvFromUTF8(const std::string &input) {
+	if (s_icuEncoding.empty() || input.empty()) {
+		return input;
+	}
+	UErrorCode error = U_ZERO_ERROR;
+	std::vector<UChar> buffer;
+
+	{
+		// Make input string converter.
+		UConverter* inputConverter = ucnv_open("utf-8", &error);
+		assert(U_SUCCESS(error));
+
+		// Allocate the intermediate buffer.
+		size_t bufferLength = input.length() / ucnv_getMinCharSize(inputConverter);
+		buffer.resize(bufferLength + 1);
+
+		// Convert 'input' to unicode(UTF16) character.
+		const char *inputPtr = input.c_str();
+		UChar *bufferPtr = &buffer[0];
+		ucnv_toUnicode(
+			inputConverter,
+			&bufferPtr, &buffer[bufferLength],
+			&inputPtr, &input[input.length() - 1] + 1,
+			// &input[input.length()] can't do
+			NULL, true, &error);
+		assert(U_SUCCESS(error));
+		ucnv_close(inputConverter);
+
+		// Create the string object from vector.
+		buffer.resize(bufferPtr - &buffer[0]);
+	}
+
+	{
+		// Make utf8 string converter.
+		UConverter* outputConverter = ucnv_open(
+			s_icuEncoding.c_str(),
+			&error);
+		assert(U_SUCCESS(error));
+
+		// Allocate the output buffer.
+		size_t outputLength = buffer.size() * ucnv_getMaxCharSize(outputConverter);
+		std::vector<char> output(outputLength + 1);
+
+		// Convert buffer string to 'output'.
+		const UChar *bufferPtr = &buffer[0];
+		char *outputPtr = &output[0];
+		ucnv_fromUnicode(
+			outputConverter,
+			&outputPtr, &output[outputLength],
+			&bufferPtr, &buffer[buffer.size() - 1] + 1,
+			// &buffer[buffer.length()] can't do
+			NULL, true, &error);
+		assert(U_SUCCESS(error));
+		ucnv_close(outputConverter);
+
+		return std::string(&output[0], outputPtr - &output[0]);
+	}
+}
+
+#elif 1 //defined(LLDEBUG_USE_BABEL)
+static int s_babelEncoding;
+
+/// Babel initializer
+struct babel_initializer {
+	explicit babel_initializer() {
 		babel::init_babel();
 	}
 };
 
-std::string ConvToUTF8(const std::string &str) {
-	static initializer s_init;
-	babel::analyze_result enc = babel::analyze_base_encoding(str);
-	if (enc.get_strict_result() == babel::base_encoding::unknown) {
-		assert(0 && "Couldn't identify the string encoding.");
-		return str;
+int SetEncoding(lldebug_Encoding encoding) {
+	switch (encoding) {
+	case LLDEBUG_ENCODING_UTF8:
+		s_babelEncoding = babel::base_encoding::utf8;
+		break;
+	case LLDEBUG_ENCODING_SJIS:
+		s_babelEncoding = babel::base_encoding::sjis;
+		break;
+	case LLDEBUG_ENCODING_EUC:
+		s_babelEncoding = babel::base_encoding::euc;
+		break;
+	case LLDEBUG_ENCODING_ISO2022JP:
+		s_babelEncoding = babel::base_encoding::iso2022jp;
+		break;
+	default:
+		return -1;
 	}
 
-	typedef babel::manual_translate_engine<std::string> engine;
-	return engine::ignite(str, enc.get_strict_result(), babel::base_encoding::utf8);
+	s_lldebugEncoding = encoding;
+	return 0;
 }
 
-std::string ConvToUTF8From(const std::string &str, int fromEncoding) {
-	static initializer s_init;
-	typedef babel::manual_translate_engine<std::string> engine;
-	return engine::ignite(str, fromEncoding, babel::base_encoding::utf8);
+std::string ConvToUTF8(const std::string &input) {
+	static babel_initializer s_init;
+	typedef babel::manual_translate_engine<std::string,std::string> engine;
+	return engine::ignite(input, s_babelEncoding, babel::base_encoding::utf8);
 }
 
-std::string ConvFromUTF8(const std::string &str, int toEncoding) {
-	static initializer s_init;
-	typedef babel::manual_translate_engine<std::string> engine;
-	return engine::ignite(str, babel::base_encoding::utf8, toEncoding);
+std::string ConvFromUTF8(const std::string &input) {
+	static babel_initializer s_init;
+	typedef babel::manual_translate_engine<std::string,std::string> engine;
+	return engine::ignite(input, babel::base_encoding::utf8, s_babelEncoding);
 }
 
-int GetEncoding(const std::string &str, unsigned int maxcount) {
-	static initializer s_init;
-	babel::analyze_result enc = babel::analyze_base_encoding(str, maxcount);
-	return enc.get_strict_result();
+#else
+int SetEncoding(lldebug_Encoding encoding) {
+	if (encoding == LLDEBUG_ENCODING_NONE) {
+		return 0;
+	}
+	else {
+		return -1;
+	}
+}
+
+std::string ConvToUTF8(const std::string &input) {
+	return input; /* do nothing */
+}
+
+std::string ConvFromUTF8(const std::string &input) {
+	return input; /* do nothing */
 }
 #endif
 
-}
+} // end of namespace lldebug

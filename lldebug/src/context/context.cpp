@@ -33,6 +33,9 @@
 #include "context/luautils.h"
 #include "context/luaiterate.h"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/exception.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -46,6 +49,7 @@
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <fstream>
+#include <sstream>
 
 /// Dummy function name for eval.
 #define DUMMY_FUNCNAME "__LLDEBUG_DUMMY_TEMPORARY_FUNCTION_NAME__"
@@ -683,8 +687,8 @@ int Context::HandleCommand() {
 				m_engine->ResponseSource(command, (source != NULL ? *source : Source()));
 			}
 			break;
-		case REMOTECOMMANDTYPE_REQUEST_BACKTRACE:
-			//m_engine->ResponseBacktrace(command, LuaGetBacktrace());
+		case REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST:
+			m_engine->ResponseBacktraceList(command, LuaGetBacktrace());
 			break;
 		}
 	}

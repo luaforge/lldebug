@@ -561,6 +561,30 @@ void RemoteEngine::RequestSource(const std::string &key,
 		data);
 }
 
+/**
+ * @brief Handle the response BacktraceList.
+ */
+struct BacktraceListHandler {
+	LuaBacktraceListCallback m_callback;
+
+	explicit BacktraceListHandler(const LuaBacktraceListCallback &callback)
+		: m_callback(callback) {
+	}
+
+	void operator()(const Command &command) {
+		LuaBacktraceList bts;
+		command.GetData().Get_ValueBacktraceList(bts);
+		m_callback(command, bts);
+	}
+};
+
+void RemoteEngine::RequestBacktraceList(const LuaBacktraceListCallback &callback) {
+	WriteCommand(
+		REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST,
+		CommandData(),
+		BacktraceListHandler(callback));
+}
+
 void RemoteEngine::ResponseString(const Command &command, const std::string &str) {
 	CommandData data;
 

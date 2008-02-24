@@ -34,6 +34,10 @@
 #include <fstream>
 #include <sstream>
 
+#ifdef LLDEBUG_CONTEXT
+#include "context/codeconv.h"
+#endif
+
 namespace lldebug {
 
 Breakpoint::Breakpoint(const std::string &key, int line,
@@ -141,18 +145,14 @@ void BreakpointList::Toggle(const std::string &key, int line) {
 
 /*-----------------------------------------------------------------*/
 Source::Source(const std::string &key, const std::string &title,
-			   const string_array &sources, const std::string &path) {
+			   const string_array &sources, const std::string &path)
+	: m_key(key), m_title(title), m_path(path) {
 	// Convert sources to utf8.
 	/*string_array array;
 	for (string_array::size_type i = 0; i < sources.size(); ++i) {
-		wxString str(wxConvLocal.cMB2WX(sources[i].c_str()));
-
-		array.push_back(wxConvToUTF8(str));
+		array.push_back(ConvToUTF8(sources[i]));
 	}*/
 
-	m_key = key;
-	m_title = title;
-	m_path = path;
 	m_sources = sources;
 	//m_sourceEncoding = enc;
 }
@@ -209,14 +209,22 @@ const Source *SourceManager::GetString(const std::string &key) {
 	return NULL;
 }
 
+int SourceManager::AddSource(const Source &source) {
+	scoped_lock lock(m_mutex);
+
+	m_sourceMap.insert(std::make_pair(source.GetKey(), source));
+	return 0;
+}
+
+#ifdef LLDEBUG_CONTEXT
 static string_array split(std::istream &stream) {
 	string_array array;
 	char buffer[2048];
 
 	// Split each line.
-	while (! stream.eof()) {
+	while (!stream.eof()) {
 		stream.getline(buffer, sizeof(buffer));
-		array.push_back(buffer);
+		array.push_back(ConvToUTF8(buffer));
 	}
 
 	return array;
@@ -245,7 +253,7 @@ int SourceManager::Add(const std::string &key) {
 			return -1;
 		}
 
-		Source src(key, std::string(key, 1), split(ifs), pathstr);
+		Source src(key, path.leaf(), split(ifs), pathstr);
 		m_sourceMap.insert(std::make_pair(key, src));
 		m_engine->AddedSource(src);
 	}
@@ -253,7 +261,7 @@ int SourceManager::Add(const std::string &key) {
 		// We make the original source title and don't use the key,
 		// because it may be too long.
 		std::stringstream title;
-		title << "[string " << m_textCounter++ << "]";
+		title << "<string: " << m_textCounter++ << ">";
 		title.flush();
 
 		std::stringstream sstream(key);
@@ -262,13 +270,6 @@ int SourceManager::Add(const std::string &key) {
 		m_engine->AddedSource(src);
 	}
 	
-	return 0;
-}
-
-int SourceManager::Add(const Source &source) {
-	scoped_lock lock(m_mutex);
-
-	m_sourceMap.insert(std::make_pair(source.GetKey(), source));
 	return 0;
 }
 
@@ -299,10 +300,11 @@ int SourceManager::Save(const std::string &key, const string_array &source) {
 			fp << std::endl;
 		}
 
-		fp << line; //ConvFromUTF8(line, src.GetSourceEncoding());
+		fp << ConvFromUTF8(line);
 	}
 
 	return 0;
 }
+#endif
 
-}
+} // end of namespace lldebug
