@@ -149,7 +149,7 @@ class LuaVar {
 public:
 #ifdef LLDEBUG_CONTEXT
 	LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx);
-	LuaVar(const LuaHandle &lua, const std::string &name, const std::string &value);
+	LuaVar(const LuaHandle &lua, const std::string &name, const std::string &error);
 
 	/// Push the table value.
 	int PushTable(lua_State *L) const;
@@ -194,7 +194,7 @@ public:
 
 protected:
 #ifdef LLDEBUG_CONTEXT
-	/// Check weather the variable has fields.
+	/// Check whether the variable has fields.
 	bool CheckHasFields(lua_State *L, int valueIdx) const;
 
 	/// Register and save valueIdx to the internal table.
@@ -290,7 +290,6 @@ public:
 };
 
 typedef std::vector<LuaVar> LuaVarList;
-typedef std::vector<LuaVar> LuaStackList;
 typedef std::vector<LuaBacktrace> LuaBacktraceList;
 
 }

@@ -6,11 +6,14 @@
 - consider 'lldebug_serialization.h'
 - need to refactor RemoteEngine class
 - file refactoring
- 
+- history (interactive view)
+- variable watch (source editor)
+
+/ lldebug_startfile, lldebug_startstring
+/ break, restart, and exit
+/ GC view
 * error support
 * encoding problem
-* break, restart, and exit
 * backtrace
 * popup menu
-* lldebug_startfile, lldebug_startstring
-* auto complete (source editor and interactive view)
+* auto complete (interactive view)

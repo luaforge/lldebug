@@ -296,14 +296,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\src\context\contextutils.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\context\contextutils.h"
-					>
-				</File>
-				<File
 					RelativePath="..\..\src\context\lldebug.cpp"
 					>
 				</File>
@@ -313,6 +305,14 @@
 				</File>
 				<File
 					RelativePath="..\..\src\context\luaiterate.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\context\luautils.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\context\luautils.h"
 					>
 				</File>
 			</Filter>

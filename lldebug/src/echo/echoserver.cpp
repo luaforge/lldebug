@@ -42,6 +42,15 @@ using namespace boost::asio::ip;
 
 static mutex s_consoleMutex;
 
+#ifdef BOOST_WINDOWS_API
+static const char *title = "echo server";
+static HWND consoleWindow = NULL;
+
+static void initialize() {
+	SetConsoleTitleA(title);
+}
+#endif
+
 /// Write str with newline.
 static void WriteLine(const std::string &str) {
 	scoped_lock lock(s_consoleMutex);
@@ -49,13 +58,6 @@ static void WriteLine(const std::string &str) {
 
 #ifdef BOOST_WINDOWS_API
 	{
-	static HWND consoleWindow = NULL;
-	static bool first = true;
-	const char *title = "Echo Server";
-	if (first) {
-		SetConsoleTitleA(title);
-		first = false;
-	}
 	if (consoleWindow == NULL) {
 		consoleWindow = FindWindowA(NULL, title);
 	}
@@ -107,18 +109,19 @@ static void Session(shared_ptr<tcp::socket> sock) {
 			}
 		}
 	}
-	catch (std::exception &ex) {
-		scoped_lock lock(s_consoleMutex);
-		std::cerr << ex.what() << std::endl;
+	catch (std::exception &) {
+		//scoped_lock lock(s_consoleMutex);
 	}
 	catch (...) {
-		scoped_lock lock(s_consoleMutex);
-		std::cerr << "Unknown exception !!!" << std::endl;
+		//scoped_lock lock(s_consoleMutex);
+		//std::cerr << "Unknown exception !!!" << std::endl;
 	}
 }
 
 /// Echo server main.
 static int ServerMain(const std::string &serviceName) {
+	initialize();
+
 	try {
 		boost::asio::io_service service;
 

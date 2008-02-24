@@ -71,7 +71,7 @@ Breakpoint BreakpointList::First(const std::string &key) {
 		return Breakpoint();
 	}
 
-	// Check weather the keys are same.
+	// Check whether the keys are same.
 	if (it->GetKey() != key) {
 		return Breakpoint();
 	}
@@ -87,7 +87,7 @@ Breakpoint BreakpointList::Next(const Breakpoint &bp) {
 		return Breakpoint();
 	}
 
-	// Check weather the keys are same.
+	// Check whether the keys are same.
 	if (it->GetKey() != bp.GetKey()) {
 		return Breakpoint();
 	}

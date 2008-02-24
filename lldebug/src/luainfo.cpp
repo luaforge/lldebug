@@ -28,7 +28,7 @@
 #include "luainfo.h"
 
 #ifdef LLDEBUG_CONTEXT
-#include "context/contextutils.h"
+#include "context/luautils.h"
 #endif
 
 namespace lldebug {
@@ -80,15 +80,15 @@ LuaStackFrame::~LuaStackFrame() {
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
 	: m_lua(lua), m_name(name) {
 	lua_State *L = lua.GetState();
-	m_value = LuaConvertString(L, valueIdx);
+	m_value = LuaToStringForVarValue(L, valueIdx);
 	m_valueType = lua_type(L, valueIdx);
 	m_tableIdx = RegisterTable(L, valueIdx);
 	m_hasFields = CheckHasFields(L, valueIdx);
 }
 
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
-			   const std::string &value)
-	: m_lua(lua), m_name(name), m_value(value), m_valueType(LUA_TNONE)
+			   const std::string &error)
+	: m_lua(lua), m_name(name), m_value(error), m_valueType(LUA_TNONE)
 	, m_tableIdx(-1), m_hasFields(false) {
 }
 #endif
@@ -102,7 +102,7 @@ LuaVar::~LuaVar() {
 
 #ifdef LLDEBUG_CONTEXT
 bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {
-	// Check weather 'valueIdx' has metatable.
+	// Check whether 'valueIdx' has metatable.
 	if (lua_getmetatable(L, valueIdx) != 0) {
 		lua_pop(L, 1);
 		return true;
@@ -112,7 +112,7 @@ bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {
 		return false;
 	}
 
-	// Check weather 'valueIdx' has fields.
+	// Check whether 'valueIdx' has fields.
 	lua_pushnil(L);
 	if (lua_next(L, valueIdx) != 0) {
 		lua_pop(L, 2);
@@ -130,16 +130,16 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 		lua_pop(L, 1);
 	}
 
-	// OriginalObj couldn't be handle correctly.
+	// OriginalObj couldn't be handled correctly.
 	if (lua_islightuserdata(L, valueIdx)
-		&& lua_topointer(L, valueIdx) == &LuaOriginalObject) {
+		&& lua_topointer(L, valueIdx) == &LuaAddressForInternalTable) {
 		return -1;
 	}
 
 	int top = lua_gettop(L);
 
 	// Try to do "table = registry[&OriginalObj]"
-	lua_pushlightuserdata(L, (void *)&LuaOriginalObject);
+	lua_pushlightuserdata(L, (void *)&LuaAddressForInternalTable);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	if (!lua_istable(L, -1)) {
 		lua_pop(L, 1);
@@ -159,7 +159,7 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 		lua_rawseti(L, -2, 0);
 
 		// registry[&OriginalObj] = newtable
-		lua_pushlightuserdata(L, (void *)&LuaOriginalObject);
+		lua_pushlightuserdata(L, (void *)&LuaAddressForInternalTable);
 		lua_pushvalue(L, -2);
 		lua_rawset(L, LUA_REGISTRYINDEX);
 	}
@@ -222,7 +222,7 @@ int LuaVar::PushTable(lua_State *L) const {
 	}
 
 	// push registry[&OriginalObj][m_tableIdx]
-	lua_pushlightuserdata(L, (void *)&LuaOriginalObject);
+	lua_pushlightuserdata(L, (void *)&LuaAddressForInternalTable);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, m_tableIdx);
 	lua_remove(L, -2);

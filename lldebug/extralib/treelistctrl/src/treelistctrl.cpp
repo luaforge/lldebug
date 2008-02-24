@@ -4,7 +4,7 @@
 // Author:      Robert Roebling
 // Maintainer:  Otto Wyss
 // Created:     01/02/97
-// RCS-ID:      $Id: treelistctrl.cpp,v 1.3 2008-02-13 12:22:54 cielacanth Exp $
+// RCS-ID:      $Id: treelistctrl.cpp,v 1.4 2008-02-24 11:45:44 cielacanth Exp $
 // Copyright:   (c) 2004 Robert Roebling, Julian Smart, Alberto Griggio,
 //              Vadim Zeitlin, Otto Wyss
 // Licence:     wxWindows
@@ -1267,6 +1267,7 @@ void wxTreeListHeaderWindow::OnMouse (wxMouseEvent &event) {
     int x;
     m_owner->CalcUnscrolledPosition(event.GetX(), 0, &x, NULL);
     int y = event.GetY();
+	event.Skip();
 
     if (m_isDragging) {
 
