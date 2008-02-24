@@ -222,13 +222,31 @@ void CommandData::Set_OutputLog(LogType type, const std::string &str,
 	m_data = Serializer::ToData(type, str, key, line);
 }
 
-void CommandData::Get_Eval(std::string &str,
-								 LuaStackFrame &stackFrame) const {
-	Serializer::ToValue(m_data, str, stackFrame);
+void CommandData::Get_EvalsToVarList(string_array &evals,
+									 LuaStackFrame &stackFrame) const {
+	Serializer::ToValue(m_data, evals, stackFrame);
 }
-void CommandData::Set_Eval(const std::string &str,
-								 const LuaStackFrame &stackFrame) {
-	m_data = Serializer::ToData(str, stackFrame);
+void CommandData::Set_EvalsToVarList(const string_array &evals,
+									 const LuaStackFrame &stackFrame) {
+	m_data = Serializer::ToData(evals, stackFrame);
+}
+
+void CommandData::Get_EvalToMultiVar(std::string &eval,
+									 LuaStackFrame &stackFrame) const {
+	Serializer::ToValue(m_data, eval, stackFrame);
+}
+void CommandData::Set_EvalToMultiVar(const std::string &eval,
+									 const LuaStackFrame &stackFrame) {
+	m_data = Serializer::ToData(eval, stackFrame);
+}
+
+void CommandData::Get_EvalToVar(std::string &eval,
+								LuaStackFrame &stackFrame) const {
+	Serializer::ToValue(m_data, eval, stackFrame);
+}
+void CommandData::Set_EvalToVar(const std::string &eval,
+								const LuaStackFrame &stackFrame) {
+	m_data = Serializer::ToData(eval, stackFrame);
 }
 
 void CommandData::Get_RequestFieldVarList(LuaVar &var) const {
@@ -250,15 +268,6 @@ void CommandData::Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const {
 }
 void CommandData::Set_RequestEnvironVarList(const LuaStackFrame &stackFrame) {
 	m_data = Serializer::ToData(stackFrame);
-}
-
-void CommandData::Get_RequestEvalVarList(string_array &array,
-											   LuaStackFrame &stackFrame) const {
-	Serializer::ToValue(m_data, array, stackFrame);
-}
-void CommandData::Set_RequestEvalVarList(const string_array &array,
-											   const LuaStackFrame &stackFrame) {
-	m_data = Serializer::ToData(array, stackFrame);
 }
 
 void CommandData::Get_RequestSource(std::string &key) {
@@ -287,6 +296,13 @@ void CommandData::Get_ValueVarList(LuaVarList &vars) const {
 }
 void CommandData::Set_ValueVarList(const LuaVarList &vars) {
 	m_data = Serializer::ToData(vars);
+}
+
+void CommandData::Get_ValueVar(LuaVar &var) const {
+	Serializer::ToValue(m_data, var);
+}
+void CommandData::Set_ValueVar(const LuaVar &var) {
+	m_data = Serializer::ToData(var);
 }
 
 void CommandData::Get_ValueBacktraceList(LuaBacktraceList &backtraces) const {

@@ -28,6 +28,7 @@
 #include "net/connection.h"
 #include "net/remoteengine.h"
 #include "net/netutils.h"
+#include "net/echostream.h"
 
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -134,6 +135,11 @@ void ClientConnector::Start(const std::string &hostName,
 void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 									const boost::system::error_code &error) {
 	if (!error) {
+		boost::xtime xt;
+		boost::xtime_get(&xt, boost::TIME_UTC);
+		xt.sec += 1;
+		boost::thread::sleep(xt);
+
 		tcp::endpoint endpoint = *nextEndpoint;
 		m_connection->GetSocket().async_connect(endpoint,
 			boost::bind(

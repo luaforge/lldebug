@@ -66,14 +66,16 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_STEPOVER,
 	REMOTECOMMANDTYPE_STEPRETURN,
 	REMOTECOMMANDTYPE_OUTPUT_LOG,
-	REMOTECOMMANDTYPE_EVAL,
+
+	REMOTECOMMANDTYPE_EVALS_TO_VARLIST,
+	REMOTECOMMANDTYPE_EVAL_TO_MULTIVAR,
+	REMOTECOMMANDTYPE_EVAL_TO_VAR,
 
 	REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
-	REMOTECOMMANDTYPE_REQUEST_EVALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_STACKLIST,
 	REMOTECOMMANDTYPE_REQUEST_SOURCE,
 	REMOTECOMMANDTYPE_REQUEST_BACKTRACE,
@@ -82,6 +84,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_VALUE_SOURCE,
 	REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST,
 	REMOTECOMMANDTYPE_VALUE_VARLIST,
+	REMOTECOMMANDTYPE_VALUE_VAR,
 	REMOTECOMMANDTYPE_VALUE_BACKTRACELIST,
 };
 
@@ -156,8 +159,14 @@ public:
 	void Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const;
 	void Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line);
 
-	void Get_Eval(std::string &str, LuaStackFrame &stackFrame) const;
-	void Set_Eval(const std::string &str, const LuaStackFrame &stackFrame);
+	void Get_EvalsToVarList(string_array &evals, LuaStackFrame &stackFrame) const;
+	void Set_EvalsToVarList(const string_array &evals, const LuaStackFrame &stackFrame);
+
+	void Get_EvalToMultiVar(std::string &eval, LuaStackFrame &stackFrame) const;
+	void Set_EvalToMultiVar(const std::string &eval, const LuaStackFrame &stackFrame);
+
+	void Get_EvalToVar(std::string &eval, LuaStackFrame &stackFrame) const;
+	void Set_EvalToVar(const std::string &eval, const LuaStackFrame &stackFrame);
 
 	void Get_RequestFieldVarList(LuaVar &var) const;
 	void Set_RequestFieldVarList(const LuaVar &var);
@@ -167,9 +176,6 @@ public:
 
 	void Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const;
 	void Set_RequestEnvironVarList(const LuaStackFrame &stackFrame);
-
-	void Get_RequestEvalVarList(string_array &array, LuaStackFrame &stackFrame) const;
-	void Set_RequestEvalVarList(const string_array &array, const LuaStackFrame &stackFrame);
 
 	void Get_RequestSource(std::string &key);
 	void Set_RequestSource(const std::string &key);
@@ -182,6 +188,9 @@ public:
 
 	void Get_ValueVarList(LuaVarList &vars) const;
 	void Set_ValueVarList(const LuaVarList &vars);
+
+	void Get_ValueVar(LuaVar &var) const;
+	void Set_ValueVar(const LuaVar &var);
 
 	void Get_ValueBacktraceList(LuaBacktraceList &backtraces) const;
 	void Set_ValueBacktraceList(const LuaBacktraceList &backtraces);

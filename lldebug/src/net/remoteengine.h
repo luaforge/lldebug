@@ -50,6 +50,9 @@ typedef
 	boost::function2<void, const Command &, const LuaVarList &>
 	LuaVarListCallback;
 typedef
+	boost::function2<void, const Command &, const LuaVar &>
+	LuaVarCallback;
+typedef
 	boost::function2<void, const Command &, const LuaBacktraceList &>
 	BacktraceListCallback;
 
@@ -117,13 +120,16 @@ public:
 	void StepReturn();
 
 	void OutputLog(LogType type, const std::string &str, const std::string &key, int line);
-	void Eval(const std::string &str, const LuaStackFrame &stackFrame,
-			  const StringCallback &callback);
+	void EvalsToVarList(const string_array &eval, const LuaStackFrame &stackFrame,
+						const LuaVarListCallback &callback);
+	void EvalToMultiVar(const std::string &eval, const LuaStackFrame &stackFrame,
+						const LuaVarListCallback &callback);
+	void EvalToVar(const std::string &eval, const LuaStackFrame &stackFrame,
+				   const LuaVarCallback &callback);
 	
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
 	void RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
 	void RequestEnvironVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
-	void RequestEvalVarList(const string_array &array, const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
 	void RequestGlobalVarList(const LuaVarListCallback &callback);
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);
@@ -133,6 +139,7 @@ public:
 	void ResponseSource(const Command &command, const Source &source);
 	void ResponseBacktraceList(const Command &command, const LuaBacktraceList &backtraces);
 	void ResponseVarList(const Command &command, const LuaVarList &vars);
+	void ResponseVar(const Command &command, const LuaVar &var);
 
 private:
 	void ConnectionThread();

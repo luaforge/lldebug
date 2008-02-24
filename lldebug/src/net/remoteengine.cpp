@@ -411,41 +411,12 @@ void RemoteEngine::OutputLog(LogType type, const std::string &str, const std::st
 }
 
 /**
- * @brief Handle the response string.
- */
-struct StringResponseHandler {
-	StringCallback m_callback;
-
-	explicit StringResponseHandler(const StringCallback &callback)
-		: m_callback(callback) {
-	}
-
-	void operator()(const Command &command) {
-		std::string str;
-		command.GetData().Get_ValueString(str);
-		m_callback(command, str);
-	}
-};
-
-void RemoteEngine::Eval(const std::string &str,
-						const LuaStackFrame &stackFrame,
-						const StringCallback &callback) {
-	CommandData data;
-
-	data.Set_Eval(str, stackFrame);
-	WriteCommand(
-		REMOTECOMMANDTYPE_EVAL,
-		data,
-		StringResponseHandler(callback));
-}
-
-/**
  * @brief Handle the response VarList.
  */
-struct VarListResponseHandler {
+struct LuaVarListResponseHandler {
 	LuaVarListCallback m_callback;
 
-	explicit VarListResponseHandler(const LuaVarListCallback &callback)
+	explicit LuaVarListResponseHandler(const LuaVarListCallback &callback)
 		: m_callback(callback) {
 	}
 
@@ -456,6 +427,59 @@ struct VarListResponseHandler {
 	}
 };
 
+/**
+ * @brief Handle the response VarList.
+ */
+struct LuaVarResponseHandler {
+	LuaVarCallback m_callback;
+
+	explicit LuaVarResponseHandler(const LuaVarCallback &callback)
+		: m_callback(callback) {
+	}
+
+	void operator()(const Command &command) {
+		LuaVar var;
+		command.GetData().Get_ValueVar(var);
+		m_callback(command, var);
+	}
+};
+
+void RemoteEngine::EvalsToVarList(const string_array &evals,
+								  const LuaStackFrame &stackFrame,
+								  const LuaVarListCallback &callback) {
+	CommandData data;
+
+	data.Set_EvalsToVarList(evals, stackFrame);
+	WriteCommand(
+		REMOTECOMMANDTYPE_EVALS_TO_VARLIST,
+		data,
+		LuaVarListResponseHandler(callback));
+}
+
+void RemoteEngine::EvalToMultiVar(const std::string &eval,
+								  const LuaStackFrame &stackFrame,
+								  const LuaVarListCallback &callback) {
+	CommandData data;
+
+	data.Set_EvalToMultiVar(eval, stackFrame);
+	WriteCommand(
+		REMOTECOMMANDTYPE_EVAL_TO_MULTIVAR,
+		data,
+		LuaVarListResponseHandler(callback));
+}
+
+void RemoteEngine::EvalToVar(const std::string &eval,
+							 const LuaStackFrame &stackFrame,
+							 const LuaVarCallback &callback) {
+	CommandData data;
+
+	data.Set_EvalToVar(eval, stackFrame);
+	WriteCommand(
+		REMOTECOMMANDTYPE_EVAL_TO_VAR,
+		data,
+		LuaVarResponseHandler(callback));
+}
+
 void RemoteEngine::RequestFieldsVarList(const LuaVar &var,
 										const LuaVarListCallback &callback) {
 	CommandData data;
@@ -464,7 +488,7 @@ void RemoteEngine::RequestFieldsVarList(const LuaVar &var,
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
 		data,
-		VarListResponseHandler(callback));
+		LuaVarListResponseHandler(callback));
 }
 
 void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame,
@@ -475,7 +499,7 @@ void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame,
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
 		data,
-		VarListResponseHandler(callback));
+		LuaVarListResponseHandler(callback));
 }
 
 void RemoteEngine::RequestEnvironVarList(const LuaStackFrame &stackFrame,
@@ -486,40 +510,28 @@ void RemoteEngine::RequestEnvironVarList(const LuaStackFrame &stackFrame,
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
 		data,
-		VarListResponseHandler(callback));
-}
-
-void RemoteEngine::RequestEvalVarList(const string_array &array,
-									  const LuaStackFrame &stackFrame,
-									  const LuaVarListCallback &callback) {
-	CommandData data;
-
-	data.Set_RequestEvalVarList(array, stackFrame);
-	WriteCommand(
-		REMOTECOMMANDTYPE_REQUEST_EVALVARLIST,
-		data,
-		VarListResponseHandler(callback));
+		LuaVarListResponseHandler(callback));
 }
 
 void RemoteEngine::RequestGlobalVarList(const LuaVarListCallback &callback) {
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
 		CommandData(),
-		VarListResponseHandler(callback));
+		LuaVarListResponseHandler(callback));
 }
 
 void RemoteEngine::RequestRegistryVarList(const LuaVarListCallback &callback) {
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
 		CommandData(),
-		VarListResponseHandler(callback));
+		LuaVarListResponseHandler(callback));
 }
 
 void RemoteEngine::RequestStackList(const LuaVarListCallback &callback) {
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_STACKLIST,
 		CommandData(),
-		VarListResponseHandler(callback));
+		LuaVarListResponseHandler(callback));
 }
 
 /**
@@ -576,6 +588,16 @@ void RemoteEngine::ResponseVarList(const Command &command, const LuaVarList &var
 	WriteResponse(
 		command,
 		REMOTECOMMANDTYPE_VALUE_VARLIST,
+		data);
+}
+
+void RemoteEngine::ResponseVar(const Command &command, const LuaVar &var) {
+	CommandData data;
+
+	data.Set_ValueVar(var);
+	WriteResponse(
+		command,
+		REMOTECOMMANDTYPE_VALUE_VAR,
 		data);
 }
 
