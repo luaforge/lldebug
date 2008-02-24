@@ -8,12 +8,12 @@
 - file refactoring
 - history (interactive view)
 - variable watch (source editor)
+- encoding problem
+- backtrace
 
 / lldebug_startfile, lldebug_startstring
 / break, restart, and exit
 / GC view
 * error support
-* encoding problem
-* backtrace
 * popup menu
 * auto complete (interactive view)

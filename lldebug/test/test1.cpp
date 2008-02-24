@@ -14,7 +14,7 @@
 #define snprintf _snprintf
 #endif
 
-const char *c_filename = "fft.lua";
+const char *c_filename = "test_iso2022jp.lua";
 
 int init_state(lua_State *L) {
 	const char *s_dirlist[] = {
@@ -25,7 +25,8 @@ int init_state(lua_State *L) {
 		"../../test/",
 		NULL
 	};
-	
+
+	lldebug_setencoding(LLDEBUG_ENCODING_ISO2022JP);
 	luaL_openlibs(L);
 
 	lua_getfield(L, LUA_GLOBALSINDEX, "package");
@@ -55,6 +56,7 @@ int init_state(lua_State *L) {
 	if (lua_isstring(L, -1)) {
 		printf("%s\n", lua_tostring(L, -1));
 	}
+
 	return -1;
 }
 
@@ -66,7 +68,6 @@ int main(int argc, char **argv) {
 	}
 
 	init_state(L);
-
 	/*if (lldebug_loadstring(L,
 		"function dtest()\n"
 		"end\n"

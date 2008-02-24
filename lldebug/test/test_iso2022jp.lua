@@ -1,5 +1,5 @@
 --
--- “ú–{Œê•\Ž¦
+-- $BF|K\8lI=<((B
 --
 
 --require "E:\\programs\\develop\\lldebug\\test\\strict"
@@ -36,16 +36,16 @@ local function f(i)
 	  --print(test)
   end
 
-  local tab = {[0] = "ƒeƒXƒ^[", deeptab = {["x"]=coroutine.create(f)}}
+  local tab = {[0] = "$B%F%9%?!<(B", deeptab = {["x"]=coroutine.create(f)}}
   tab.tt = tab
   coroutine.resume(co, i)
   inner()
 end
 
-tab = {[0] = "ƒeƒXƒg", deep = {x=coroutine.create(f)}}
+tab = {[0] = "$B%F%9%H(B", deep = {x=coroutine.create(f)}}
 tab.tt = tab
 local i = 0
-local str = [[ƒeƒXƒgƒfƒ\]]
+local str = [[$B%F%9%H%G%=(B]]
 while 1 do
   print(i, str)
   f(i)

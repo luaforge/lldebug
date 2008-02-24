@@ -34,6 +34,7 @@ extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+#include "lldebug_encoding.h"
 
 typedef int (*lldebug_InitState)(lua_State *L);
 LUA_API lldebug_InitState lldebug_setinitstate(lldebug_InitState fn);
@@ -50,6 +51,9 @@ LUA_API int lldebug_loadstring(lua_State *L, const char *str);
 LUA_API void lldebug_call(lua_State *L, int narg, int nresult);
 LUA_API int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc);
 LUA_API int lldebug_resume(lua_State *L, int narg);
+
+LUA_API int lldebug_setencoding(lldebug_Encoding encoding);
+LUA_API lldebug_Encoding lldebug_getencoding();
 
 #if !defined(LLDEBUG_CONTEXT) && !defined(LLDEBUG_FRAME)
 #undef lua_open

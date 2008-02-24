@@ -64,7 +64,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxbase28ud.lib wxmsw28ud_core.lib wxmsw28ud_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_asiod.lib $(TargetDir)wxscintillad.lib $(TargetDir)wxtreelistctrld.lib"
+				AdditionalDependencies="wxbase28ud.lib wxmsw28ud_core.lib wxmsw28ud_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_asio.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -251,10 +251,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\src\visual\controls.h"
-					>
-				</File>
-				<File
 					RelativePath="..\..\src\visual\event.cpp"
 					>
 				</File>
@@ -308,6 +304,14 @@
 				</File>
 				<File
 					RelativePath="..\..\src\visual\sourceview.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\strutils.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\visual\strutils.h"
 					>
 				</File>
 				<File

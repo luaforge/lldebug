@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost_asio", "..\..\lldebug\visualc8\boost_asio\boost_asio.vcproj", "{B5BB6319-E5C2-4EB4-ABB0-43798D2BC247}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost_asio", "boost_asio\boost_asio.vcproj", "{B5BB6319-E5C2-4EB4-ABB0-43798D2BC247}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxscintilla", "..\..\lldebug\visualc8\wxscintilla\wxscintilla.vcproj", "{55A0D8B1-7F28-4469-B541-EBCEFCF30180}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxscintilla", "wxscintilla\wxscintilla.vcproj", "{55A0D8B1-7F28-4469-B541-EBCEFCF30180}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxtreelistctrl", "..\..\lldebug\visualc8\wxtreelistctrl\wxtreelistctrl.vcproj", "{BB20261D-C16A-43F9-8851-05BBC310DA3C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxtreelistctrl", "wxtreelistctrl\wxtreelistctrl.vcproj", "{BB20261D-C16A-43F9-8851-05BBC310DA3C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "babel", "babel\babel.vcproj", "{177CF20E-6D15-4962-81C4-7F222369061A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,6 +27,10 @@ Global
 		{BB20261D-C16A-43F9-8851-05BBC310DA3C}.Debug|Win32.Build.0 = Debug|Win32
 		{BB20261D-C16A-43F9-8851-05BBC310DA3C}.Release|Win32.ActiveCfg = Release|Win32
 		{BB20261D-C16A-43F9-8851-05BBC310DA3C}.Release|Win32.Build.0 = Release|Win32
+		{177CF20E-6D15-4962-81C4-7F222369061A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{177CF20E-6D15-4962-81C4-7F222369061A}.Debug|Win32.Build.0 = Debug|Win32
+		{177CF20E-6D15-4962-81C4-7F222369061A}.Release|Win32.ActiveCfg = Release|Win32
+		{177CF20E-6D15-4962-81C4-7F222369061A}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
