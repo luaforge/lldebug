@@ -609,6 +609,10 @@ struct RequestSourceHandler {
 void SourceView::OnUpdateSource(wxDebugEvent &event) {
 	bool found = false;
 
+	if (event.IsRefreshOnly()) {
+		return;
+	}
+
 	for (size_t i = 0; i < GetPageCount(); ++i) {
 		SourceViewPage *page = GetPage(i);
 

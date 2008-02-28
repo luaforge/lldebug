@@ -25,6 +25,7 @@ z/*
  */
 
 #include "precomp.h"
+#include "net/netutils.h"
 #include "visual/mediator.h"
 #include "visual/mainframe.h"
 #include "visual/strutils.h"
@@ -83,7 +84,7 @@ void Mediator::FocusErrorLine(const std::string &key, int line) {
 	MainFrame *frame = GetFrame();
 
 	wxDebugEvent event(wxEVT_FOCUS_ERRORLINE, wxID_ANY, key, line);
-	frame->AddPendingDebugEvent(event, frame, true);
+	frame->ProcessDebugEvent(event, frame, true);
 }
 
 void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
@@ -93,7 +94,7 @@ void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 	m_stackFrame = LuaStackFrame(bt.GetLua(), bt.GetLevel());
 
 	wxDebugEvent event(wxEVT_FOCUS_BACKTRACELINE, wxID_ANY, bt);
-	frame->AddPendingDebugEvent(event, frame, true);
+	frame->ProcessDebugEvent(event, frame, true);
 }
 
 void Mediator::ProcessAllRemoteCommands() {
@@ -113,6 +114,7 @@ void Mediator::ProcessAllRemoteCommands() {
 void Mediator::ProcessRemoteCommand(const Command &command) {
 	MainFrame *frame = GetFrame();
 
+	try {
 	// Process remote commands.
 	switch (command.GetType()) {
 	case REMOTECOMMANDTYPE_END_CONNECTION:
@@ -150,7 +152,9 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 		{
 			std::string key;
 			int line, updateCount;
-			command.GetData().Get_UpdateSource(key, line, updateCount);
+			bool isRefreshOnly;
+			command.GetData().Get_UpdateSource(
+				key, line, updateCount, isRefreshOnly);
 
 			// Update info.
 			if (updateCount > m_updateCount) {
@@ -160,12 +164,16 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 				++m_updateCount;
 				m_engine->SetUpdateCount(m_updateCount);
 			}
-			m_stackFrame = LuaStackFrame(LuaHandle(), 0);
+
+			// If isRefreshOnly is true, don't change the stack frame.
+			if (!isRefreshOnly) {
+				m_stackFrame = LuaStackFrame(LuaHandle(), 0);
+			}
 
 			if (frame != NULL) {
 				wxDebugEvent event(
 					wxEVT_UPDATE_SOURCE, wxID_ANY,
-					key, line, updateCount);
+					key, line, updateCount, isRefreshOnly);
 				frame->ProcessDebugEvent(event, frame, true);
 				m_engine->ResponseSuccessed(command);
 			}
@@ -215,7 +223,6 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 	case REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST:
-	case REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST:
 	case REMOTECOMMANDTYPE_REQUEST_STACKLIST:
 	case REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST:
 	case REMOTECOMMANDTYPE_VALUE_VARLIST:
@@ -223,6 +230,11 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 	case REMOTECOMMANDTYPE_VALUE_BACKTRACELIST:
 		BOOST_ASSERT(false && "Invalid remote command.");
 		break;
+	}
+	}
+	catch (std::exception &ex) {
+		wxLogMessage(_T("%s"), ex.what());
+		SaveCommand("command.txt", command);
 	}
 }
 

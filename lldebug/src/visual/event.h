@@ -78,9 +78,9 @@ public:
 	/// UpdateSource event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  const std::string &key, int line,
-						  int updateCount)
+						  int updateCount, bool isRefreshOnly)
 		: wxEvent(winid, type), m_key(key), m_line(line)
-		, m_updateCount(m_updateCount) {
+		, m_updateCount(m_updateCount), m_isRefreshOnly(isRefreshOnly) {
 		wxASSERT(type == wxEVT_UPDATE_SOURCE);
 	}
 
@@ -157,6 +157,11 @@ public:
 		return m_updateCount;
 	}
 
+	/// Is the 'update source' intend to refresh only ?
+	bool IsRefreshOnly() const {
+		return m_isRefreshOnly;
+	}
+
 	/// Is state breaking (stop running) ?
 	bool IsBreak() const {
 		return m_isBreak;
@@ -170,6 +175,7 @@ private:
 	int m_line;
 	LogType m_logType;
 	int m_updateCount;
+	bool m_isRefreshOnly;
 	bool m_isBreak;
 };
 

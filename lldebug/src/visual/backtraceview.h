@@ -42,14 +42,19 @@ class BacktraceViewItemData;
  */
 class BacktraceView : public wxTreeListCtrl {
 public:
+	typedef std::vector<wxTreeItemId> wxTreeItemIdList;
+
+public:
 	explicit BacktraceView(wxWindow *parent);
 	virtual ~BacktraceView();
 
+	virtual wxTreeItemIdList GetItemChildren(const wxTreeItemId &item);
 	virtual BacktraceViewItemData *GetItemData(const wxTreeItemId &item);
 
 private:
 	void CreateGUIControls();
 	void BeginUpdating();
+	bool IsSameContents(const LuaBacktraceList &backtraces);
 	void DoUpdate(const LuaBacktraceList &backtraces);
 	void LayoutColumn(int column);
 

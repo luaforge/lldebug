@@ -32,6 +32,9 @@
 namespace lldebug {
 namespace visual {
 
+/**
+ * @brief 
+ */
 class BacktraceViewItemData : public wxTreeItemData {
 public:
 	explicit BacktraceViewItemData(const LuaBacktrace &bt)
@@ -41,6 +44,7 @@ public:
 	virtual ~BacktraceViewItemData() {
 	}
 
+	/// Get the backtrace info.
 	const LuaBacktrace &GetBacktrace() const {
 		return m_backtrace;
 	}
@@ -80,6 +84,20 @@ void BacktraceView::CreateGUIControls() {
 	AddRoot(wxT(""));
 }
 
+BacktraceView::wxTreeItemIdList
+BacktraceView::GetItemChildren(const wxTreeItemId &item) {
+	wxTreeItemIdList result;
+	wxTreeItemIdValue cookie;
+
+	for (wxTreeItemId child = GetFirstChild(item, cookie);
+		child.IsOk();
+		child = GetNextChild(item, cookie)) {
+		result.push_back(child);
+	}
+
+	return result;
+}
+
 BacktraceViewItemData *BacktraceView::GetItemData(const wxTreeItemId &item) {
 	return static_cast<BacktraceViewItemData *>(wxTreeListCtrl::GetItemData(item));
 }
@@ -89,7 +107,8 @@ struct BacktraceView::UpdateHandler {
 	explicit UpdateHandler(BacktraceView *view)
 		: m_view(view) {
 	}
-	void operator()(const lldebug::net::Command &command, const LuaBacktraceList &bts) {
+	void operator()(const lldebug::net::Command &command,
+					const LuaBacktraceList &bts) {
 		m_view->DoUpdate(bts);
 	}
 	};
@@ -99,33 +118,56 @@ void BacktraceView::BeginUpdating() {
 		UpdateHandler(this));
 }
 
-void BacktraceView::DoUpdate(const LuaBacktraceList &backtraces) {
-	wxTreeItemId root = GetRootItem();
-	DeleteChildren(root);
+bool BacktraceView::IsSameContents(const LuaBacktraceList &backtraces) {
+	wxTreeItemIdList children = GetItemChildren(GetRootItem());
+
+	if (children.size() != backtraces.size()) {
+		return false;
+	}
 
 	for (LuaBacktraceList::size_type i = 0; i < backtraces.size(); ++i) {
-		const LuaBacktrace &info = backtraces[i];
+		const LuaBacktrace &bt1 = backtraces[i];
+		const LuaBacktrace &bt2 = GetItemData(children[i])->GetBacktrace();
+
+		if (bt1.GetFuncName() != bt2.GetFuncName()
+			|| bt1.GetKey() != bt2.GetKey() || bt1.GetLine() != bt1.GetLine()
+			|| bt1.GetLua() != bt2.GetLua() || bt1.GetLevel() != bt2.GetLevel()) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/// Update child variables of vars actually.
+void BacktraceView::DoUpdate(const LuaBacktraceList &backtraces) {
+	if (IsSameContents(backtraces)) {
+		return;
+	}
+
+	wxTreeItemId root = GetRootItem();
+
+	DeleteChildren(root);
+	for (LuaBacktraceList::size_type i = 0; i < backtraces.size(); ++i) {
+		const LuaBacktrace &backtrace = backtraces[i];
 
 		wxTreeItemId item = AppendItem(
 			root, wxEmptyString, -1, -1,
-			new BacktraceViewItemData(info));
+			new BacktraceViewItemData(backtrace));
 
-		// ƒJƒ‰ƒ€‚ðÝ’è‚µ‚Ü‚·B
-		wxString value;
-		if (info.GetTitle().empty()) {
+		// Set texts of columns.
+		if (backtrace.GetTitle().empty()) {
 			SetItemText(item, 0, wxT("unknown"));
 		}
 		else {
-			value = wxConvFromUTF8(info.GetTitle());
-			SetItemText(item, 0, value);
+			SetItemText(item, 0, wxConvFromUTF8(backtrace.GetTitle()));
 		}
-
-		value = wxString::Format(wxT("%d"), info.GetLine());
-		SetItemText(item, 1, value);
-		value = wxConvFromUTF8(info.GetFuncName());
-		SetItemText(item, 2, value);
-		value = (info.GetLine() >= 0 ? wxT("lua") : wxT("native"));
-		SetItemText(item, 3, value);
+		SetItemText(item, 1,
+			wxString::Format(wxT("%d"), backtrace.GetLine()));
+		SetItemText(item, 2,
+			wxConvFromUTF8(backtrace.GetFuncName()));
+		SetItemText(item, 3,
+			(backtrace.GetLine() >= 0 ? wxT("lua") : wxT("native")));
 	}
 }
 

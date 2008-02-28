@@ -604,11 +604,13 @@ struct VarUpdateRequester {
 		switch (m_type) {
 		case WatchView::TYPE_LOCALWATCH:
 			Mediator::Get()->GetEngine()->RequestLocalVarList(
-				Mediator::Get()->GetStackFrame(), callback);
+				Mediator::Get()->GetStackFrame(),
+				true, true, false, callback);
 			break;
 		case WatchView::TYPE_ENVIRONWATCH:
-			Mediator::Get()->GetEngine()->RequestEnvironVarList(
-				Mediator::Get()->GetStackFrame(), callback);
+			Mediator::Get()->GetEngine()->RequestLocalVarList(
+				Mediator::Get()->GetStackFrame(),
+				false, false, true, callback);
 			break;
 		case WatchView::TYPE_GLOBALWATCH:
 			Mediator::Get()->GetEngine()->RequestGlobalVarList(callback);

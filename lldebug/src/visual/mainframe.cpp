@@ -96,7 +96,6 @@ MainFrame::~MainFrame() {
 }
 
 void MainFrame::CreateGUIControls() {
-	scoped_lock lock(m_mutex);
 	SetFont(wxFont(11, wxSWISS, wxNORMAL, wxNORMAL, false, wxT("MS Gothic")));
 
 	m_auiManager = new wxAuiManager(this);
@@ -146,6 +145,9 @@ void MainFrame::CreateGUIControls() {
 	menuBar->Append(debugMenu, _("&Debug"));
 	SetMenuBar(menuBar);
 
+	//m_statusBar = new wxStatusBar(this);
+	//m_statusBar->SetFieldsCount(2);
+
 	m_auiManager->Update();
 	SetIcon(wxNullIcon);
 	SetAutoLayout(true);
@@ -153,25 +155,7 @@ void MainFrame::CreateGUIControls() {
 	Center();
 }
 
-void MainFrame::AddPendingDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways) {
-	scoped_lock lock(m_mutex);
-
-	if (!sendAlways && !parent->IsShown()) {
-		return;
-	}
-
-	wxWindowList& children = parent->GetChildren();
-	for (size_t i = 0; i < children.GetCount(); ++i) {
-		AddPendingDebugEvent(event, children[i], sendAlways);
-	}
-
-	event.SetId(parent->GetId());
-	parent->AddPendingEvent(event);
-}
-
 void MainFrame::ProcessDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways) {
-	scoped_lock lock(m_mutex);
-
 	if (!sendAlways && !parent->IsShown()) {
 		return;
 	}
@@ -190,13 +174,10 @@ void MainFrame::OnIdle(wxIdleEvent &event) {
 }
 
 bool MainFrame::IsExistDebugWindow(int wintypeid) {
-	scoped_lock lock(m_mutex);
-
 	return (FindWindowById(wintypeid) != NULL);
 }
 
 wxAuiNotebook *MainFrame::GetAuiNotebook() {
-	scoped_lock lock(m_mutex);
 	wxAuiNotebook *auiNotebook
 		= static_cast<wxAuiNotebook *>(FindWindowById(ID_WINDOWHOLDER));
 
@@ -225,8 +206,6 @@ wxAuiNotebook *MainFrame::GetAuiNotebook() {
 }
 
 void MainFrame::ShowDebugWindow(int wintypeid) {
-	scoped_lock lock(m_mutex);
-
 	// Find AuiNotebook.
 	wxAuiNotebook *auiNotebook = GetAuiNotebook();
 	if (auiNotebook == NULL) {
@@ -282,7 +261,7 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 	case ID_BACKTRACEVIEW:
 		auiNotebook->AddPage(
 			new BacktraceView(this),
-			_("BackTrace"));
+			_("Backtrace"));
 		break;
 	default:
 		return;
@@ -295,8 +274,6 @@ void MainFrame::ShowDebugWindow(int wintypeid) {
 }
 
 void MainFrame::OnMenu(wxCommandEvent &event) {
-	scoped_lock lock(m_mutex);
-
 	switch (event.GetId()) {
 	case wxID_EXIT:
 		Close(true);

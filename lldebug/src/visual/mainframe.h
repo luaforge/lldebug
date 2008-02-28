@@ -43,7 +43,6 @@ public:
 	explicit MainFrame();
 	virtual ~MainFrame();
 
-	void AddPendingDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways);
 	void ProcessDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlways);
 	bool IsExistDebugWindow(int wintypeid);
 	void ShowDebugWindow(int wintypeid);
@@ -55,14 +54,11 @@ private:
 	wxAuiNotebook *GetAuiNotebook();
 
 private:
-	DECLARE_EVENT_TABLE();
-	//DECLARE_DYNAMIC_CLASS(wxFrame);
-		
-private:
-	mutex m_mutex;
-
 	wxAuiManager *m_auiManager;
 	SourceView *m_sourceView;
+	wxStatusBar *m_statusBar;
+
+	DECLARE_EVENT_TABLE();
 };
 
 } // end of namespace visual
