@@ -63,7 +63,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="lua51d.lib icuucd.lib $(TargetDir)babel.lib $(TargetDir)boost_asio.lib"
+				AdditionalDependencies="lua51d_share.lib icuucd.lib $(TargetDir)babel.lib $(TargetDir)boost_asio.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -140,7 +140,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="lua51.lib $(TargetDir)babel.lib $(TargetDir)boost_asio.lib"
+				AdditionalDependencies="lua51_share.lib $(TargetDir)babel.lib $(TargetDir)boost_asio.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"

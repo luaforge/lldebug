@@ -14,7 +14,12 @@
 #define snprintf _snprintf
 #endif
 
-const char *c_filename = "test_iso2022jp.lua";
+const char *c_filename =
+/*
+"logging/test.lua";
+/*/
+"test.lua";
+//*/
 
 int init_state(lua_State *L) {
 	const char *s_dirlist[] = {
@@ -26,19 +31,19 @@ int init_state(lua_State *L) {
 		NULL
 	};
 
-	lldebug_setencoding(LLDEBUG_ENCODING_ISO2022JP);
+	lldebug_setencoding(LLDEBUG_ENCODING_SJIS); //ISO2022JP);
 	luaL_openlibs(L);
 
 	lua_getfield(L, LUA_GLOBALSINDEX, "package");
 	int package = lua_gettop(L);
 
 	lua_getfield(L, package, "path");
-	lua_pushliteral(L, ";e:\\programs\\cpp\\library\\external\\bin\\lua\\?.lua");
+	lua_pushliteral(L, ";e:\\programs\\cpp\\library\\external\\bin\\lua\\?.lua;..\\..\\test\\logging\\?.lua");
 	lua_concat(L, 2);
 	lua_setfield(L, package, "path");
 
 	lua_getfield(L, package, "cpath");
-	lua_pushliteral(L, ";e:\\programs\\cpp\\library\\external\\bin\\lua\\?\\core.dll");
+	lua_pushliteral(L, ";e:\\programs\\cpp\\library\\external\\bin\\lua\\?\\core.dll;e:\\programs\\cpp\\library\\external\\bin\\lua\\?.dll");
 	lua_concat(L, 2);
 	lua_setfield(L, package, "cpath");
 

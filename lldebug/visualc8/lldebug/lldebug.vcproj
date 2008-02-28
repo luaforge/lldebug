@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\babel;..\..\extralib\boost_asio_0_3_9"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;LLDEBUG_CONTEXT"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_LIB;LLDEBUG_CONTEXT;LLDEBUG_USE_BABEL"
 				GeneratePreprocessedFile="0"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -107,7 +107,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\babel;..\..\extralib\boost_asio_0_3_9"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;LLDEBUG_CONTEXT"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_LIB;LLDEBUG_CONTEXT;LLDEBUG_USE_BABEL"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="precomp.h"
