@@ -58,24 +58,7 @@ public:
 
 	static Context *Find(lua_State *L);
 	virtual void Quit();
-	virtual void SetDebugEnable(bool enabled);
 
-	virtual bool IsDebugEnabled() {
-		return m_isEnabled;
-	}
-
-	/// 文字列をウィンドウに出力します。
-	struct ParseData {
-		ParseData(const std::string &msg_, const std::string &key_,
-				  int line_, bool isDummyFunc_)
-			: message(msg_), key(key_), line(line_), isDummyFunc(isDummyFunc_) {
-		}
-		std::string message;
-		std::string key;
-		int line;
-		bool isDummyFunc;
-	};
-	ParseData ParseLuaError(const std::string &str);
 	void OutputLuaError(const char *str);
 	void OutputError(const std::string &str);
 	void OutputLog(const std::string &str);
@@ -89,8 +72,8 @@ public:
 
 	LuaVarList LuaGetFields(TableType type);
 	LuaVarList LuaGetFields(const LuaVar &var);
-	LuaVarList LuaGetLocals(const LuaStackFrame &stackFrame);
-	LuaVarList LuaGetEnviron(const LuaStackFrame &stackFrame);
+	LuaVarList LuaGetLocals(const LuaStackFrame &stackFrame, bool checkLocal,
+							bool checkUpvalue, bool checkEnviron);
 	LuaVarList LuaGetStack();
 	LuaBacktraceList LuaGetBacktrace();
 
@@ -99,19 +82,34 @@ public:
 	LuaVarList LuaEvalToMultiVar(const std::string &str, const LuaStackFrame &stackFrame);
 	LuaVar LuaEvalToVar(const std::string &str, const LuaStackFrame &stackFrame);
 
-	/// コンテキストのＩＤを取得します。
-	int GetId() const {
+	/// Get the context ID.
+	int GetId() {
+		scoped_lock lock(m_mutex);
 		return m_id;
 	}
 
-	/// luaオブジェクトを取得します。
+	/// Get the current lua_State object.
 	lua_State *GetLua() {
+		scoped_lock lock(m_mutex);
 		return m_coroutines.back().L;
 	}
 
-	/// 一番最初に作成されたluaオブジェクトを取得します。
+	/// Get the first lua_State object.
 	lua_State *GetMainLua() {
+		scoped_lock lock(m_mutex);
 		return m_lua;
+	}
+
+	/// Is debug enable ?
+	bool IsDebugEnabled() {
+		scoped_lock lock(m_mutex);
+		return m_isEnabled;
+	}
+
+	/// Set whether the debug is enabled.
+	void SetDebugEnable(bool enabled) {
+		scoped_lock lock(m_mutex);
+		m_isEnabled = enabled;
 	}
 
 private:
@@ -134,9 +132,21 @@ private:
 	void BeginCoroutine(lua_State *L);
 	void EndCoroutine(lua_State *L);
 
+	/// Data parsed the lua error.
+	struct LuaErrorData {
+		LuaErrorData(const std::string &msg_, const std::string &filekey_,
+				  int line_)
+			: message(msg_), filekey(filekey_), line(line_) {
+		}
+		std::string message;
+		std::string filekey;
+		int line;
+	};
+	LuaErrorData ParseLuaError(const std::string &str);
+
 private:
-	int LuaIndexForEval(lua_State *L);
-	int LuaNewindexForEval(lua_State *L);
+	static int lua_index_for_eval(lua_State *L);
+	static int lua_newindex_for_eval(lua_State *L);
 
 private:
 	class ContextManager;
@@ -152,6 +162,9 @@ private:
 	int m_updateCount;
 	bool m_isMustUpdate;
 
+	/**
+	 * @brief 
+	 */
 	/// lua_State *ごとの関数呼び出し回数を記録することで
 	/// ステップオーバーを安全に実装します。
 	struct CoroutineInfo {

@@ -259,10 +259,10 @@ int Context::LoadConfig() {
 	try {
 		std::string filename = EncodeToFilename(m_rootFileKey);
 		std::fstream ifs;
-		if (OpenConfigFile(filename + "xml", ifs, false) != 0) {
+		if (OpenConfigFile(filename + ".xml", ifs, false) != 0) {
 			return -1;
 		}
-	
+
 		boost::archive::xml_iarchive ar(ifs);
 		BreakpointList bps(&*m_engine);
 		ar & BOOST_SERIALIZATION_NVP(bps);
@@ -284,7 +284,7 @@ int Context::SaveConfig() {
 	try {
 		std::string filename = EncodeToFilename(m_rootFileKey);
 		std::fstream ofs;
-		if (OpenConfigFile(filename + "xml", ofs, true) != 0) {
+		if (OpenConfigFile(filename + ".xml", ofs, true) != 0) {
 			return -1;
 		}
 
@@ -312,14 +312,8 @@ void Context::Quit() {
 	SetState(STATE_QUIT);
 }
 
-void Context::SetDebugEnable(bool enabled) {
-	scoped_lock lock(m_mutex);
-
-	m_isEnabled = enabled;
-}
-
 /// Parse the lua error that forat is like 'FILENAME:LINE:str...'.
-Context::ParseData Context::ParseLuaError(const std::string &str) {
+Context::LuaErrorData Context::ParseLuaError(const std::string &str) {
 	scoped_lock lock(m_mutex);
 
 	// FILENAME:LINE:str...
@@ -378,27 +372,26 @@ Context::ParseData Context::ParseLuaError(const std::string &str) {
 			// Replace key if any.
 			const Source *source = m_sourceManager.GetString(filename);
 			if (source != NULL) {
-				return ParseData(msg, source->GetKey(), line, false);
+				return LuaErrorData(msg, source->GetKey(), line);
 			}
 			else if (filename == DUMMY_FUNCNAME) {
-				return ParseData(msg, "", -1, false);
+				return LuaErrorData(msg, "", -1);
 			}
 		}
 		else {
-			return ParseData(msg, std::string("@") + filename, line, false);
+			return LuaErrorData(msg, std::string("@") + filename, line);
 		}
 	}
 
 	// Come here when str can't be parsed or filename is invalid.
-	return ParseData(str, "", -1, false);
+	return LuaErrorData(str, "", -1);
 }
 
 void Context::OutputLog(LogType type, const std::string &str) {
 	scoped_lock lock(m_mutex);
 
-	ParseData data = ParseLuaError(str);
-	assert(!data.isDummyFunc);
-	m_engine->OutputLog(type, data.message, data.key, data.line);
+	LuaErrorData data = ParseLuaError(str);
+	m_engine->OutputLog(type, data.message, data.filekey, data.line);
 }
 
 void Context::OutputLuaError(const char *str) {
@@ -438,8 +431,8 @@ void Context::EndCoroutine(lua_State *L) {
 		return;
 	}
 
-	// ステップオーバーが設定されたコルーチンを抜けるときは
-	// 強制的にブレイクします。
+	// When it goes through the coroutine set break mark,
+	// we force to break.
 	if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
 		if (m_stepinfo.L == L) {
 			SetState(STATE_BREAK);
@@ -475,7 +468,6 @@ void Context::SetState(State state) {
 		return;
 	}
 
-	// 状態遷移を行います。
 	switch (m_state) {
 	case STATE_INITIAL:
 		m_state = state;
@@ -547,7 +539,7 @@ void Context::SetState(State state) {
 		return;
 	}
 
-	// ステップオーバーなら情報を設定します。
+	// Set stepinfo that has lua_State* and call count.
 	if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
 		m_stepinfo = m_coroutines.back();
 	}
@@ -556,6 +548,7 @@ void Context::SetState(State state) {
 int Context::HandleCommand() {
 	scoped_lock lock(m_mutex);
 
+	// Process the command.
 	while (m_engine->HasCommands()) {
 		Command command = m_engine->GetCommand();
 		m_engine->PopCommand();
@@ -659,15 +652,11 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST:
 			{
 				LuaStackFrame stackFrame;
-				command.GetData().Get_RequestLocalVarList(stackFrame);
-				m_engine->ResponseVarList(command, LuaGetLocals(stackFrame));
-			}
-			break;
-		case REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST:
-			{
-				LuaStackFrame stackFrame;
-				command.GetData().Get_RequestEnvironVarList(stackFrame);
-				m_engine->ResponseVarList(command, LuaGetEnviron(stackFrame));
+				bool checkLocal, checkUpvalue, checkEnviron;
+				command.GetData().Get_RequestLocalVarList(
+					stackFrame, checkLocal, checkUpvalue, checkEnviron);
+				m_engine->ResponseVarList(command, LuaGetLocals(stackFrame,
+					checkLocal, checkUpvalue, checkEnviron));
 			}
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
@@ -696,6 +685,9 @@ int Context::HandleCommand() {
 	return 0;
 }
 
+/**
+ * @brief Waiter for the callback of 'UpdateSource'.
+ */
 struct UpdateResponseWaiter {
 	explicit UpdateResponseWaiter(int *count)
 		: m_count(count) {
@@ -717,6 +709,21 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 
 	scoped_lock lock(m_mutex);
 	assert(m_state != STATE_INITIAL && "Not initialized !!!");
+
+	if (false) {
+		lua_getinfo(L, "nSl", ar);
+		switch (ar->event) {
+		case LUA_HOOKCALL:
+			printf("OnCall: %s\n", LuaMakeFuncName(ar).c_str());
+			break;
+		case LUA_HOOKRET:
+			printf("OnReturn: %s\n", LuaMakeFuncName(ar).c_str());
+			break;
+		case LUA_HOOKTAILRET:
+			printf("OnTailReturn: %s\n", LuaMakeFuncName(ar).c_str());
+			break;
+		}
+	}
 
 	switch (ar->event) {
 	case LUA_HOOKCALL:
@@ -759,7 +766,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		/* error */
 		assert(false && "Value of 'state' is illegal.");
 		break;
-	}
+	} 
 
 	// Get the infomation of the current function.
 	lua_getinfo(L, "nSl", ar);
@@ -770,7 +777,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		SetState(STATE_BREAK);
 	}
 
-	// ブレイクにつき一回フレームを更新するために必要です。
+	// Update the frame.
 	State prevState = STATE_NORMAL;
 	for (;;) {
 		// handle event and message queue
@@ -792,7 +799,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 
 				m_engine->UpdateSource(
 					ar->source, ar->currentline,
-					++m_updateCount,
+					++m_updateCount, (prevState == STATE_BREAK),
 					UpdateResponseWaiter(&m_waitUpdateCount));
 			}
 			prevState = m_state;
@@ -808,12 +815,12 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 }
 
 /**
- * @brief lua用の関数を実装しています。
+ * @brief Implementation of lua functions that users private methods of Context.
  */
 class Context::LuaImpl {
 public:
 	static int atpanic(lua_State *L) {
-		printf("%s\n", lua_tostring(L, -1));
+		printf("on atpanic: %s\n", lua_tostring(L, -1));
 		return -1;
 	}
 
@@ -880,29 +887,11 @@ public:
 
 		luaL_openlib(L, LUA_COLIBNAME, s_coregs, 0);
 	}
-
-	/*---------------------------------------*/
-	static int index_for_eval(lua_State *L) {
-		Context *ctx = Context::Find(L);
-		if (ctx == NULL) {
-			return 0;
-		}
-
-		return ctx->LuaIndexForEval(L);
-	}
-
-	static int newindex_for_eval(lua_State *L) {
-		Context *ctx = Context::Find(L);
-		if (ctx == NULL) {
-			return 0;
-		}
-
-		return ctx->LuaNewindexForEval(L);
-	}
 };
 
 int Context::LuaInitialize(lua_State *L) {
 	lua_atpanic(L, LuaImpl::atpanic);
+	lua_register(L, "lldebug_atpanic", LuaImpl::atpanic);
 	lldebug::LuaInitialize(L);
 	return 0;
 }
@@ -1012,26 +1001,18 @@ LuaVarList Context::LuaGetFields(const LuaVar &var) {
 	return callback.get_result();
 }
 
-LuaVarList Context::LuaGetLocals(const LuaStackFrame &stackFrame) {
+LuaVarList Context::LuaGetLocals(const LuaStackFrame &stackFrame,
+								 bool checkLocal, bool checkUpvalue,
+								 bool checkEnviron) {
 	scoped_lock lock(m_mutex);
 	lua_State *L = stackFrame.GetLua().GetState();
 	
 	varlist_maker callback;
-	if (iterate_locals(callback, (L != NULL ? L : GetLua()),
-		stackFrame.GetLevel(), true, true, false) != 0) {
-		return LuaVarList();
-	}
-
-	return callback.get_result();
-}
-
-LuaVarList Context::LuaGetEnviron(const LuaStackFrame &stackFrame) {
-	scoped_lock lock(m_mutex);
-	lua_State *L = stackFrame.GetLua().GetState();
-	
-	varlist_maker callback;
-	if (iterate_locals(callback, (L != NULL ? L : GetLua()),
-		stackFrame.GetLevel(), false, false, true) != 0) {
+	if (iterate_locals(
+		callback,
+		(L != NULL ? L : GetLua()),
+		stackFrame.GetLevel(),
+		checkLocal, checkUpvalue, checkEnviron) != 0) {
 		return LuaVarList();
 	}
 
@@ -1085,9 +1066,14 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 	return array;
 }
 
-int Context::LuaIndexForEval(lua_State *L) {
-	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 1);
+int Context::lua_index_for_eval(lua_State *L) {
+	Context *ctx = Context::Find(L);
+	if (ctx == NULL) {
+		return 0;
+	}
+
+	scoped_lock lock(ctx->m_mutex);
+	scoped_lua scoped(ctx, L, 1);
 
 	if (!lua_isstring(L, 2)) {
 		lua_pushnil(L);
@@ -1112,9 +1098,14 @@ int Context::LuaIndexForEval(lua_State *L) {
 	return 1; // return nil
 }
 
-int Context::LuaNewindexForEval(lua_State *L) {
-	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 0);
+int Context::lua_newindex_for_eval(lua_State *L) {
+	Context *ctx = Context::Find(L);
+	if (ctx == NULL) {
+		return 0;
+	}
+
+	scoped_lock lock(ctx->m_mutex);
+	scoped_lua scoped(ctx, L, 0);
 
 	if (!lua_isstring(L, 2)) {
 		return 0;
@@ -1195,24 +1186,21 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 	const char *ending = NULL;
 	if (level >= 0) {
 		beginning =
-			"local function __lldebug_eval_function__()\n";
+			"return (function()\n"
+			"  setfenv(1, setmetatable({}, __lldebug_eval_metatable__))\n";
 		ending =
-			"\nend\n"
-			"setfenv("
-			"  __lldebug_eval_function__,"
-			"  setmetatable({}, __lldebug_eval_metatable__))\n"
-			"return __lldebug_eval_function__()\n";
+			"\nend)()";
 
 		// Create __lldebug_eval_metatable__ in the global table.
 		// table = {__index=func1, __newindex=func2}
 		lua_newtable(L);
 		lua_pushliteral(L, "__index");
 		lua_pushinteger(L, level);
-		lua_pushcclosure(L, LuaImpl::index_for_eval, 1);
+		lua_pushcclosure(L, Context::lua_index_for_eval, 1);
 		lua_rawset(L, -3);
 		lua_pushliteral(L, "__newindex");
 		lua_pushinteger(L, level);
-		lua_pushcclosure(L, LuaImpl::newindex_for_eval, 1);
+		lua_pushcclosure(L, Context::lua_newindex_for_eval, 1);
 		lua_rawset(L, -3);
 
 		// globals[__lldebug_eval_metatable__] = table
