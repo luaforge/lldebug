@@ -27,12 +27,14 @@
 #include "precomp.h"
 #include "context/context.h"
 #include "context/luautils.h"
+#include "context/luaiterate.h"
 
 namespace lldebug {
 
 const int LuaAddressForInternalTable = 0;
 
-static int callmeta(lua_State *L, int idx, const std::string &name) {
+/// Call the function of the metatable.
+static int call_metafunc(lua_State *L, int idx, const std::string &name) {
 	if (lua_getmetatable(L, idx) != 0) {
 		lua_pushlstring(L, name.c_str(), name.length());
 		lua_rawget(L, -2);
@@ -41,12 +43,32 @@ static int callmeta(lua_State *L, int idx, const std::string &name) {
 		if (lua_isfunction(L, -1)) {
 			lua_pushvalue(L, 1);
 			lua_pcall(L, 1, 1, 0);
-			return 1;
+			return 0;
 		}
 
 		lua_pop(L, 1);
 	}
 
+	return -1;
+}
+
+/// Call the function of 'lldebug'.
+static int push_lldebugfunc(lua_State *L, const std::string &name) {
+	lua_pushliteral(L, "lldebug");
+	lua_rawget(L, LUA_GLOBALSINDEX);
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 1);
+		return -1;
+	}
+
+	lua_pushlstring(L, name.c_str(), name.length());
+	lua_rawget(L, -2);
+	if (!lua_isfunction(L, -1)) {
+		lua_pop(L, 2);
+		return -1;
+	}
+
+	lua_remove(L, -2); // eliminate 'lldebug'.
 	return 0;
 }
 
@@ -55,12 +77,6 @@ std::string LuaToStringFast(lua_State *L, int idx) {
 	int type = lua_type(L, idx);
 	std::string str;
 	char buffer[512];
-	bool isnewidx = false;
-
-	if (callmeta(L, idx, "__tostring") != 0) {
-		idx = -1;
-		isnewidx = true;
-	}
 
 	switch (type) {
 	case LUA_TNONE:
@@ -86,27 +102,15 @@ std::string LuaToStringFast(lua_State *L, int idx) {
 		break;
 	}
 
-	if (isnewidx) lua_pop(L, 1);
 	return str;
 }
 
 std::string LuaToStringForVarValue(lua_State *L, int idx) {
 	scoped_lua scoped(L, 0);
 
-	lua_pushliteral(L, "lldebug");
-	lua_rawget(L, LUA_GLOBALSINDEX);
-	if (!lua_istable(L, -1)) {
-		lua_pop(L, 1);
-		return "Not found 'lldebug'";
-	}
-
-	lua_pushliteral(L, "tostring_for_varvalue");
-	lua_rawget(L, -2);
-	if (!lua_isfunction(L, -1)) {
-		lua_pop(L, 2);
+	if (push_lldebugfunc(L, "tostring_for_varvalue") != 0) {
 		return "Not found 'lldebug.tostring_for_varvalue'";
 	}
-	lua_remove(L, -2); // eliminate 'lldebug'.
 
 	// Call 'lldebug.tostring_for_varvalue'
 	lua_pushvalue(L, idx);
@@ -121,11 +125,8 @@ std::string LuaToStringForVarValue(lua_State *L, int idx) {
 std::string LuaToString(lua_State *L, int idx) {
 	scoped_lua scoped(L, 0);
 
-	lua_pushliteral(L, "tostring");
-	lua_rawget(L, LUA_GLOBALSINDEX);
-	if (!lua_isfunction(L, -1)) {
-		lua_pop(L, 2);
-		return "Not found 'tostring'";
+	if (push_lldebugfunc(L, "tostring") != 0) {
+		return "Not found 'lldebug.tostring'";
 	}
 
 	// Call the function.
@@ -170,6 +171,16 @@ static int llutils_tostring_fast(lua_State *L) {
 	return 1;
 }
 
+static int llutils_tostring(lua_State *L) {
+	int top = lua_gettop(L);
+
+	lua_pushliteral(L, "tostring");
+	lua_rawget(L, LUA_GLOBALSINDEX);
+	lua_pushvalue(L, 1);
+	lua_pcall(L, 1, 1, 0);
+	return (lua_gettop(L) - top);
+}
+
 /*static void list_local_funcname(lua_State *L) {
 	lua_Debug ar;
 
@@ -185,7 +196,7 @@ static int llutils_tostring_for_varvalue_default(lua_State *L) {
 	scoped_lua scoped(L, 1);
 	int type = lua_type(L, 1);
 
-	if (callmeta(L, 1, "__tostring") != 0) {
+	if (call_metafunc(L, 1, "__tostring") == 0) {
 		return 1;
 	}
 
@@ -221,7 +232,7 @@ static int llutils_tostring_detail_default(lua_State *L) {
 			lua_pushliteral(L, ",\n");
 		}
 
-		if (callmeta(L, i, "__tostring") != 0) {
+		if (call_metafunc(L, i, "__tostring") == 0) {
 			continue;
 		}
 
@@ -269,11 +280,39 @@ static int llutils_get_luavar_table(lua_State *L) {
 	return 1;
 }
 
+struct variable_table {
+	lua_State *m_L;
+	int m_table;
+	explicit variable_table(lua_State *L, int table)
+		: m_L(L), m_table(table) {
+	}
+	int operator()(lua_State *L, const std::string &name, int valueIdx) {
+		lua_pushlstring(L, name.c_str(), name.length());
+		lua_pushvalue(L, valueIdx);
+		lua_rawset(L, m_table);
+		return 0;
+	}
+	};
+
+static int llutils_get_locals(lua_State *L) {
+	lua_newtable(L);
+	int table = lua_gettop(L);
+
+	variable_table callback(L, table);
+	if (iterate_locals(callback, L, 3, true, true, false) != 0) {
+		lua_remove(L, table);
+		return 0;
+	}
+
+	return 1;
+}
+
 static const luaL_Reg llutils_regs[] = {
-	{"tostring_fast", llutils_tostring_fast},
+	{"tostring", llutils_tostring},
 	{"tostring_for_varvalue", llutils_tostring_for_varvalue_default},
 	{"tostring_detail", llutils_tostring_detail_default},
 	{"get_luavar_table", llutils_get_luavar_table},
+	{"getlocals", llutils_get_locals},
 //	{"toluavar", llutils_toluavar},
 	{NULL, NULL}
 };

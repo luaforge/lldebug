@@ -25,10 +25,7 @@
  */
 
 #include "precomp.h"
-#include "lldebug.h"
 #include "context/codeconv.h"
-
-#define LLDEBUG_USE_ICU
 
 #if defined(LLDEBUG_USE_ICU)
 	#include "unicode/ucnv.h"
@@ -191,7 +188,7 @@ std::string ConvFromUTF8(const std::string &input) {
 	}
 }
 
-#elif 1 //defined(LLDEBUG_USE_BABEL)
+#elif defined(LLDEBUG_USE_BABEL)
 static int s_babelEncoding;
 
 /// Babel initializer

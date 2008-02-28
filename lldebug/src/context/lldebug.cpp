@@ -78,6 +78,37 @@ int lldebug_loadstring(lua_State *L, const char *str) {
 	return ctx->LoadString(str);
 }
 
+void lldebug_call(lua_State *L, int narg, int nresult) {
+	Context *ctx = Context::Find(L);
+	if (ctx == NULL) {
+		lua_pushliteral(L, "Couldn't find the Context object.");
+		return;
+	}
+
+//	ctx->Call();
+}
+
+int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc) {
+	Context *ctx = Context::Find(L);
+	if (ctx == NULL) {
+		lua_pushliteral(L, "Conldn't find the Context object.");
+		return -1;
+	}
+
+//	return ctx->PCall();
+	return 0;
+}
+
+int lldebug_resume(lua_State *L, int narg) {
+	Context *ctx = Context::Find(L);
+	if (ctx == NULL) {
+		lua_pushliteral(L, "Conldn't find the Context object.");
+		return -1;
+	}
+
+	return 0;
+}
+
 int lldebug_openbase(lua_State *L) {
 	Context *ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {
