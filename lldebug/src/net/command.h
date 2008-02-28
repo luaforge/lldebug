@@ -75,7 +75,6 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
-	REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
 	REMOTECOMMANDTYPE_REQUEST_STACKLIST,
 	REMOTECOMMANDTYPE_REQUEST_SOURCE,
 	REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST,
@@ -135,8 +134,10 @@ public:
 	void Get_ChangedState(bool &isBreak) const;
 	void Set_ChangedState(bool isBreak);
 
-	void Get_UpdateSource(std::string &key, int &line, int &updateCount) const;
-	void Set_UpdateSource(const std::string &key, int line, int updateCount);
+	void Get_UpdateSource(std::string &key, int &line, int &updateCount,
+						  bool &isRefreshOnly) const;
+	void Set_UpdateSource(const std::string &key, int line, int updateCount,
+						  bool isRefreshOnly);
 
 	void Get_AddedSource(Source &source) const;
 	void Set_AddedSource(const Source &source);
@@ -171,11 +172,10 @@ public:
 	void Get_RequestFieldVarList(LuaVar &var) const;
 	void Set_RequestFieldVarList(const LuaVar &var);
 
-	void Get_RequestLocalVarList(LuaStackFrame &stackFrame) const;
-	void Set_RequestLocalVarList(const LuaStackFrame &stackFrame);
-
-	void Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const;
-	void Set_RequestEnvironVarList(const LuaStackFrame &stackFrame);
+	void Get_RequestLocalVarList(LuaStackFrame &stackFrame, bool &checkLocal,
+								 bool &checkUpvalue, bool &checkEnviron) const;
+	void Set_RequestLocalVarList(const LuaStackFrame &stackFrame, bool checkLocal,
+								 bool checkUpvalue, bool checkEnviron);
 
 	void Get_RequestSource(std::string &key);
 	void Set_RequestSource(const std::string &key);

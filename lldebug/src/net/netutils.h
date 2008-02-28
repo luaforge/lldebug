@@ -32,8 +32,11 @@
 namespace lldebug {
 namespace net {
 
-/// Echo the command info.
+/// Echo the command dump.
 void EchoCommand(const Command &command);
+
+/// Save the command dump.
+void SaveCommand(const std::string &filename, const Command &command);
 
 } // end of namespace net
 } // end of namespace lldebug

@@ -45,8 +45,6 @@ struct echo_thread::request {
 
 echo_thread::echo_thread()
 	: m_is_exit_thread(false) {
-	m_thread.reset(new boost::thread(
-		boost::bind(&echo_thread::thread_main, this)));
 }
 
 echo_thread::~echo_thread() {
@@ -67,69 +65,85 @@ void echo_thread::add_request(shared_ptr<tcp::socket> sock,
 	req->buffer.push_back('\r');
 	req->buffer.push_back('\n');
 
-	{
-		scoped_lock lock(m_mutex);
-		// Erase the old request, if any.
-		while (m_request_queue.size() > 50) {
-			m_request_queue.pop();
-		}
-		m_request_queue.push(req);
-		m_cond.notify_all();
-	}
+	add_request(req);
 }
 
 /// Stop the thread.
 void echo_thread::exit_thread() {
 	scoped_lock lock(m_mutex);
+	
+	if (m_current != NULL) {
+		m_current->socket->close();
+	}
 	m_is_exit_thread = true;
 	m_cond.notify_all();
 }
 
-/// Get a request from the queue.
-shared_ptr<echo_thread::request> echo_thread::get_request() {
+/// Add a request to the queue.
+void echo_thread::add_request(shared_ptr<request> req) {
 	scoped_lock lock(m_mutex);
 
+	// Start thread, if any.
+	if (m_thread == NULL) {
+		shared_ptr<boost::thread> th(new boost::thread(
+			boost::bind(&echo_thread::thread_main, this)));
+		m_thread = th;
+	}
+
+	// Erase the old request, if any.
+	while (m_request_queue.size() > 50) {
+		m_request_queue.pop();
+	}
+
+	m_request_queue.push(req);
+	m_cond.notify_all();
+}
+
+/// Get a request from the queue.
+int echo_thread::get_request() {
+	scoped_lock lock(m_mutex);
+
+	m_current.reset();
 	if (m_is_exit_thread) {
-		return shared_ptr<request>();
+		return -1;
 	}
 	
 	while (m_request_queue.empty()) {
 		if (m_is_exit_thread) {
-			return shared_ptr<request>();
+			return -1;
 		}
 
 		m_cond.wait(lock);
 	}
 
-	shared_ptr<request> req = m_request_queue.front();
+	m_current = m_request_queue.front();
 	m_request_queue.pop();
-	return req;
+	return 0;
 }
 
 /// Thread function.
 void echo_thread::thread_main() {
 	for (;;) {
-		shared_ptr<request> req = get_request();
-		if (req == NULL) {
+		if (get_request() != 0) {
 			break;
 		}
 
 		// Process this request.
 		try {
 			size_t size = 0;
-			while (size < req->buffer.size()) {
-				size += req->socket->write_some(
-					boost::asio::buffer(&req->buffer[size], req->buffer.size() - size));
+			while (size < m_current->buffer.size()) {
+				size += m_current->socket->write_some(
+					boost::asio::buffer(&m_current->buffer[size], m_current->buffer.size() - size));
 			}
 
 			size = 0;
-			while (size < req->buffer.size()) {
-				size += req->socket->read_some(
-					boost::asio::buffer(&req->buffer[size], req->buffer.size() - size));
+			while (size < m_current->buffer.size()) {
+				size += m_current->socket->read_some(
+					boost::asio::buffer(&m_current->buffer[size], m_current->buffer.size() - size));
 			}
 		}
 		catch (...) {
-			// ignore
+			/* ignore */
 		}
 	}
 }

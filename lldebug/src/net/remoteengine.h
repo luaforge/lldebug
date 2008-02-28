@@ -103,7 +103,8 @@ public:
 	void ResponseFailed(const Command &command);
 
 	void ChangedState(bool isBreak);
-	void UpdateSource(const std::string &key, int line, int updateCount, const CommandCallback &response);
+	void UpdateSource(const std::string &key, int line, int updateCount,
+					  bool isRefreshOnly, const CommandCallback &response);
 	void ForceUpdateSource();
 	void AddedSource(const Source &source);
 	void SaveSource(const std::string &key, const string_array &sources);
@@ -128,8 +129,9 @@ public:
 				   const LuaVarCallback &callback);
 	
 	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
-	void RequestLocalVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
-	void RequestEnvironVarList(const LuaStackFrame &stackFrame, const LuaVarListCallback &callback);
+	void RequestLocalVarList(const LuaStackFrame &stackFrame, bool checkLocal,
+							 bool checkUpvalue, bool checkEnviron,
+							 const LuaVarListCallback &callback);
 	void RequestGlobalVarList(const LuaVarListCallback &callback);
 	void RequestRegistryVarList(const LuaVarListCallback &callback);
 	void RequestStackList(const LuaVarListCallback &callback);

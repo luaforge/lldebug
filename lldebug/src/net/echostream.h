@@ -63,7 +63,8 @@ private:
 	void thread_main();
 
 	struct request;
-	shared_ptr<request> get_request();
+	void add_request(shared_ptr<request> req);
+	int get_request();
 
 private:
 	static echo_thread ms_thread;
@@ -72,6 +73,7 @@ private:
 	mutex m_mutex;
 	condition m_cond;
 	bool m_is_exit_thread;
+	shared_ptr<request> m_current;
 	std::queue<shared_ptr<request> > m_request_queue;
 };
 

@@ -30,8 +30,10 @@
 #include "net/netutils.h"
 #include "net/echostream.h"
 
-#include <boost/asio/placeholders.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/placeholders.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/bind.hpp>
 
 namespace lldebug {
@@ -84,8 +86,9 @@ void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 
 		// Try to read command.
 		shared_ptr<CommandHeader> readHeader(new CommandHeader);
-		m_connection->GetSocket().async_read_some(
+		boost::asio::async_read(m_connection->GetSocket(),
 			boost::asio::buffer(&*readHeader, sizeof(CommandHeader)),
+			boost::asio::transfer_all(),
 			boost::bind(
 				&ServerConnector::HandleCommand, shared_from_this(),
 				readHeader, boost::asio::placeholders::error));
@@ -248,8 +251,9 @@ void Connection::DoClose(const boost::system::error_code &error) {
 void Connection::BeginReadCommand() {
 	shared_ptr<Command> command(new Command);
 
-	m_socket.async_read_some(
+	boost::asio::async_read(m_socket,
 		boost::asio::buffer(&command->GetHeader(), sizeof(CommandHeader)),
+		boost::asio::transfer_all(),
 		boost::bind(
 			&Connection::HandleReadCommandHeader, shared_from_this(),
 			command, boost::asio::placeholders::error));
@@ -263,8 +267,9 @@ void Connection::HandleReadCommandHeader(shared_ptr<Command> command,
 		if (command->GetDataSize() > 0) {
 			command->ResizeData();
 
-			m_socket.async_read_some(
+			boost::asio::async_read(m_socket,
 				boost::asio::buffer(command->GetImplData()),
+				boost::asio::transfer_all(),
 				boost::bind(
 					&Connection::HandleReadCommandData, shared_from_this(),
 					command, boost::asio::placeholders::error));
@@ -308,22 +313,25 @@ void Connection::BeginWriteCommand(const Command &command) {
 
 	if (command.GetDataSize() == 0) {
 		// Write command header with the deleting command memory.
-		m_socket.async_write_some(
+		boost::asio::async_write(m_socket,
 			boost::asio::buffer(&command.GetHeader(), sizeof(CommandHeader)),
+			boost::asio::transfer_all(),
 			boost::bind(
 				&Connection::HandleWriteCommand, shared_from_this(),
 				true, boost::asio::placeholders::error));
 	}
 	else {
 		// Write command header without the deleting command memory.
-		m_socket.async_write_some(
+		boost::asio::async_write(m_socket,
 			boost::asio::buffer(&command.GetHeader(), sizeof(CommandHeader)),
+			boost::asio::transfer_all(),
 			boost::bind(
 				&Connection::HandleWriteCommand, shared_from_this(),
 				false, boost::asio::placeholders::error));
 
-		m_socket.async_write_some(
+		boost::asio::async_write(m_socket,
 			boost::asio::buffer(command.GetImplData()),
+			boost::asio::transfer_all(),
 			boost::bind(
 				&Connection::HandleWriteCommand, shared_from_this(),
 				true, boost::asio::placeholders::error));

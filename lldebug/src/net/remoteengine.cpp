@@ -28,6 +28,7 @@
 #include "net/connection.h"
 #include "net/remoteengine.h"
 #include "net/echostream.h"
+#include "net/netutils.h"
 
 namespace lldebug {
 namespace net {
@@ -188,6 +189,12 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 		m_readCommandQueue.push(command);
 
 		m_connection.reset();
+
+#ifdef LLDEBUG_VISUAL
+		// Start connection.
+		shared_ptr<ServerConnector> connector(new ServerConnector(*this));
+		connector->Start("51123");
+#endif
 	}
 }
 
@@ -299,10 +306,12 @@ void RemoteEngine::ChangedState(bool isBreak) {
 		data);
 }
 
-void RemoteEngine::UpdateSource(const std::string &key, int line, int updateSourceCount, const CommandCallback &response) {
+void RemoteEngine::UpdateSource(const std::string &key, int line,
+								int updateSourceCount, bool isRefreshOnly,
+								const CommandCallback &response) {
 	CommandData data;
 
-	data.Set_UpdateSource(key, line, updateSourceCount);
+	data.Set_UpdateSource(key, line, updateSourceCount, isRefreshOnly);
 	WriteCommand(
 		REMOTECOMMANDTYPE_UPDATE_SOURCE,
 		data,
@@ -319,6 +328,7 @@ void RemoteEngine::AddedSource(const Source &source) {
 	CommandData data;
 
 	data.Set_AddedSource(source);
+	SaveCommand("send.txt", Command(InitCommandHeader(REMOTECOMMANDTYPE_ADDED_SOURCE, data.GetSize()), data));
 	WriteCommand(
 		REMOTECOMMANDTYPE_ADDED_SOURCE,
 		data);
@@ -492,23 +502,15 @@ void RemoteEngine::RequestFieldsVarList(const LuaVar &var,
 }
 
 void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame,
+									   bool checkLocal, bool checkUpvalue,
+									   bool checkEnviron,
 									   const LuaVarListCallback &callback) {
 	CommandData data;
 
-	data.Set_RequestLocalVarList(stackFrame);
+	data.Set_RequestLocalVarList(stackFrame, checkLocal, checkUpvalue,
+								 checkEnviron);
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
-		data,
-		LuaVarListResponseHandler(callback));
-}
-
-void RemoteEngine::RequestEnvironVarList(const LuaStackFrame &stackFrame,
-										 const LuaVarListCallback &callback) {
-	CommandData data;
-
-	data.Set_RequestLocalVarList(stackFrame);
-	WriteCommand(
-		REMOTECOMMANDTYPE_REQUEST_ENVIRONVARLIST,
 		data,
 		LuaVarListResponseHandler(callback));
 }
@@ -558,7 +560,8 @@ void RemoteEngine::RequestSource(const std::string &key,
 	data.Set_RequestSource(key);
 	WriteCommand(
 		REMOTECOMMANDTYPE_REQUEST_SOURCE,
-		data);
+		data,
+		SourceResponseHandler(callback));
 }
 
 /**

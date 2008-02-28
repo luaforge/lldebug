@@ -161,12 +161,13 @@ void CommandData::Set_ChangedState(bool isBreak) {
 }
 
 void CommandData::Get_UpdateSource(std::string &key, int &line,
-										 int &updateCount) const {
-	Serializer::ToValue(m_data, key, line, updateCount);
+								   int &updateCount,
+								   bool &isRefreshOnly) const {
+	Serializer::ToValue(m_data, key, line, updateCount, isRefreshOnly);
 }
 void CommandData::Set_UpdateSource(const std::string &key, int line,
-										 int updateCount) {
-	m_data = Serializer::ToData(key, line, updateCount);
+								   int updateCount, bool isRefreshOnly) {
+	m_data = Serializer::ToData(key, line, updateCount, isRefreshOnly);
 }
 
 void CommandData::Get_AddedSource(Source &source) const {
@@ -256,18 +257,20 @@ void CommandData::Set_RequestFieldVarList(const LuaVar &var) {
 	m_data = Serializer::ToData(var);
 }
 
-void CommandData::Get_RequestLocalVarList(LuaStackFrame &stackFrame) const {
-	Serializer::ToValue(m_data, stackFrame);
-}
-void CommandData::Set_RequestLocalVarList(const LuaStackFrame &stackFrame) {
-	m_data = Serializer::ToData(stackFrame);
+void CommandData::Get_RequestLocalVarList(LuaStackFrame &stackFrame,
+										  bool &checkLocal,
+										  bool &checkUpvalue,
+										  bool &checkEnviron) const {
+	Serializer::ToValue(m_data, stackFrame,
+		checkLocal, checkUpvalue, checkEnviron);
 }
 
-void CommandData::Get_RequestEnvironVarList(LuaStackFrame &stackFrame) const {
-	Serializer::ToValue(m_data, stackFrame);
-}
-void CommandData::Set_RequestEnvironVarList(const LuaStackFrame &stackFrame) {
-	m_data = Serializer::ToData(stackFrame);
+void CommandData::Set_RequestLocalVarList(const LuaStackFrame &stackFrame,
+										  bool checkLocal,
+										  bool checkUpvalue,
+										  bool checkEnviron) {
+	m_data = Serializer::ToData(stackFrame,
+		checkLocal, checkUpvalue, checkEnviron);
 }
 
 void CommandData::Get_RequestSource(std::string &key) {

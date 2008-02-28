@@ -28,23 +28,38 @@
 #include "net/netutils.h"
 #include "net/echostream.h"
 
+#include <fstream>
+
 namespace lldebug {
 namespace net {
+
+/// 
+static std::ostream &operator<<(std::ostream &os, const Command &command) {
+	os << "type:      " << command.GetType() << std::endl;
+	os << "commandId: " << command.GetCommandId() << std::endl;
+	os << "datasize:  " << command.GetDataSize() << std::endl;
+	if (command.GetDataSize() != 0) {
+		os << "data:" << std::endl;
+		os << command.ToString() << std::endl;
+	}
+	return os;
+}
 
 void EchoCommand(const Command &command) {
 #if 1 //ndef NDEBUG
 	static echo_ostream echo("localhost");
+
 	if (echo.is_open()) {
-		echo << "type:      " << command.GetType() << std::endl;
-		echo << "commandId: " << command.GetCommandId() << std::endl;
-		echo << "datasize:  " << command.GetDataSize() << std::endl;
-		if (command.GetDataSize() != 0) {
-			echo << "data:" << std::endl;
-			echo << command.ToString() << std::endl;
-		}
-		echo << std::endl;
+		echo << command << std::endl;
 	}
 #endif
+}
+
+void SaveCommand(const std::string &filename, const Command &command) {
+	std::ofstream ofs(filename.c_str());
+	if (ofs.is_open()) {
+		ofs << command << std::endl;
+	}
 }
 
 } // end of namespace net
