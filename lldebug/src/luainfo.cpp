@@ -98,8 +98,8 @@ LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
 
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
 			   const std::string &error)
-	: m_lua(lua), m_valueType(LUA_TNONE)
-	, m_tableIdx(-1), m_hasFields(false) {
+	: m_lua(lua), m_valueType(LUA_TNONE), m_tableIdx(-1)
+	, m_hasFields(false) {
 	m_name = ConvToUTF8(name);
 	m_value = ConvToUTF8(error);
 }
@@ -158,7 +158,7 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 		lua_setmetatable(L, -2);
 
 		// newtable[0] = 1 -- initial index
-		lua_pushinteger(L, 1);
+		lua_pushnumber(L, (lua_Number)1);
 		lua_rawseti(L, -2, 0);
 
 		// registry[&OriginalObj] = newtable
@@ -175,7 +175,7 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 	lua_pushvalue(L, valueIdx);
 	lua_rawget(L, table);
 	if (lua_isnumber(L, -1)) {
-		n = (int)lua_tointeger(L, -1);
+		n = (int)lua_tonumber(L, -1);
 		lua_pop(L, 1);
 
 		// Check table[n] is table.
@@ -197,16 +197,16 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 
 		// n = table[0]
 		lua_rawgeti(L, table, 0);
-		n = (int)lua_tointeger(L, -1);
+		n = (int)lua_tonumber(L, -1);
 		lua_pop(L, 1);
 
 		// table[0] = n + 1
-		lua_pushinteger(L, n + 1);
+		lua_pushnumber(L, (lua_Number)(n + 1));
 		lua_rawseti(L, table, 0);
 
 		// table[valueIdx] = n
 		lua_pushvalue(L, valueIdx);
-		lua_pushinteger(L, n);
+		lua_pushnumber(L, (lua_Number)n);
 		lua_rawset(L, table);
 
 		// table[n] = valueIdx

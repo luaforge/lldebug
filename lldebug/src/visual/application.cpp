@@ -32,9 +32,9 @@
 
 IMPLEMENT_APP(lldebug::visual::Application)
 
-int main(int argc, char *argv[]) {
+/*int main(int argc, char *argv[]) {
 	return wxEntry(argc, argv);
-}
+}*/
 
 namespace lldebug {
 namespace visual {
@@ -54,8 +54,12 @@ Application::~Application() {
 //wxFile file;
 
 bool Application::OnInit() {
-	std::string hostName = wxConvToUTF8(this->argv[1]);
-	std::string portName = wxConvToUTF8(this->argv[2]);
+	std::string hostName = (this->argc >= 2
+		? wxConvToUTF8(this->argv[1])
+		: "localhost");
+	std::string portName = (this->argc >= 3
+		? wxConvToUTF8(this->argv[2])
+		: "51123");
 
 	/*wxString str;
 	str.Printf(_T("%s_____%s.tmp"), this->argv[1], this->argv[2]);

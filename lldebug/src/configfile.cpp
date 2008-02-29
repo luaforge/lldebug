@@ -47,7 +47,7 @@ static std::string LLDebugGetConfigDir();
 #include <shlobj.h> // use shell32.lib
 #pragma comment(lib, "shell32")
 
-std::string LLDebugGetConfigRoot() {
+static std::string LLDebugGetConfigRoot() {
 	char szPath[_MAX_PATH];
 	LPITEMIDLIST pidl;
 	IMalloc *pMalloc;
@@ -66,17 +66,21 @@ std::string LLDebugGetConfigRoot() {
 	return szPath;
 }
 
-std::string LLDebugGetConfigDir() {
+static std::string LLDebugGetConfigDir() {
 	return "lldebug";
 }
-#else
-std::string LLDebugGetConfigDir() {
+
+#elif defined(__linux__)
+static std::string LLDebugGetConfigRoot() {
 	return "~/";
 }
 
-std::string LLDebugGetConfigDir() {
+static std::string LLDebugGetConfigDir() {
 	return ".lldebug";
 }
+
+#else
+#error Please define the config directory.
 #endif
 
 namespace lldebug {

@@ -34,13 +34,6 @@
 #include <set>
 #include <queue>
 
-#define BOOST_SYSTEM_NO_LIB
-#define NOMINMAX
-#ifndef _WIN32_WINDOWS
-#define _WIN32_WINDOWS 0x400
-#endif
-#include "boost/asio/io_service.hpp"
-
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/thread.hpp>
@@ -48,18 +41,27 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/serialization/serialization.hpp>
 
-#ifdef LLDEBUG_VISUAL
-	#include <wx/wxprec.h>
-	#ifndef WX_PRECOMP
-		#include <wx/wx.h>
+#define BOOST_SYSTEM_NO_LIB
+#ifdef BOOST_WINDOWS_API
+	#define NOMINMAX
+	#ifndef _WIN32_WINDOWS
+		#define _WIN32_WINDOWS 0x400
 	#endif
-#else
+#endif
+#include "boost/asio/io_service.hpp"
+
+#if defined(LLDEBUG_CONTEXT)
 	extern "C" {
 	#include "lua.h"
 	#include "lualib.h"
 	#include "lauxlib.h"
 	}
-#endif // LLDEBUG_VISUAL
+#elif defined(LLDEBUG_VISUAL)
+	#include <wx/wxprec.h>
+	#ifndef WX_PRECOMP
+		#include <wx/wx.h>
+	#endif
+#endif
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf

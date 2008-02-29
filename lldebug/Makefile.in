@@ -35,7 +35,8 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
-	build/build-scripts/compile build/build-scripts/config.guess \
+	TODO build/build-scripts/compile \
+	build/build-scripts/config.guess \
 	build/build-scripts/config.sub build/build-scripts/depcomp \
 	build/build-scripts/install-sh build/build-scripts/ltmain.sh \
 	build/build-scripts/missing

@@ -105,15 +105,15 @@ void MainFrame::CreateGUIControls() {
 		.Name(wxT("SourceView")).Caption(wxT("SourceView"))
 		.CentrePane().Floatable(false).PaneBorder(false));
 
-	ShowDebugWindow(ID_OUTPUTVIEW);
+	/*ShowDebugWindow(ID_OUTPUTVIEW);
 	ShowDebugWindow(ID_INTERACTIVEVIEW);
 	ShowDebugWindow(ID_GLOBALWATCHVIEW);
 	ShowDebugWindow(ID_REGISTRYWATCHVIEW);
-	ShowDebugWindow(ID_ENVIRONWATCHVIEW);
+	//ShowDebugWindow(ID_ENVIRONWATCHVIEW);
 	ShowDebugWindow(ID_STACKWATCHVIEW);
 	ShowDebugWindow(ID_WATCHVIEW);
 	ShowDebugWindow(ID_BACKTRACEVIEW);
-	ShowDebugWindow(ID_LOCALWATCHVIEW);
+	ShowDebugWindow(ID_LOCALWATCHVIEW);*/
 
 	wxMenu *fileMenu = new wxMenu;
 	fileMenu->AppendSeparator();

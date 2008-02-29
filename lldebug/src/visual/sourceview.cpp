@@ -373,7 +373,8 @@ public:
 		m_currentLine = -1;
 		m_initialized = true;
 
-		OnChangedBreakpoints(wxDebugEvent(wxEVT_CHANGED_BREAKPOINTS, GetId()));
+		wxDebugEvent event(wxEVT_CHANGED_BREAKPOINTS, GetId());
+		OnChangedBreakpoints(event);
 	}
 
 	/// Focus the current running line.

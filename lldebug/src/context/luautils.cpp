@@ -165,11 +165,11 @@ std::string LuaMakeFuncName(lua_Debug *ar) {
 
 
 /*-----------------------------------------------------------------*/
-static int llutils_tostring_fast(lua_State *L) {
+/*static int llutils_tostring_fast(lua_State *L) {
 	std::string str = LuaToStringFast(L, -1);
 	lua_pushlstring(L, str.c_str(), str.length());
 	return 1;
-}
+}*/
 
 static int llutils_tostring(lua_State *L) {
 	int top = lua_gettop(L);
@@ -307,7 +307,7 @@ static int llutils_get_locals(lua_State *L) {
 	return 1;
 }
 
-static const luaL_Reg llutils_regs[] = {
+static const luaL_reg llutils_regs[] = {
 	{"tostring", llutils_tostring},
 	{"tostring_for_varvalue", llutils_tostring_for_varvalue_default},
 	{"tostring_detail", llutils_tostring_detail_default},
@@ -318,13 +318,9 @@ static const luaL_Reg llutils_regs[] = {
 };
 
 int luaopen_lldebug(lua_State *L) {
-	luaL_register(L, "lldebug", llutils_regs);
+	//luaL_register(L, "lldebug", llutils_regs);
+	luaL_openlib(L, "lldebug", llutils_regs, 0);
 	return 1;
-}
-
-int LuaInitialize(lua_State *L) {
-	luaL_register(L, "lldebug", llutils_regs);
-	return 0;
 }
 
 

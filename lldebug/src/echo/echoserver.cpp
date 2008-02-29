@@ -49,6 +49,9 @@ static HWND consoleWindow = NULL;
 static void initialize() {
 	SetConsoleTitleA(title);
 }
+#else
+static void initialize() {
+}
 #endif
 
 /// Write str with newline.

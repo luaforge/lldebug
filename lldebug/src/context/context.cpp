@@ -171,8 +171,8 @@ Context *Context::Create() {
 }
 
 Context::Context()
-	: m_id(0), m_lua(NULL)
-	, m_state(STATE_INITIAL), m_isEnabled(true), m_updateCount(0)
+	: m_id(0), m_lua(NULL), m_state(STATE_INITIAL)
+	, m_isEnabled(true), m_updateCount(0)
 	, m_waitUpdateCount(0), m_isMustUpdate(false)
 	, m_engine(new RemoteEngine)
 	, m_sourceManager(&*m_engine), m_breakpoints(&*m_engine) {
@@ -679,6 +679,22 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST:
 			m_engine->ResponseBacktraceList(command, LuaGetBacktrace());
 			break;
+
+		case REMOTECOMMANDTYPE_SUCCESSED:
+		case REMOTECOMMANDTYPE_FAILED:
+		case REMOTECOMMANDTYPE_START_CONNECTION:
+		case REMOTECOMMANDTYPE_CHANGED_STATE:
+		case REMOTECOMMANDTYPE_UPDATE_SOURCE:
+		case REMOTECOMMANDTYPE_ADDED_SOURCE:
+		case REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST:
+		case REMOTECOMMANDTYPE_OUTPUT_LOG:
+		case REMOTECOMMANDTYPE_VALUE_STRING:
+		case REMOTECOMMANDTYPE_VALUE_SOURCE:
+		case REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST:
+		case REMOTECOMMANDTYPE_VALUE_VAR:
+		case REMOTECOMMANDTYPE_VALUE_VARLIST:
+		case REMOTECOMMANDTYPE_VALUE_BACKTRACELIST:
+			break;
 		}
 	}
 
@@ -848,7 +864,7 @@ public:
 		status = lua_resume(co, narg);
 		ctx->EndCoroutine(co);
 
-		if (status == 0 || status == LUA_YIELD) {
+		if (status == 0 /*|| status == LUA_YIELD*/) {
 			int nres = lua_gettop(co);
 			if (!lua_checkstack(L, nres))
 				luaL_error(L, "too many results to resume");
@@ -892,7 +908,7 @@ public:
 int Context::LuaInitialize(lua_State *L) {
 	lua_atpanic(L, LuaImpl::atpanic);
 	lua_register(L, "lldebug_atpanic", LuaImpl::atpanic);
-	lldebug::LuaInitialize(L);
+	luaopen_lldebug(L);
 	return 0;
 }
 
@@ -927,7 +943,8 @@ int Context::LoadString(const char *str) {
 		return -1;
 	}
 
-	if (luaL_loadstring(m_lua, str) != 0) {
+	if (luaL_loadbuffer(m_lua, str, strlen(str), str) != 0) {
+	//if (lua_loadstring(m_lua, str) != 0) {
 		m_sourceManager.Add(str);
 		OutputLuaError(lua_tostring(m_lua, -1));
 		return -1;
@@ -957,7 +974,7 @@ int Context::LuaOpenBase(lua_State *L) {
 void Context::LuaOpenLibs(lua_State *L) {
 	scoped_lock lock(m_mutex);
 
-	luaL_openlibs(L);
+//	luaL_openlibs(L);
 	LuaImpl::override_baselib(L);
 }
 
@@ -1080,7 +1097,7 @@ int Context::lua_index_for_eval(lua_State *L) {
 		return 1;
 	}
 	std::string target(lua_tostring(L, 2));
-	int level = (int)lua_tointeger(L, lua_upvalueindex(1));
+	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
 
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
@@ -1111,7 +1128,7 @@ int Context::lua_newindex_for_eval(lua_State *L) {
 		return 0;
 	}
 	std::string target(lua_tostring(L, 2));
-	int level = (int)lua_tointeger(L, lua_upvalueindex(1));
+	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
 	
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
@@ -1195,11 +1212,11 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 		// table = {__index=func1, __newindex=func2}
 		lua_newtable(L);
 		lua_pushliteral(L, "__index");
-		lua_pushinteger(L, level);
+		lua_pushnumber(L, (lua_Number)level);
 		lua_pushcclosure(L, Context::lua_index_for_eval, 1);
 		lua_rawset(L, -3);
 		lua_pushliteral(L, "__newindex");
-		lua_pushinteger(L, level);
+		lua_pushnumber(L, (lua_Number)level);
 		lua_pushcclosure(L, Context::lua_newindex_for_eval, 1);
 		lua_rawset(L, -3);
 

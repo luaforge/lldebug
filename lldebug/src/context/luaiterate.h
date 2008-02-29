@@ -29,6 +29,7 @@
 
 #include "sysinfo.h"
 #include "luainfo.h"
+#include "context/luautils.h"
 
 namespace lldebug {
 

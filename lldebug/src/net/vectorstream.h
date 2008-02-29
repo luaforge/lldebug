@@ -39,6 +39,12 @@ namespace net {
 template <class Ch, class Tr=std::char_traits<Ch> >
 class basic_vector_istreambuf : public std::basic_streambuf<Ch,Tr> {
 public:
+	typedef std::basic_streambuf<Ch,Tr> base_type;
+	typedef typename base_type::int_type int_type;
+	typedef typename base_type::char_type char_type;
+	typedef typename base_type::traits_type traits_type;
+
+public:
 	explicit basic_vector_istreambuf(const std::vector<Ch> &data)
 		: m_data(data), m_pos(0) {
 		setbuf(0,0); // suppress buffering
@@ -130,6 +136,12 @@ private:
 template <class Ch, class Tr=std::char_traits<Ch> >
 class basic_vector_ostreambuf : public std::basic_streambuf<Ch,Tr> {
 public:
+	typedef std::basic_streambuf<Ch,Tr> base_type;
+	typedef typename base_type::int_type int_type;
+	typedef typename base_type::char_type char_type;
+	typedef typename base_type::traits_type treat_type;
+
+public:
 	explicit basic_vector_ostreambuf() {
 		setbuf(0, 0); // suppress buffering
 	}
@@ -153,7 +165,7 @@ protected:
 		return Tr::eof();
 	}
 
-	virtual int overflow(int c = Tr::eof()) {
+	virtual int_type overflow(int c = Tr::eof()) {
 		m_data.push_back(Tr::to_char_type(c));
 		return 0;
 	}

@@ -45,7 +45,8 @@ CONFIG_CLEAN_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
 am_test1_OBJECTS = test1-test1.$(OBJEXT)
 test1_OBJECTS = $(am_test1_OBJECTS)
-test1_DEPENDENCIES = ../lldebug/liblldebug.la
+test1_DEPENDENCIES = ../lldebug/liblldebug.a \
+	../boost_system/libboost_system.a
 test1_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
 	$(test1_LDFLAGS) $(LDFLAGS) -o $@
@@ -177,11 +178,20 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-INCLUDES = -I../../include -I../../src/lua/src
+INCLUDES = -I../../include \
+			`lua-config --include`
+
+LUA_LIBS = `lua-config --libs`
 test1_SOURCES = ../../test/test1.cpp
 test1_CPPFLAGS = -Wall
-test1_LDFLAGS = -L$(libdir)
-test1_LDADD = ../lldebug/liblldebug.la $(libadd)
+test1_LDFLAGS = -L$(libdir) $(LUA_LIBS)
+test1_LDADD = $(libadd) \
+			../lldebug/liblldebug.a \
+			../boost_system/libboost_system.a \
+			-lboost_thread-mt \
+			-lboost_filesystem-mt \
+			-lboost_serialization-mt
+
 all: all-am
 
 .SUFFIXES:

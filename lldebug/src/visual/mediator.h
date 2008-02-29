@@ -133,7 +133,7 @@ private:
 	int Initialize(const std::string &hostName, const std::string &portName);
 
 private:
-	friend MainFrame;
+	friend class MainFrame;
 	void SetMainFrame(MainFrame *frame);
 
 private:

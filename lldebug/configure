@@ -21124,7 +21124,7 @@ WXLIBS=`$WXCONFIG $wxoption --libs`
 
 
 
-ac_config_files="$ac_config_files Makefile build/Makefile build/babel/Makefile build/treelistctrl/Makefile build/wxscintilla/Makefile build/lldebug/Makefile build/test/Makefile"
+ac_config_files="$ac_config_files Makefile build/Makefile build/treelistctrl/Makefile build/wxscintilla/Makefile build/boost_system/Makefile build/lldebug/Makefile build/lldebug_frame/Makefile build/echo_server/Makefile build/test/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -21715,10 +21715,12 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "build/Makefile") CONFIG_FILES="$CONFIG_FILES build/Makefile" ;;
-    "build/babel/Makefile") CONFIG_FILES="$CONFIG_FILES build/babel/Makefile" ;;
     "build/treelistctrl/Makefile") CONFIG_FILES="$CONFIG_FILES build/treelistctrl/Makefile" ;;
     "build/wxscintilla/Makefile") CONFIG_FILES="$CONFIG_FILES build/wxscintilla/Makefile" ;;
+    "build/boost_system/Makefile") CONFIG_FILES="$CONFIG_FILES build/boost_system/Makefile" ;;
     "build/lldebug/Makefile") CONFIG_FILES="$CONFIG_FILES build/lldebug/Makefile" ;;
+    "build/lldebug_frame/Makefile") CONFIG_FILES="$CONFIG_FILES build/lldebug_frame/Makefile" ;;
+    "build/echo_server/Makefile") CONFIG_FILES="$CONFIG_FILES build/echo_server/Makefile" ;;
     "build/test/Makefile") CONFIG_FILES="$CONFIG_FILES build/test/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5

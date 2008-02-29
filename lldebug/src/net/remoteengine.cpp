@@ -57,9 +57,9 @@ private:
 
 
 RemoteEngine::RemoteEngine()
-	: m_isExitThread(false), m_commandIdCounter(0) {
+	: m_commandIdCounter(0), m_isExitThread(false) {
 
-	// To avoid duplicating the number.
+	// To avoid duplicating the Id.
 #ifdef LLDEBUG_CONTEXT
 	m_commandIdCounter = 1;
 #else

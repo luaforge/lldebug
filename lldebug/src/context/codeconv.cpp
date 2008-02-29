@@ -234,7 +234,7 @@ std::string ConvFromUTF8(const std::string &input) {
 
 #else
 int SetEncoding(lldebug_Encoding encoding) {
-	if (encoding == LLDEBUG_ENCODING_NONE) {
+	if (encoding == LLDEBUG_ENCODING_UTF8) {
 		return 0;
 	}
 	else {
@@ -252,3 +252,4 @@ std::string ConvFromUTF8(const std::string &input) {
 #endif
 
 } // end of namespace lldebug
+

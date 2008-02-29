@@ -107,10 +107,13 @@ void BreakpointList::Set(const Breakpoint &bp) {
 #ifdef LLDEBUG_VISUAL
 	m_engine->SetBreakpoint(bp);
 #else
-	std::pair<ImplSet::iterator,bool> it = m_breakPoints.insert(bp);
-	if (!it.second) {
-		*(it.first) = bp;
+	// Insert certainly.
+	ImplSet::iterator it = m_breakPoints.find(bp);
+	if (it != m_breakPoints.end()) {
+		m_breakPoints.erase(it);
 	}
+
+	m_breakPoints.insert(bp);
 	m_engine->ChangedBreakpointList(*this);
 #endif
 }

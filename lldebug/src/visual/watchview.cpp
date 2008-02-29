@@ -1,4 +1,4 @@
-z/*
+/*
  * Copyright (c) 2005-2008  cielacanth <cielacanth AT s60.xrea.com>
  * All rights reserved.
  * 
@@ -690,3 +690,4 @@ void WatchView::OnShow(wxShowEvent &event) {
 
 } // end of namespace visual
 } // end of namespace lldebug
+

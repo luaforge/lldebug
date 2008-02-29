@@ -65,7 +65,7 @@ std::string LuaToStringForVarValue(lua_State *L, int idx);
 /// Get the original name of the lua function.
 std::string LuaMakeFuncName(lua_Debug *ar);
 
-int LuaInitialize(lua_State *L);
+int luaopen_lldebug(lua_State *L);
 
 } // end of namespace lldebug
 

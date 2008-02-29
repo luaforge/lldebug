@@ -120,7 +120,7 @@ private:
 	virtual int LoadConfig();
 	virtual int SaveConfig();
 	virtual void SetState(State state);
-	virtual int HandleCommand();
+	int HandleCommand();
 
 	static void SetHook(lua_State *L);
 	virtual void HookCallback(lua_State *L, lua_Debug *ar);
@@ -158,15 +158,15 @@ private:
 	lua_State *m_lua;
 	State m_state;
 	bool m_isEnabled;
-	int m_waitUpdateCount;
 	int m_updateCount;
+	int m_waitUpdateCount;
 	bool m_isMustUpdate;
 
 	/**
-	 * @brief 
+	 * @brief Saving the call count by a lua_State object.
+	 *
+	 * Used by the safe stepover or stepreturn.
 	 */
-	/// lua_State *ごとの関数呼び出し回数を記録することで
-	/// ステップオーバーを安全に実装します。
 	struct CoroutineInfo {
 		CoroutineInfo(lua_State *L_ = NULL, int call_ = 0)
 			: L(L_), call(call_) {
@@ -187,3 +187,4 @@ private:
 }
 
 #endif
+

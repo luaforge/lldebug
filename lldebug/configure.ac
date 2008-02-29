@@ -1,5 +1,5 @@
 dnl 
-dnl $Id: configure.ac,v 1.2 2008-01-10 09:39:41 cielacanth Exp $
+dnl $Id: configure.ac,v 1.3 2008-02-29 13:04:38 cielacanth Exp $
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
@@ -60,10 +60,12 @@ AC_SUBST(WXLIBS)
 AC_CONFIG_FILES([
 	Makefile
 	build/Makefile
-	build/babel/Makefile
 	build/treelistctrl/Makefile
 	build/wxscintilla/Makefile
+	build/boost_system/Makefile
 	build/lldebug/Makefile
+	build/lldebug_frame/Makefile
+	build/echo_server/Makefile
 	build/test/Makefile
 	])
 
