@@ -26,6 +26,7 @@
 
 #define _WIN32_WINNT 0x500
 #include "precomp.h"
+#include "net/echostream.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read_until.hpp>
@@ -33,7 +34,6 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
-#include "net/echostream.h"
 
 namespace lldebug {
 namespace net {
@@ -42,7 +42,7 @@ using namespace boost::asio::ip;
 
 static mutex s_consoleMutex;
 
-#ifdef BOOST_WINDOWS_API
+#ifdef BOOST_WINDOWS
 static const char *title = "echo server";
 static HWND consoleWindow = NULL;
 

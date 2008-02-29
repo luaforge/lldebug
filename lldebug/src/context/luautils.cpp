@@ -318,8 +318,7 @@ static const luaL_reg llutils_regs[] = {
 };
 
 int luaopen_lldebug(lua_State *L) {
-	//luaL_register(L, "lldebug", llutils_regs);
-	luaL_openlib(L, "lldebug", llutils_regs, 0);
+	luaI_openlib(L, "lldebug", llutils_regs, 0);
 	return 1;
 }
 

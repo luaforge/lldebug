@@ -355,7 +355,7 @@ Context::LuaErrorData Context::ParseLuaError(const std::string &str) {
 
 		// msg is what is removed filename and line from str.
 		std::string msg =
-			str.substr(std::min(pos + 2, str.length())); // skip ": "
+			str.substr((std::min)(pos + 2, str.length())); // skip ": "
 
 		// If source is string, key is manipulated and may be shorten.
 		if (filename.find(beginStr) == 0 &&
@@ -864,7 +864,7 @@ public:
 		status = lua_resume(co, narg);
 		ctx->EndCoroutine(co);
 
-		if (status == 0 /*|| status == LUA_YIELD*/) {
+		if (status == 0 || status == LUA_YIELD) {
 			int nres = lua_gettop(co);
 			if (!lua_checkstack(L, nres))
 				luaL_error(L, "too many results to resume");
@@ -974,7 +974,41 @@ int Context::LuaOpenBase(lua_State *L) {
 void Context::LuaOpenLibs(lua_State *L) {
 	scoped_lock lock(m_mutex);
 
-//	luaL_openlibs(L);
+	static const luaL_reg libs[] = {
+#ifdef LUA_COLIBNAME
+		{LUA_COLIBNAME, luaopen_base},
+#endif
+#ifdef LUA_TABLIBNAME
+		{LUA_TABLIBNAME, luaopen_table},
+#endif
+#ifdef LUA_IOLIBNAME
+		{LUA_IOLIBNAME, luaopen_io},
+#endif
+#ifdef LUA_OSLIBNAME
+		{LUA_OSLIBNAME, luaopen_os},
+#endif
+#ifdef LUA_STRLIBNAME
+		{LUA_STRLIBNAME, luaopen_string},
+#endif
+#ifdef LUA_MATHLIBNAME
+		{LUA_MATHLIBNAME, luaopen_math},
+#endif
+#ifdef LUA_DBLIBNAME
+		{LUA_DBLIBNAME, luaopen_debug},
+#endif
+#ifdef LUA_LOADLIBNAME
+		{LUA_LOADLIBNAME, luaopen_package},
+#endif
+		{NULL, NULL}
+	};
+
+	// Open the libs.
+	for (const luaL_reg *reg = libs; reg->func != NULL; ++reg) {
+		lua_pushcfunction(L, reg->func);
+		lua_pushstring(L, reg->name);
+		lua_call(L, 1, 0);
+	}
+
 	LuaImpl::override_baselib(L);
 }
 

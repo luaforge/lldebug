@@ -42,7 +42,7 @@
 #include <boost/serialization/serialization.hpp>
 
 #define BOOST_SYSTEM_NO_LIB
-#ifdef BOOST_WINDOWS_API
+#ifdef BOOST_WINDOWS
 	#define NOMINMAX
 	#ifndef _WIN32_WINDOWS
 		#define _WIN32_WINDOWS 0x400
@@ -56,7 +56,8 @@
 	#include "lualib.h"
 	#include "lauxlib.h"
 	}
-#elif defined(LLDEBUG_VISUAL)
+#endif
+#if defined(LLDEBUG_VISUAL)
 	#include <wx/wxprec.h>
 	#ifndef WX_PRECOMP
 		#include <wx/wx.h>

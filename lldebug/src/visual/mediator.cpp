@@ -247,7 +247,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 	case REMOTECOMMANDTYPE_VALUE_SOURCE:
 	case REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST:
 	case REMOTECOMMANDTYPE_VALUE_BACKTRACELIST:
-		BOOST_ASSERT(false && "Invalid remote command.");
+		//BOOST_ASSERT(false && "Invalid remote command.");
 		break;
 	}
 	}
