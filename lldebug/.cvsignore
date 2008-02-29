@@ -1,2 +1,7 @@
 doc.txt
 config.h
+Makefile
+autom4te.cache
+config.log
+config.status
+stamp-h1
