@@ -36,7 +36,7 @@ namespace visual {
 class SourceView;
 
 /**
- * @brief メインウィンドウです。
+ * @brief The main frame of the debugger.
  */
 class MainFrame : public wxFrame {
 public:
@@ -56,7 +56,6 @@ private:
 private:
 	wxAuiManager *m_auiManager;
 	SourceView *m_sourceView;
-	wxStatusBar *m_statusBar;
 
 	DECLARE_EVENT_TABLE();
 };
