@@ -123,14 +123,14 @@ private:
 	friend class boost::serialization::access;
 	template<class Archive>
 	void serialize(Archive& ar, const unsigned int) {
-		ar & LLDEBUG_MEMBER_NVP(breakPoints);
+		ar & LLDEBUG_MEMBER_NVP(set);
 	}
 
 private:
 	net::RemoteEngine *m_engine;
 
 	typedef std::set<Breakpoint> ImplSet;
-	ImplSet m_breakPoints;
+	ImplSet m_set;
 };
 
 /**
@@ -221,7 +221,6 @@ public:
 #endif
 
 private:
-	mutex m_mutex;
 	net::RemoteEngine *m_engine;
 
 	typedef std::map<std::string, Source> ImplMap;

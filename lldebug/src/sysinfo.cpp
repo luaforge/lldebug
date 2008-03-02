@@ -49,6 +49,7 @@ Breakpoint::Breakpoint(const std::string &key, int line,
 Breakpoint::~Breakpoint() {
 }
 
+
 BreakpointList::BreakpointList(net::RemoteEngine *engine)
 	: m_engine(engine) {
 }
@@ -59,8 +60,8 @@ BreakpointList::~BreakpointList() {
 Breakpoint BreakpointList::Find(const std::string &key, int line) {
 	Breakpoint bp(key, line);
 
-	ImplSet::const_iterator it = m_breakPoints.find(bp);
-	if (it == m_breakPoints.end()) {
+	ImplSet::const_iterator it = m_set.find(bp);
+	if (it == m_set.end()) {
 		return Breakpoint();
 	}
 
@@ -70,8 +71,8 @@ Breakpoint BreakpointList::Find(const std::string &key, int line) {
 Breakpoint BreakpointList::First(const std::string &key) {
 	// Find the breakpoint which has the least line number.
 	Breakpoint tmp(key, -1);
-	ImplSet::const_iterator it = m_breakPoints.lower_bound(tmp);
-	if (it == m_breakPoints.end()) {
+	ImplSet::const_iterator it = m_set.lower_bound(tmp);
+	if (it == m_set.end()) {
 		return Breakpoint();
 	}
 
@@ -86,8 +87,8 @@ Breakpoint BreakpointList::First(const std::string &key) {
 Breakpoint BreakpointList::Next(const Breakpoint &bp) {
 	// Increment line number and find next.
 	Breakpoint tmp(bp.GetKey(), bp.GetLine() + 1);
-	ImplSet::const_iterator it = m_breakPoints.lower_bound(tmp);
-	if (it == m_breakPoints.end()) {
+	ImplSet::const_iterator it = m_set.lower_bound(tmp);
+	if (it == m_set.end()) {
 		return Breakpoint();
 	}
 
@@ -108,26 +109,26 @@ void BreakpointList::Set(const Breakpoint &bp) {
 	m_engine->SetBreakpoint(bp);
 #else
 	// Insert certainly.
-	ImplSet::iterator it = m_breakPoints.find(bp);
-	if (it != m_breakPoints.end()) {
-		m_breakPoints.erase(it);
+	ImplSet::iterator it = m_set.find(bp);
+	if (it != m_set.end()) {
+		m_set.erase(it);
 	}
 
-	m_breakPoints.insert(bp);
+	m_set.insert(bp);
 	m_engine->ChangedBreakpointList(*this);
 #endif
 }
 
 void BreakpointList::Remove(const Breakpoint &bp) {
-	ImplSet::iterator it = m_breakPoints.find(bp);
-	if (it == m_breakPoints.end()) {
+	ImplSet::iterator it = m_set.find(bp);
+	if (it == m_set.end()) {
 		return;
 	}
 
 #ifdef LLDEBUG_VISUAL
 	m_engine->RemoveBreakpoint(bp);
 #else
-	m_breakPoints.erase(it);
+	m_set.erase(it);
 	m_engine->ChangedBreakpointList(*this);
 #endif
 }
@@ -136,8 +137,8 @@ void BreakpointList::Toggle(const std::string &key, int line) {
 	Breakpoint bp(key, line);
 
 	// erase if it exists, add if it isn't
-	ImplSet::iterator it = m_breakPoints.find(bp);
-	if (it == m_breakPoints.end()) {
+	ImplSet::iterator it = m_set.find(bp);
+	if (it == m_set.end()) {
 		Set(bp);
 	}
 	else {
@@ -149,15 +150,7 @@ void BreakpointList::Toggle(const std::string &key, int line) {
 /*-----------------------------------------------------------------*/
 Source::Source(const std::string &key, const std::string &title,
 			   const string_array &sources, const std::string &path)
-	: m_key(key), m_title(title), m_path(path) {
-	// Convert sources to utf8.
-	/*string_array array;
-	for (string_array::size_type i = 0; i < sources.size(); ++i) {
-		array.push_back(ConvToUTF8(sources[i]));
-	}*/
-
-	m_sources = sources;
-	//m_sourceEncoding = enc;
+	: m_key(key), m_title(title), m_sources(sources), m_path(path) {
 }
 
 Source::Source() {
@@ -176,7 +169,6 @@ SourceManager::~SourceManager() {
 }
 
 std::list<Source> SourceManager::GetList() {
-	scoped_lock lock(m_mutex);
 	std::list<Source> result;
 
 	ImplMap::iterator it;
@@ -188,8 +180,6 @@ std::list<Source> SourceManager::GetList() {
 }
 
 const Source *SourceManager::Get(const std::string &key) {
-	scoped_lock lock(m_mutex);
-
 	ImplMap::iterator it = m_sourceMap.find(key);
 	if (it == m_sourceMap.end()) {
 		return NULL;
@@ -199,7 +189,6 @@ const Source *SourceManager::Get(const std::string &key) {
 }
 
 const Source *SourceManager::GetString(const std::string &key) {
-	scoped_lock lock(m_mutex);
 	std::list<Source> result;
 
 	ImplMap::iterator it;
@@ -213,8 +202,6 @@ const Source *SourceManager::GetString(const std::string &key) {
 }
 
 int SourceManager::AddSource(const Source &source) {
-	scoped_lock lock(m_mutex);
-
 	m_sourceMap.insert(std::make_pair(source.GetKey(), source));
 	return 0;
 }
@@ -234,8 +221,6 @@ static string_array split(std::istream &stream) {
 }
 
 int SourceManager::Add(const std::string &key) {
-	scoped_lock lock(m_mutex);
-
 	if (key.empty()) {
 		return -1;
 	}
@@ -277,8 +262,6 @@ int SourceManager::Add(const std::string &key) {
 }
 
 int SourceManager::Save(const std::string &key, const string_array &source) {
-	scoped_lock lock(m_mutex);
-
 	// Find the source from key.
 	ImplMap::iterator it = m_sourceMap.find(key);
 	if (it == m_sourceMap.end()) {
