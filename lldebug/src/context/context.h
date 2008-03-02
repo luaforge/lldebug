@@ -146,10 +146,6 @@ private:
 	LuaErrorData ParseLuaError(const std::string &str);
 
 private:
-	static int lua_index_for_eval(lua_State *L);
-	static int lua_newindex_for_eval(lua_State *L);
-
-private:
 	class ContextManager;
 	static shared_ptr<ContextManager> ms_manager;
 	static int ms_idCounter;
@@ -164,9 +160,9 @@ private:
 	bool m_isMustUpdate;
 
 	/**
-	 * @brief Saving the call count by a lua_State object.
+	 * @brief Saving the call count of each lua_State object.
 	 *
-	 * Used by the safe stepover or stepreturn.
+	 * Used by the safe 'StepOver' and 'StepReturn', etc....
 	 */
 	struct CoroutineInfo {
 		CoroutineInfo(lua_State *L_ = NULL, int call_ = 0)

@@ -29,20 +29,8 @@
 #include "context/context.h"
 #include "context/codeconv.h"
 
-static lldebug_InitState s_callbackInitState = NULL;
-
 using namespace lldebug;
 using context::Context;
-
-lldebug_InitState lldebug_setinitstate(lldebug_InitState fn) {
-	lldebug_InitState old = s_callbackInitState;
-	s_callbackInitState = fn;
-	return old;
-}
-
-lldebug_InitState lldebug_getinitstate(void) {
-	return s_callbackInitState;
-}
 
 lua_State *lldebug_open() {
 	Context *ctx = Context::Create();

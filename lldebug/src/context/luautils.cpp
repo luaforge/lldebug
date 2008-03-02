@@ -344,9 +344,9 @@ scoped_lua::scoped_lua(Context *ctx, lua_State *L, int n, int npop) {
 }
 
 void scoped_lua::init(Context *ctx, lua_State *L, int n, int npop) {
-	if (ctx == NULL) {
+	/*if (ctx == NULL) {
 		ctx = Context::Find(L);
-	}
+	}*/
 
 	if (ctx != NULL) {
 		m_isOldEnabled = ctx->IsDebugEnabled();

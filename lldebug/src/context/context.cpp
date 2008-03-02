@@ -176,7 +176,7 @@ Context::Context()
 	, m_isEnabled(true), m_updateCount(0)
 	, m_waitUpdateCount(0), m_isMustUpdate(false)
 	, m_engine(new RemoteEngine)
-	, m_sourceManager(&*m_engine), m_breakpoints(&*m_engine) {
+	, m_sourceManager(m_engine), m_breakpoints(m_engine) {
 
 	m_id = ms_idCounter++;
 }
@@ -270,7 +270,7 @@ int Context::LoadConfig() {
 		}
 
 		boost::archive::xml_iarchive ar(ifs);
-		BreakpointList bps(&*m_engine);
+		BreakpointList bps(m_engine);
 		ar & BOOST_SERIALIZATION_NVP(bps);
 
 		// set values
@@ -716,8 +716,9 @@ struct UpdateResponseWaiter {
 		++*count;
 	}
 
-	void operator()(const Command &command) {
+	int operator()(const Command &command) {
 		--*m_count;
+		return 0;
 	}
 
 	private:
@@ -1124,14 +1125,8 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 	return array;
 }
 
-int Context::lua_index_for_eval(lua_State *L) {
-	Context *ctx = Context::Find(L);
-	if (ctx == NULL) {
-		return 0;
-	}
-
-	scoped_lock lock(ctx->m_mutex);
-	scoped_lua scoped(ctx, L, 1);
+static int index_for_eval(lua_State *L) {
+	scoped_lua scoped(L, 1);
 
 	if (!lua_isstring(L, 2)) {
 		lua_pushnil(L);
@@ -1156,14 +1151,8 @@ int Context::lua_index_for_eval(lua_State *L) {
 	return 1; // return nil
 }
 
-int Context::lua_newindex_for_eval(lua_State *L) {
-	Context *ctx = Context::Find(L);
-	if (ctx == NULL) {
-		return 0;
-	}
-
-	scoped_lock lock(ctx->m_mutex);
-	scoped_lua scoped(ctx, L, 0);
+static int newindex_for_eval(lua_State *L) {
+	scoped_lua scoped(L, 0);
 
 	if (!lua_isstring(L, 2)) {
 		return 0;
@@ -1183,6 +1172,43 @@ int Context::lua_newindex_for_eval(lua_State *L) {
 		return 0;
 	}
 
+	return 0;
+}
+
+static int setmetatable_for_eval(lua_State *L) {
+	scoped_lua scoped(L, 0);
+
+	// level 0: this C function
+	// level 1: __lldebug_dummy__ function
+	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
+	// level 3: current running function
+	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
+
+	lua_Debug ar;
+	if (lua_getstack(L, level + 1, &ar) == 0) {
+		return 0;
+	}
+
+	if (lua_getinfo(L, "f", &ar) != 0) {
+		lua_getfenv(L, -1);
+		
+		// setmetatable(table(idx=1), table)
+		// table = {__index=func1, __newindex=func2}
+		lua_newtable(L);
+		lua_pushliteral(L, "__index");
+		lua_pushnumber(L, (lua_Number)level);
+		lua_pushcclosure(L, index_for_eval, 1);
+		lua_rawset(L, -4);
+		lua_pushliteral(L, "__newindex");
+		lua_pushnumber(L, (lua_Number)level);
+		lua_pushcclosure(L, newindex_for_eval, 1);
+		lua_rawset(L, -4);
+
+		// set metatable
+		lua_setmetatable(L, -2);
+		lua_pop(L, 2); // eliminate the local function and envtable.
+	}
+	
 	return 0;
 }
 
@@ -1235,7 +1261,6 @@ struct eval_string_reader {
 
 int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L);
 
 	if (str.empty()) {
 		return 0;
@@ -1246,35 +1271,23 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 	if (level >= 0) {
 		beginning =
 			"return (function()\n"
-			"  setfenv(1, setmetatable({}, __lldebug_eval_metatable__))\n";
+			"  __lldebug_setmetatable__()\n";
 		ending =
 			"\nend)()";
 
-		// Create __lldebug_eval_metatable__ in the global table.
-		// table = {__index=func1, __newindex=func2}
-		lua_newtable(L);
-		lua_pushliteral(L, "__index");
+		// globals[__lldebug_setmetatable__] = function
+		lua_pushliteral(L, "__lldebug_setmetatable__");
 		lua_pushnumber(L, (lua_Number)level);
-		lua_pushcclosure(L, Context::lua_index_for_eval, 1);
-		lua_rawset(L, -3);
-		lua_pushliteral(L, "__newindex");
-		lua_pushnumber(L, (lua_Number)level);
-		lua_pushcclosure(L, Context::lua_newindex_for_eval, 1);
-		lua_rawset(L, -3);
-
-		// globals[__lldebug_eval_metatable__] = table
-		lua_pushliteral(L, "__lldebug_eval_metatable__");
-		lua_pushvalue(L, -2);
+		lua_pushcclosure(L, setmetatable_for_eval, 1);
 		lua_rawset(L, LUA_GLOBALSINDEX);
-		lua_pop(L, 1);
 	}
 
-	// on exit: globals[__lldebug_eval_metatable__] = nil
+	// on exit: globals[__lldebug_setmetatable__] = nil
 	struct call_on_exit {
 		lua_State *L;
 		call_on_exit(lua_State *L_) : L(L_) {}
 		~call_on_exit() {
-			lua_pushliteral(L, "__lldebug_eval_metatable__");
+			lua_pushliteral(L, "__lldebug_setmetatable__");
 			lua_pushnil(L);
 			lua_rawset(L, LUA_GLOBALSINDEX);
 		}
