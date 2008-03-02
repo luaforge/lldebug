@@ -27,7 +27,6 @@
 #ifndef __LLDEBUG_WATCHVIEW_H__
 #define __LLDEBUG_WATCHVIEW_H__
 
-#include "luainfo.h"
 #include "visual/event.h"
 
 namespace lldebug {

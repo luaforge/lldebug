@@ -151,7 +151,7 @@ END_EVENT_TABLE()
 
 /*-----------------------------------------------------------------*/
 BEGIN_EVENT_TABLE(InteractiveView, wxPanel)
-	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, InteractiveView::OnChangedState)
+	EVT_DEBUG_CHANGED_STATE(wxID_ANY, InteractiveView::OnChangedState)
 END_EVENT_TABLE()
 
 InteractiveView::InteractiveView(wxWindow *parent)
@@ -222,9 +222,13 @@ struct EvalResponseHandler {
 				successed = true;
 			}
 
-			m_view->OutputLog(wxConvFromUTF8(vars[0].GetValue()));
+			// Set the variable's texts.
+			for (LuaVarList::size_type i = 0; i < vars.size(); ++i) {
+				m_view->OutputLog(wxConvFromUTF8(vars[i].GetValue()));
+			}
 		}
 
+		// Increment update count for WatchView and other, if need.
 		if (successed) {
 			Mediator::Get()->GetEngine()->ForceUpdateSource();
 		}

@@ -62,6 +62,7 @@ private:
 	friend struct UpdateHandler;
 
 private:
+	void OnEndDebug(wxDebugEvent &event);
 	void OnChangedState(wxDebugEvent &event);
 	void OnUpdateSource(wxDebugEvent &event);
 	void OnItemActivated(wxTreeEvent &event);

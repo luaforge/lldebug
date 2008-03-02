@@ -373,7 +373,7 @@ public:
 		m_currentLine = -1;
 		m_initialized = true;
 
-		wxDebugEvent event(wxEVT_CHANGED_BREAKPOINTS, GetId());
+		wxDebugEvent event(wxEVT_DEBUG_CHANGED_BREAKPOINTS, GetId());
 		OnChangedBreakpoints(event);
 	}
 
@@ -511,17 +511,18 @@ BEGIN_EVENT_TABLE(SourceViewPage, wxScintilla)
 	EVT_SCI_MARGINCLICK(wxID_ANY, SourceViewPage::OnMarginClick)
 	EVT_SCI_CHARADDED(wxID_ANY, SourceViewPage::OnCharAdded)
 	EVT_SCI_HOTSPOT_CLICK(wxID_ANY, SourceViewPage::OnHotSpotClick)
-	EVT_LLDEBUG_CHANGED_BREAKPOINTS(wxID_ANY, SourceViewPage::OnChangedBreakpoints)
+	EVT_DEBUG_CHANGED_BREAKPOINTS(wxID_ANY, SourceViewPage::OnChangedBreakpoints)
 END_EVENT_TABLE()
 
 
 /*-----------------------------------------------------------------*/
 BEGIN_EVENT_TABLE(SourceView, wxAuiNotebook)
-	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, SourceView::OnChangedState)
-	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, SourceView::OnUpdateSource)
-	EVT_LLDEBUG_ADDED_SOURCE(wxID_ANY, SourceView::OnAddedSource)
-	EVT_LLDEBUG_FOCUS_ERRORLINE(wxID_ANY, SourceView::OnFocusErrorLine)
-	EVT_LLDEBUG_FOCUS_BACKTRACELINE(wxID_ANY, SourceView::OnFocusBacktraceLine)
+	EVT_DEBUG_END_DEBUG(wxID_ANY, SourceView::OnEndDebug)
+	EVT_DEBUG_CHANGED_STATE(wxID_ANY, SourceView::OnChangedState)
+	EVT_DEBUG_UPDATE_SOURCE(wxID_ANY, SourceView::OnUpdateSource)
+	EVT_DEBUG_ADDED_SOURCE(wxID_ANY, SourceView::OnAddedSource)
+	EVT_DEBUG_FOCUS_ERRORLINE(wxID_ANY, SourceView::OnFocusErrorLine)
+	EVT_DEBUG_FOCUS_BACKTRACELINE(wxID_ANY, SourceView::OnFocusBacktraceLine)
 END_EVENT_TABLE()
 
 SourceView::SourceView(wxWindow *parent)
@@ -574,6 +575,13 @@ void SourceView::CreatePage(const Source &source) {
 	SourceViewPage *page = new SourceViewPage(this);
 	page->Initialize(source);
 	AddPage(page, page->GetTitle(), true);
+}
+
+void SourceView::OnEndDebug(wxDebugEvent &event) {
+	size_t count;
+	while ((count = GetPageCount()) > 0) {
+		DeletePage(count - 1);
+	}
 }
 
 void SourceView::OnChangedState(wxDebugEvent &event) {

@@ -26,7 +26,6 @@
 
 #include "precomp.h"
 #include "visual/mediator.h"
-#include "visual/mainframe.h"
 #include "visual/watchview.h"
 #include "visual/strutils.h"
 
@@ -148,8 +147,6 @@ private:
 		/// This method may be called from the other thread.
 		/// @param vars    result of the request
 		void operator()(const lldebug::Command &command, const LuaVarList &vars) {
-			static int count = 0;
-			Mediator::Get()->GetFrame()->SetTitle(wxString::Format(_T("%d"), ++count));
 			if (m_updateCount < Mediator::Get()->GetUpdateCount()) {
 				return;
 			}
@@ -169,7 +166,7 @@ private:
 public:
 	/// Begin updating contents.
 	void BeginUpdating(wxTreeItemId item, bool isExpanded,
-						 const VarListRequester &request) {
+					   const VarListRequester &request) {
 		VariableWatchItemData *data = GetItemData(item);
 		//bool isRoot = (item == GetRootItem());
 		bool isNeedUpdate =
@@ -249,6 +246,11 @@ public:
 		else {
 			BeginUpdating(GetRootItem(), true, m_requester);
 		}
+	}
+
+	/// Clear this view.
+	void Clear() {
+		DeleteChildren(GetRootItem());
 	}
 
 private:
@@ -349,7 +351,7 @@ private:
 					// The state whether the item is expanded or collapsed
 					// has been saved, so collapse it carefully.
 					if (IsExpanded(item)) {
-						Collapse(item);
+						//Collapse(item);
 					}
 
 					// Delete all child items.
@@ -411,6 +413,13 @@ private:
 	}
 
 private:
+	/// Get the width that can show vars.
+	int GetContentWidth() {
+		return 
+			( GetClientSize().GetWidth()
+			- wxSystemSettings::GetMetric(wxSYS_VSCROLL_X));
+	}
+
 	/// Resize the target and next columns to fit the window width.
 	void LayoutColumn(int targetColumn) {
 		if (GetColumnCount() <= 1) {
@@ -435,7 +444,7 @@ private:
 		// Do resize the column.
 		SetColumnWidth(
 			resizeItem,
-			GetClientSize().GetWidth() - columnsWidth);
+			GetContentWidth() - columnsWidth);
 	}
 
 	/// Fit the the columns to the window width.
@@ -446,7 +455,7 @@ private:
 		}
 	
 		// prevWidth is the currently resizable width.
-		int width = GetClientSize().GetWidth();
+		int width = GetContentWidth();
 		double ratio = (double)width / curWidth;
 		if (ratio < 0.001) {
 			return;
@@ -467,6 +476,11 @@ private:
 	void OnColEndDrag(wxListEvent &event) {
 		event.Skip();
 		LayoutColumn(event.GetColumn());
+	}
+
+	void OnEndDebug(wxDebugEvent &event) {
+		event.Skip();
+		Clear();
 	}
 
 private:
@@ -490,6 +504,7 @@ BEGIN_EVENT_TABLE(VariableWatch, wxTreeListCtrl)
 	EVT_TREE_ITEM_EXPANDED(wxID_ANY, VariableWatch::OnExpanded)
 	EVT_TREE_END_LABEL_EDIT(wxID_ANY, VariableWatch::OnEndLabelEdit)
 	EVT_LIST_COL_END_DRAG(wxID_ANY, VariableWatch::OnColEndDrag)
+	EVT_DEBUG_END_DEBUG(wxID_ANY, VariableWatch::OnEndDebug)
 END_EVENT_TABLE()
 
 
@@ -572,9 +587,9 @@ END_EVENT_TABLE()
 /*-----------------------------------------------------------------*/
 BEGIN_EVENT_TABLE(WatchView, wxPanel)
 	EVT_SHOW(WatchView::OnShow)
-	EVT_LLDEBUG_CHANGED_STATE(wxID_ANY, WatchView::OnChangedState)
-	EVT_LLDEBUG_UPDATE_SOURCE(wxID_ANY, WatchView::OnUpdateSource)
-	EVT_LLDEBUG_FOCUS_BACKTRACELINE(wxID_ANY, WatchView::OnFocusBacktraceLine)
+	EVT_DEBUG_CHANGED_STATE(wxID_ANY, WatchView::OnChangedState)
+	EVT_DEBUG_UPDATE_SOURCE(wxID_ANY, WatchView::OnUpdateSource)
+	EVT_DEBUG_FOCUS_BACKTRACELINE(wxID_ANY, WatchView::OnFocusBacktraceLine)
 END_EVENT_TABLE()
 
 static int GetWatchViewId(WatchView::Type type) {
@@ -631,8 +646,7 @@ private:
 };
 
 WatchView::WatchView(wxWindow *parent, Type type)
-	: wxPanel(parent, GetWatchViewId(type))
-	, m_type(type) {
+	: wxPanel(parent, GetWatchViewId(type)), m_type(type) {
 
 	if (type == TYPE_WATCH) {
 		m_watch = new VariableWatch(
@@ -690,4 +704,3 @@ void WatchView::OnShow(wxShowEvent &event) {
 
 } // end of namespace visual
 } // end of namespace lldebug
-

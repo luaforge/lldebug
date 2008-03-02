@@ -51,28 +51,31 @@ enum {
 };
 
 BEGIN_DECLARE_EVENT_TYPES()
-DECLARE_EVENT_TYPE(wxEVT_CHANGED_STATE, 2652)
-DECLARE_EVENT_TYPE(wxEVT_UPDATE_SOURCE, 2653)
-DECLARE_EVENT_TYPE(wxEVT_ADDED_SOURCE, 2654)
-DECLARE_EVENT_TYPE(wxEVT_CHANGED_BREAKPOINTS, 2655)
-DECLARE_EVENT_TYPE(wxEVT_OUTPUT_LOG, 2656)
-DECLARE_EVENT_TYPE(wxEVT_FOCUS_ERRORLINE, 2658)
-DECLARE_EVENT_TYPE(wxEVT_FOCUS_BACKTRACELINE, 2659)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_END_DEBUG, 2651)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_CHANGED_STATE, 2652)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_UPDATE_SOURCE, 2653)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_ADDED_SOURCE, 2654)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_CHANGED_BREAKPOINTS, 2655)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_OUTPUT_LOG, 2656)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_FOCUS_ERRORLINE, 2658)
+DECLARE_EVENT_TYPE(wxEVT_DEBUG_FOCUS_BACKTRACELINE, 2659)
 END_DECLARE_EVENT_TYPES()
 
 class wxDebugEvent : public wxEvent {
 public:
-	/// ChangedBreakpointList event
+	/// EndDebug, ChangedBreakpointList event
 	explicit wxDebugEvent(wxEventType type, int winid)
 		: wxEvent(winid, type) {
-		wxASSERT(type == wxEVT_CHANGED_BREAKPOINTS);
+		wxASSERT(
+			type == wxEVT_DEBUG_END_DEBUG ||
+			type == wxEVT_DEBUG_CHANGED_BREAKPOINTS);
 	}
 
 	/// ChangedState event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  bool isBreak)
 		: wxEvent(winid, type), m_isBreak(isBreak) {
-		wxASSERT(type == wxEVT_CHANGED_STATE);
+		wxASSERT(type == wxEVT_DEBUG_CHANGED_STATE);
 	}
 
 	/// UpdateSource event
@@ -81,14 +84,14 @@ public:
 						  int updateCount, bool isRefreshOnly)
 		: wxEvent(winid, type), m_key(key), m_line(line)
 		, m_updateCount(m_updateCount), m_isRefreshOnly(isRefreshOnly) {
-		wxASSERT(type == wxEVT_UPDATE_SOURCE);
+		wxASSERT(type == wxEVT_DEBUG_UPDATE_SOURCE);
 	}
 
 	/// FocusErrorLine event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  const std::string &key, int line)
 		: wxEvent(winid, type), m_key(key), m_line(line) {
-		wxASSERT(type == wxEVT_FOCUS_ERRORLINE);
+		wxASSERT(type == wxEVT_DEBUG_FOCUS_ERRORLINE);
 	}
 
 	/// FocusBacktraceLine event
@@ -96,14 +99,14 @@ public:
 						  const LuaBacktrace &bt)
 		: wxEvent(winid, type), m_backtrace(bt)
 		, m_key(bt.GetKey()), m_line(bt.GetLine()) {
-		wxASSERT(type == wxEVT_FOCUS_BACKTRACELINE);
+		wxASSERT(type == wxEVT_DEBUG_FOCUS_BACKTRACELINE);
 	}
 
 	/// AddedSource event
 	explicit wxDebugEvent(wxEventType type, int winid,
 						  const Source &source)
 		: wxEvent(winid, type), m_source(source) {
-		wxASSERT(type == wxEVT_ADDED_SOURCE);
+		wxASSERT(type == wxEVT_DEBUG_ADDED_SOURCE);
 	}
 
 	/// OutputLog event
@@ -112,7 +115,7 @@ public:
 						  const std::string &key, int line)
 		: wxEvent(winid, type), m_str(str)
 		, m_key(key), m_line(line), m_logType(logType) {
-		wxASSERT(type == wxEVT_OUTPUT_LOG);
+		wxASSERT(type == wxEVT_DEBUG_OUTPUT_LOG);
 	}
 
 	virtual ~wxDebugEvent() {
@@ -182,16 +185,17 @@ private:
 typedef void (wxEvtHandler::*wxDebugEventFunction)(wxDebugEvent &);
 
 #if !wxCHECK_VERSION(2, 5, 0)
-#define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxChangedStateEventFunction)&fn, (wxObject *)NULL),
-#define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxSourceLineEventFunction)&fn, (wxObject *)NULL),
+#define EVT_DEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_STATE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxChangedStateEventFunction)&fn, (wxObject *)NULL),
+#define EVT_DEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_UPDATE_SOURCE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxSourceLineEventFunction)&fn, (wxObject *)NULL),
 #else
-#define EVT_LLDEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_STATE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_UPDATE_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_OUTPUT_LOG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_OUTPUT_LOG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_FOCUS_ERRORLINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_FOCUS_ERRORLINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_LLDEBUG_FOCUS_BACKTRACELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_FOCUS_BACKTRACELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_END_DEBUG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_END_DEBUG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_STATE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_UPDATE_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_OUTPUT_LOG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_OUTPUT_LOG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_FOCUS_ERRORLINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_FOCUS_ERRORLINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_FOCUS_BACKTRACELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_FOCUS_BACKTRACELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #endif
 
 } // end of namespace visual

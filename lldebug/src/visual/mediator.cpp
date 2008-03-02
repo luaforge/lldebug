@@ -83,7 +83,7 @@ void Mediator::IncUpdateCount() {
 void Mediator::FocusErrorLine(const std::string &key, int line) {
 	MainFrame *frame = GetFrame();
 
-	wxDebugEvent event(wxEVT_FOCUS_ERRORLINE, wxID_ANY, key, line);
+	wxDebugEvent event(wxEVT_DEBUG_FOCUS_ERRORLINE, wxID_ANY, key, line);
 	frame->ProcessDebugEvent(event, frame, true);
 }
 
@@ -93,7 +93,7 @@ void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 	IncUpdateCount();
 	m_stackFrame = LuaStackFrame(bt.GetLua(), bt.GetLevel());
 
-	wxDebugEvent event(wxEVT_FOCUS_BACKTRACELINE, wxID_ANY, bt);
+	wxDebugEvent event(wxEVT_DEBUG_FOCUS_BACKTRACELINE, wxID_ANY, bt);
 	frame->ProcessDebugEvent(event, frame, true);
 }
 
@@ -102,11 +102,16 @@ void Mediator::ProcessAllRemoteCommands() {
 		Command command = m_engine->GetCommand();
 		m_engine->PopCommand();
 
-		if (command.IsResponse()) {
-			command.CallResponse();
+		try {
+			if (command.IsResponse()) {
+				command.CallResponse();
+			}
+			else {
+				ProcessRemoteCommand(command);
+			}
 		}
-		else {
-			ProcessRemoteCommand(command);
+		catch (std::exception &ex) {
+			wxLogMessage(_T("%s"), ex.what());
 		}
 	}
 }
@@ -114,16 +119,16 @@ void Mediator::ProcessAllRemoteCommands() {
 void Mediator::ProcessRemoteCommand(const Command &command) {
 	MainFrame *frame = GetFrame();
 
-	try {
 	// Process remote commands.
 	switch (command.GetType()) {
 	case REMOTECOMMANDTYPE_END_CONNECTION:
+		m_breakpoints = BreakpointList(&*m_engine);
+//		m_sourceManager = SourceManager(&*m_engine);
+		m_stackFrame = LuaStackFrame();
+		m_updateCount = 0;
 		if (frame != NULL) {
-			frame->Close(true);
-		}
-		else {
-			wxExit();
-			wxWakeUpIdle();
+			wxDebugEvent event(wxEVT_DEBUG_END_DEBUG, wxID_ANY);
+			frame->ProcessDebugEvent(event, frame, true);
 		}
 		break;
 
@@ -132,7 +137,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 			bool isBreak;
 			command.GetData().Get_ChangedState(isBreak);
 
-			wxDebugEvent event(wxEVT_CHANGED_STATE, wxID_ANY, isBreak);
+			wxDebugEvent event(wxEVT_DEBUG_CHANGED_STATE, wxID_ANY, isBreak);
 			frame->ProcessDebugEvent(event, frame, true);
 		}
 		break;
@@ -172,7 +177,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 
 			if (frame != NULL) {
 				wxDebugEvent event(
-					wxEVT_UPDATE_SOURCE, wxID_ANY,
+					wxEVT_DEBUG_UPDATE_SOURCE, wxID_ANY,
 					key, line, updateCount, isRefreshOnly);
 				frame->ProcessDebugEvent(event, frame, true);
 				m_engine->ResponseSuccessed(command);
@@ -187,7 +192,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 			m_sourceManager.AddSource(source);
 
 			if (frame != NULL) {
-				wxDebugEvent event(wxEVT_ADDED_SOURCE, wxID_ANY, source);
+				wxDebugEvent event(wxEVT_DEBUG_ADDED_SOURCE, wxID_ANY, source);
 				frame->ProcessDebugEvent(event, frame, true);
 			}
 		}
@@ -200,7 +205,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 			m_breakpoints = bps;
 
 			if (frame != NULL) {
-				wxDebugEvent event(wxEVT_CHANGED_BREAKPOINTS, wxID_ANY);
+				wxDebugEvent event(wxEVT_DEBUG_CHANGED_BREAKPOINTS, wxID_ANY);
 				frame->ProcessDebugEvent(event, frame, true);
 			}
 		}
@@ -213,7 +218,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 			int line;
 			command.GetData().Get_OutputLog(logType, str, key, line);
 
-			wxDebugEvent event(wxEVT_OUTPUT_LOG, wxID_ANY,
+			wxDebugEvent event(wxEVT_DEBUG_OUTPUT_LOG, wxID_ANY,
 				logType, wxConvFromUTF8(str), key, line);
 			frame->ProcessDebugEvent(event, frame, true);
 		}
@@ -249,11 +254,6 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 	case REMOTECOMMANDTYPE_VALUE_BACKTRACELIST:
 		//BOOST_ASSERT(false && "Invalid remote command.");
 		break;
-	}
-	}
-	catch (std::exception &ex) {
-		wxLogMessage(_T("%s"), ex.what());
-		SaveCommand("command.txt", command);
 	}
 }
 

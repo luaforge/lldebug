@@ -53,6 +53,7 @@ private:
 	SourceViewPage *GetSelected();
 
 private:
+	void OnEndDebug(wxDebugEvent &event);
 	void OnChangedState(wxDebugEvent &event);
 	void OnUpdateSource(wxDebugEvent &event);
 	void OnAddedSource(wxDebugEvent &event);

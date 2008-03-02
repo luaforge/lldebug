@@ -58,8 +58,9 @@ BEGIN_EVENT_TABLE(BacktraceView, wxTreeListCtrl)
 	EVT_SHOW(BacktraceView::OnShow)
 	EVT_TREE_ITEM_ACTIVATED(wxID_ANY, BacktraceView::OnItemActivated)
 	EVT_LIST_COL_END_DRAG(wxID_ANY, BacktraceView::OnColEndDrag)
-	EVT_LLDEBUG_CHANGED_STATE(ID_BACKTRACEVIEW, BacktraceView::OnChangedState)
-	EVT_LLDEBUG_UPDATE_SOURCE(ID_BACKTRACEVIEW, BacktraceView::OnUpdateSource)
+	EVT_DEBUG_CHANGED_STATE(ID_BACKTRACEVIEW, BacktraceView::OnChangedState)
+	EVT_DEBUG_UPDATE_SOURCE(ID_BACKTRACEVIEW, BacktraceView::OnUpdateSource)
+	EVT_DEBUG_END_DEBUG(ID_BACKTRACEVIEW, BacktraceView::OnEndDebug)
 END_EVENT_TABLE()
 
 BacktraceView::BacktraceView(wxWindow *parent)
@@ -188,6 +189,12 @@ void BacktraceView::OnUpdateSource(wxDebugEvent &event) {
 	}
 }
 
+void BacktraceView::OnEndDebug(wxDebugEvent &event) {
+	event.Skip();
+
+	DeleteChildren(GetRootItem());
+}
+
 void BacktraceView::OnItemActivated(wxTreeEvent &event) {
 	event.Skip();
 
@@ -219,8 +226,8 @@ void BacktraceView::LayoutColumn(int selectedColumn) {
 	}
 	
 	// è¨Ç≥Ç∑Ç¨ÇÈèÍçáÇÕÉGÉâÅ[Ç∆ÇµÇƒàµÇ¢Ç‹Ç∑ÅB
-	int width = GetClientSize().GetWidth();
-				//- wxSystemSettings::GetMetric(wxSYS_VSCROLL_X) - 2;
+	int width = GetClientSize().GetWidth()
+				- wxSystemSettings::GetMetric(wxSYS_VSCROLL_X);
 	double rate = (double)(width - sel_w) / col_w;
 	if (rate < 0.0001) {
 		return;

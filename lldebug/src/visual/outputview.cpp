@@ -114,6 +114,17 @@ public:
 		SetReadOnly(true);
 	}
 
+private:
+	void OnEndDebug(wxDebugEvent &event) {
+		event.Skip();
+
+		SetReadOnly(false);
+		m_dataMap.clear();
+		MarkerDeleteAll(MARKNUM_ERROR);
+		SetTextRaw("");
+		SetReadOnly(true);
+	}
+
 	void OnDClick(wxScintillaEvent &event) {
 		event.Skip();
 
@@ -137,6 +148,7 @@ public:
 };
 
 BEGIN_EVENT_TABLE(OutputView::InnerTextCtrl, wxScintilla)
+	EVT_DEBUG_END_DEBUG(wxID_ANY, OutputView::InnerTextCtrl::OnEndDebug)
 	EVT_SCI_DOUBLECLICK(wxID_ANY, OutputView::InnerTextCtrl::OnDClick)
 END_EVENT_TABLE()
 
@@ -144,7 +156,7 @@ END_EVENT_TABLE()
 /*-----------------------------------------------------------------*/
 BEGIN_EVENT_TABLE(OutputView, wxListBox)
 	EVT_SIZE(OutputView::OnSize)
-	EVT_LLDEBUG_OUTPUT_LOG(wxID_ANY, OutputView::OnOutputLog)
+	EVT_DEBUG_OUTPUT_LOG(wxID_ANY, OutputView::OnOutputLog)
 END_EVENT_TABLE()
 
 OutputView::OutputView(wxWindow *parent)
