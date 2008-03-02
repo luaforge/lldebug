@@ -38,22 +38,22 @@ typedef
 	Command::CommandCallback
 	CommandCallback;
 typedef
-	boost::function2<void, const Command &, const std::string &>
+	boost::function2<int, const Command &, const std::string &>
 	StringCallback;
 typedef
-	boost::function2<void, const Command &, const Source &>
+	boost::function2<int, const Command &, const Source &>
 	SourceCallback;
 typedef
-	boost::function2<void, const Command &, const BreakpointList &>
+	boost::function2<int, const Command &, const BreakpointList &>
 	BreakpointListCallback;
 typedef
-	boost::function2<void, const Command &, const LuaVarList &>
+	boost::function2<int, const Command &, const LuaVarList &>
 	LuaVarListCallback;
 typedef
-	boost::function2<void, const Command &, const LuaVar &>
+	boost::function2<int, const Command &, const LuaVar &>
 	LuaVarCallback;
 typedef
-	boost::function2<void, const Command &, const LuaBacktraceList &>
+	boost::function2<int, const Command &, const LuaBacktraceList &>
 	LuaBacktraceListCallback;
 
 /**

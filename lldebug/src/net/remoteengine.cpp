@@ -430,10 +430,10 @@ struct LuaVarListResponseHandler {
 		: m_callback(callback) {
 	}
 
-	void operator()(const Command &command) {
+	int operator()(const Command &command) {
 		LuaVarList vars;
 		command.GetData().Get_ValueVarList(vars);
-		m_callback(command, vars);
+		return m_callback(command, vars);
 	}
 };
 
@@ -447,10 +447,10 @@ struct LuaVarResponseHandler {
 		: m_callback(callback) {
 	}
 
-	void operator()(const Command &command) {
+	int operator()(const Command &command) {
 		LuaVar var;
 		command.GetData().Get_ValueVar(var);
-		m_callback(command, var);
+		return m_callback(command, var);
 	}
 };
 
@@ -546,10 +546,10 @@ struct SourceResponseHandler {
 		: m_callback(callback) {
 	}
 
-	void operator()(const Command &command) {
+	int operator()(const Command &command) {
 		Source source;
 		command.GetData().Get_ValueSource(source);
-		m_callback(command, source);
+		return m_callback(command, source);
 	}
 };
 
@@ -574,10 +574,10 @@ struct BacktraceListHandler {
 		: m_callback(callback) {
 	}
 
-	void operator()(const Command &command) {
+	int operator()(const Command &command) {
 		LuaBacktraceList bts;
 		command.GetData().Get_ValueBacktraceList(bts);
-		m_callback(command, bts);
+		return m_callback(command, bts);
 	}
 };
 

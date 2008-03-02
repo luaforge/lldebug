@@ -205,12 +205,12 @@ private:
 class Command {
 public:
 	typedef
-		boost::function1<void, const Command &>
+		boost::function1<int, const Command &>
 		CommandCallback;
 
 public:
-	Command(const CommandHeader &header,
-				  const CommandData &data)
+	explicit Command(const CommandHeader &header,
+					 const CommandData &data)
 		: m_header(header), m_data(data) {
 	}
 
