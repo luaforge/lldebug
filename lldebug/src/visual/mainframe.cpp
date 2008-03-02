@@ -55,6 +55,7 @@ enum {
 };
 
 BEGIN_EVENT_TABLE(MainFrame, wxFrame)
+	EVT_DEBUG_UPDATE_SOURCE(wxID_ANY, MainFrame::OnUpdateSource)
 	EVT_IDLE(MainFrame::OnIdle)
 	EVT_MENU(wxID_EXIT, MainFrame::OnMenu)
 
@@ -164,6 +165,9 @@ void MainFrame::ProcessDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlw
 
 	event.SetId(parent->GetId());
 	parent->ProcessEvent(event);
+}
+
+void MainFrame::OnUpdateSource(wxDebugEvent &event) {
 }
 
 void MainFrame::OnIdle(wxIdleEvent &event) {

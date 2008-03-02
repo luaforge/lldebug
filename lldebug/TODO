@@ -10,11 +10,12 @@
 - variable watch (source editor)
 - encoding problem
 - backtrace
+- made the frame reusable
 
 / lldebug_startfile, lldebug_startstring
 / break, restart, and exit
 / GC view
+/ auto complete (interactive view)
+/ status bar
 * error support
 * popup menu
-* auto complete (interactive view)
-* status bar

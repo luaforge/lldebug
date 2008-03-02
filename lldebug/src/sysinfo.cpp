@@ -50,7 +50,7 @@ Breakpoint::~Breakpoint() {
 }
 
 
-BreakpointList::BreakpointList(net::RemoteEngine *engine)
+BreakpointList::BreakpointList(shared_ptr<RemoteEngine> engine)
 	: m_engine(engine) {
 }
 
@@ -161,7 +161,7 @@ Source::~Source() {
 
 
 /*-----------------------------------------------------------------*/
-SourceManager::SourceManager(RemoteEngine *engine)
+SourceManager::SourceManager(shared_ptr<RemoteEngine> engine)
 	: m_engine(engine), m_textCounter(0) {
 }
 
@@ -220,8 +220,8 @@ static string_array split(std::istream &stream) {
 	return array;
 }
 
-int SourceManager::Add(const std::string &key) {
-	if (key.empty()) {
+int SourceManager::Add(const std::string &key, const std::string &src) {
+	if (key.empty() || src.empty()) {
 		return -1;
 	}
 
@@ -231,19 +231,20 @@ int SourceManager::Add(const std::string &key) {
 
 	// It's a file if the beginning char is '@'.
 	if (key[0] == '@') {
-		boost::filesystem::path path(&key[1]);
+		boost::filesystem::path path(src);
 		path = boost::filesystem::complete(path);
 		path = path.normalize();
 		std::string pathstr = path.native_file_string();
 
+		scoped_locale sloc(std::locale(""));
 		std::ifstream ifs(pathstr.c_str());
-		if (ifs.fail()) {
+		if (!ifs.is_open()) {
 			return -1;
 		}
 
-		Source src(key, path.leaf(), split(ifs), pathstr);
-		m_sourceMap.insert(std::make_pair(key, src));
-		m_engine->AddedSource(src);
+		Source source(key, path.leaf(), split(ifs), pathstr);
+		m_sourceMap.insert(std::make_pair(key, source));
+		m_engine->AddedSource(source);
 	}
 	else {
 		// We make the original source title and don't use the key,
@@ -252,10 +253,10 @@ int SourceManager::Add(const std::string &key) {
 		title << "<string: " << m_textCounter++ << ">";
 		title.flush();
 
-		std::stringstream sstream(key);
-		Source src(key, title.str(), split(sstream));
-		m_sourceMap.insert(std::make_pair(key, src));
-		m_engine->AddedSource(src);
+		std::stringstream sstream(src);
+		Source source(key, title.str(), split(sstream));
+		m_sourceMap.insert(std::make_pair(key, source));
+		m_engine->AddedSource(source);
 	}
 	
 	return 0;
@@ -274,6 +275,7 @@ int SourceManager::Save(const std::string &key, const string_array &source) {
 	}
 
 	// Save the new source.
+	scoped_locale sloc(std::locale(""));
 	std::ofstream fp(src.GetPath().c_str());
 	if (fp.fail()) {
 		return -1;

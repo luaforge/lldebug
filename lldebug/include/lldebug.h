@@ -58,13 +58,6 @@ LLDEBUG_API int lldebug_openbase(lua_State *L);
 /// The substitute function for luaL_openlibs overriding 'luaopen_base'.
 LLDEBUG_API void lldebug_openlibs(lua_State *L);
 
-/// Type of the function that initialize lua_State* object.
-typedef int (*lldebug_InitState)(lua_State *L);
-/// Set the function that initialize lua_State object called in lldebug_open.
-LLDEBUG_API lldebug_InitState lldebug_setinitstate(lldebug_InitState fn);
-/// Get the current function that initialize lua_State object called in lldebug_open.
-LLDEBUG_API lldebug_InitState lldebug_getinitstate(void);
-
 /// Set the encoding type for displaying on debugger.
 LLDEBUG_API int lldebug_setencoding(lldebug_Encoding encoding);
 /// Get the encoding type for displaying on debugger.

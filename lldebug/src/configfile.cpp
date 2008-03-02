@@ -25,6 +25,7 @@
  */
 
 #include "precomp.h"
+#include "sysinfo.h"
 #include "configfile.h"
 
 #include <boost/filesystem/path.hpp>
@@ -142,26 +143,9 @@ std::string EncodeToFilename(const std::string &filename) {
 	return result;
 }
 
-/**
- * @brief Change the locale temporary.
- */
-class scoped_locale {
-public:
-	explicit scoped_locale() {
-//		m_prev = std::locale::global(std::locale(""));
-	}
-
-	~scoped_locale() {
-//		std::locale::global(m_prev);
-	}
-
-private:
-	std::locale m_prev;
-};
-
 int OpenConfigFile(const std::string &configName,
 				   std::fstream &ifs, bool isOut) {
-	scoped_locale scoped;
+	scoped_locale sloc(std::locale(""));
 
 	// Open the config file.
 	std::string path = GetConfigFileName(configName);

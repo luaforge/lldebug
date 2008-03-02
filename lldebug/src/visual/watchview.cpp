@@ -286,7 +286,8 @@ public:
 
 	/// Clear this view.
 	void Clear() {
-		DeleteChildren(GetRootItem());
+		DeleteRoot();
+		AddRoot(wxT(""), -1, -1, new VariableWatchItemData(LuaVar()));
 	}
 
 private:

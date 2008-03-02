@@ -301,6 +301,21 @@ private:
 	CommandCallback m_response;
 };
 
+
+/// Output the command data.
+template<class Ch, class Tr>
+std::basic_ostream<Ch,Tr> &operator<<(std::basic_ostream<Ch,Tr> &os,
+									  const Command &command) {
+	os << "type:      " << command.GetType() << std::endl;
+	os << "commandId: " << command.GetCommandId() << std::endl;
+	os << "datasize:  " << command.GetDataSize() << std::endl;
+	if (command.GetDataSize() != 0) {
+		os << "data:" << std::endl;
+		os << command.ToString() << std::endl;
+	}
+	return os;
+}
+
 } // end of namespace net
 } // end of namespace lldebug
 

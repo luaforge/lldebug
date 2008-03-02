@@ -102,6 +102,8 @@ static int ServerMain(const std::string &serviceName) {
 				senderPoint);
 		}
 	}
+	/*catch (boost::system::system_error &e) {
+	}*/
 	catch (std::exception &ex) {
 		scoped_lock lock(s_consoleMutex);
 		std::cerr << ex.what() << std::endl;

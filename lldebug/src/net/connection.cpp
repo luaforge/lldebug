@@ -28,7 +28,6 @@
 #include "net/connection.h"
 #include "net/remoteengine.h"
 #include "net/netutils.h"
-#include "net/echostream.h"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/placeholders.hpp>

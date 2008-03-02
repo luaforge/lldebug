@@ -199,7 +199,7 @@ int Context::CreateDebuggerFrame() {
 	if (m_engine->StartContext("localhost", "51123", 5) != 0) {
 		std::cerr
 			<< "lldebug doesn't work correctly, "
-			   "because the debug frame was not found."
+			   "because the frame was not found."
 			<< std::endl;
 		SetDebugEnable(false);
 	}
@@ -220,12 +220,6 @@ int Context::Initialize() {
 		lua_close(L);
 		return -1;
 	}
-
-	/*lldebug_InitState init = lldebug_getinitstate();
-	if (init != NULL && init(L) != 0) {
-		lua_close(L);
-		return -1;
-	}*/
 
 	SetHook(L);
 	m_lua = L;
@@ -816,7 +810,9 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		else {
 			if (m_isMustUpdate || prevState != STATE_BREAK) {
 				if (m_sourceManager.Get(ar->source) == NULL) {
-					m_sourceManager.Add(ar->source);
+					if (m_sourceManager.Add(ar->source, ar->short_src) != 0) {
+						OutputError(std::string("Couldn't open the '") + ar->short_src + "'.");
+					}
 				}
 				m_isMustUpdate = false;
 
@@ -922,12 +918,10 @@ int Context::LuaInitialize(lua_State *L) {
 int Context::LoadFile(const char *filename) {
 	scoped_lock lock(m_mutex);
 
-	if (filename == NULL) {
-		return -1;
-	}
-
 	if (luaL_loadfile(m_lua, filename) != 0) {
-		m_sourceManager.Add(std::string("@") + filename);
+		if (filename != NULL) {
+			m_sourceManager.Add(std::string("@") + filename, filename);
+		}
 		OutputLuaError(lua_tostring(m_lua, -1));
 		return -1;
 	}
@@ -939,20 +933,17 @@ int Context::LoadFile(const char *filename) {
 		LoadConfig();
 	}
 
-	m_sourceManager.Add(std::string("@") + filename);
+	m_sourceManager.Add(std::string("@") + filename, filename);
 	return 0;
 }
 
 int Context::LoadString(const char *str) {
 	scoped_lock lock(m_mutex);
 	
-	if (str == NULL) {
-		return -1;
-	}
-
 	if (luaL_loadbuffer(m_lua, str, strlen(str), str) != 0) {
-	//if (lua_loadstring(m_lua, str) != 0) {
-		m_sourceManager.Add(str);
+		if (str != NULL) {
+			m_sourceManager.Add(str, str);
+		}
 		OutputLuaError(lua_tostring(m_lua, -1));
 		return -1;
 	}
@@ -963,7 +954,7 @@ int Context::LoadString(const char *str) {
 		LoadConfig();
 	}
 
-	m_sourceManager.Add(str);
+	m_sourceManager.Add(str, str);
 	return 0;
 }
 

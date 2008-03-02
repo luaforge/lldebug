@@ -27,7 +27,6 @@
 #include "precomp.h"
 #include "net/connection.h"
 #include "net/remoteengine.h"
-#include "net/echostream.h"
 #include "net/netutils.h"
 
 namespace lldebug {
@@ -150,8 +149,7 @@ void RemoteEngine::ConnectionThread() {
 			m_service.reset();
 		}
 		catch (std::exception &ex) {
-			echo_ostream echo;
-			echo << ex.what() << std::endl;
+			std::cout << ex.what() << std::endl;
 		}
 
 		// Wait, if any ...

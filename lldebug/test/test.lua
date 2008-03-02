@@ -1,54 +1,73 @@
 --
--- 日本語表示
+-- テストプログラム (デソ 日本語表示)
 --
 
---require "E:\\programs\\develop\\lldebug\\test\\strict"
---require "strict"
-
 debug = require "debug"
-require "table"
+table = require "table"
+string = require "string"
 
-function t()
-  if 0 == 0 then
-    print(debug.traceback("msg"))
-    return
-  end
+require "strict"
 
-  t(i - 1)
+-- recursive
+local function self_recursive(count, through)
+	through = through or {}
+	
+	if count <= 0 then
+		print("self_recursive was done: " .. tostring(through))
+		return
+	end
+	
+	through[count] = "recorded"
+	return self_recursive(count - 1, through)
 end
 
-function g(i)
-  while true do
-    print(i)
-    t()
-    i = coroutine.yield()
-  end
+-- Environment table
+local function env_func()
+	local function f(t, i)
+		return os.getenv(i)
+	end
+	setmetatable(getfenv(), {__index=f})
+
+	-- an example
+	print(a, USER, PATH)
 end
 
-local co = nil
-local function f(i)
-  if co == nil then
-    co = coroutine.create(g)
-  end
+-- Coroutine function
+local function co_func_creator(count)
+	local function co_func_()
+		while true do
+			print("coroutine func: " .. count)
+			count = count + 1
 
-  local function inner()
-    local test = {x = function() end}
-	  --print(test)
-  end
-
-  local tab = {[0] = "テスター", deeptab = {["x"]=coroutine.create(f)}}
-  tab.tt = tab
-  coroutine.resume(co, i)
-  inner()
+			coroutine.yield()
+		end
+	end
+	
+	return coroutine.create(co_func_)
 end
 
-tab = {[0] = "テスト", deep = {x=coroutine.create(f)}}
-tab.tt = tab
-local i = 0
-local str = [[テストデソ]]
-while 1 do
-  print(i, str)
-  f(i)
-  print(x)
-  i = i + 1
+local co = co_func_creator(100)
+local function co_func()
+	coroutine.resume(co)
+end
+
+-- Dump 'obj' to string.
+local function dump_func(obj)
+	return string.dump(obj)
+end
+
+local tab = {
+	[0] = "テスト",
+	deep = {x = nil}
+}
+tab.self = tab
+
+for i = 0, 100 do
+	local str = [[テストデソ]]
+	print(i, str)
+
+	self_recursive(100)
+	dump_func(function() return 100 end)
+	env_func()
+	co_func()
 end

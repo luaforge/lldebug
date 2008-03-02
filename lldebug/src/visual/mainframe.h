@@ -49,8 +49,9 @@ public:
 
 private:
 	void CreateGUIControls();
+	void OnUpdateSource(wxDebugEvent &event);
 	void OnIdle(wxIdleEvent &event);
-	void OnMenu(wxCommandEvent &event);
+	void OnMenu(wxCommandEvent &evenpt);
 	wxAuiNotebook *GetAuiNotebook();
 
 private:

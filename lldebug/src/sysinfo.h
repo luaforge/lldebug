@@ -39,7 +39,24 @@ enum LogType {
 };
 
 /**
- * @brief デバッガのブレイクポイントオブジェクトです。
+ * @brief Change the locale temporary.
+ */
+class scoped_locale {
+public:
+	explicit scoped_locale(const std::locale &loc) {
+		m_prev = std::locale::global(loc);
+	}
+
+	~scoped_locale() {
+		std::locale::global(m_prev);
+	}
+
+private:
+	std::locale m_prev;
+};
+
+/**
+ * @brief Break point object for the debugger.
  */
 class Breakpoint {
 public:
@@ -94,11 +111,11 @@ private:
 };
 
 /**
- * @brief ブレイクポイントのリストを取得します。
+ * @brief Break point list.
  */
 class BreakpointList {
 public:
-	explicit BreakpointList(RemoteEngine *engine);
+	explicit BreakpointList(shared_ptr<RemoteEngine> engine);
 	virtual ~BreakpointList();
 
 	/// Find the breakpoint from key and line.
@@ -127,14 +144,14 @@ private:
 	}
 
 private:
-	net::RemoteEngine *m_engine;
+	shared_ptr<RemoteEngine> m_engine;
 
 	typedef std::set<Breakpoint> ImplSet;
 	ImplSet m_set;
 };
 
 /**
- * @brief デバッグ時に表示されるソースファイルなどを管理します。
+ * @brief Source title, path, and contents etc.
  */
 class Source {
 public:
@@ -197,7 +214,7 @@ private:
  */
 class SourceManager {
 public:
-	explicit SourceManager(RemoteEngine *engine);
+	explicit SourceManager(shared_ptr<RemoteEngine> engine);
 	~SourceManager();
 
 	/// Get the source infomation from key.
@@ -214,14 +231,14 @@ public:
 
 #ifdef LLDEBUG_CONTEXT
 	/// Add a source.
-	int Add(const std::string &key);
+	int Add(const std::string &key, const std::string &src);
 
 	/// Save a source.
 	int Save(const std::string &key, const string_array &source);
 #endif
 
 private:
-	net::RemoteEngine *m_engine;
+	shared_ptr<RemoteEngine> m_engine;
 
 	typedef std::map<std::string, Source> ImplMap;
 	ImplMap m_sourceMap;

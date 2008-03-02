@@ -105,6 +105,12 @@ LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
 }
 
 bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {
+#if !defined(LLDEBUG_SHOW_STRING_METATABLE)
+	if (lua_isstring(L, valueIdx)) {
+		return false;
+	}
+#endif
+
 	// Check whether 'valueIdx' has metatable.
 	if (lua_getmetatable(L, valueIdx) != 0) {
 		lua_pop(L, 1);

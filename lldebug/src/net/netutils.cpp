@@ -33,20 +33,8 @@
 namespace lldebug {
 namespace net {
 
-/// 
-static std::ostream &operator<<(std::ostream &os, const Command &command) {
-	os << "type:      " << command.GetType() << std::endl;
-	os << "commandId: " << command.GetCommandId() << std::endl;
-	os << "datasize:  " << command.GetDataSize() << std::endl;
-	if (command.GetDataSize() != 0) {
-		os << "data:" << std::endl;
-		os << command.ToString() << std::endl;
-	}
-	return os;
-}
-
 void EchoCommand(const Command &command) {
-#if 1 //ndef NDEBUG
+#ifndef NDEBUG
 	echo_ostream echo("localhost");
 
 	if (echo.is_open()) {
@@ -56,7 +44,9 @@ void EchoCommand(const Command &command) {
 }
 
 void SaveCommand(const std::string &filename, const Command &command) {
+	scoped_locale sloc(std::locale(""));
 	std::ofstream ofs(filename.c_str());
+
 	if (ofs.is_open()) {
 		ofs << command << std::endl;
 	}
