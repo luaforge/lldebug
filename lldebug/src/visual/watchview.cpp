@@ -42,7 +42,7 @@ typedef std::vector<wxTreeItemId> wxTreeItemIdList;
 class VariableWatchItemData : public wxTreeItemData {
 public:
 	explicit VariableWatchItemData(const LuaVar &var)
-		: m_var(var), m_updateCount(-1) {
+		: m_var(var), m_requestCount(-1), m_updateCount(-1) {
 	}
 
 	virtual ~VariableWatchItemData() {
@@ -53,6 +53,20 @@ public:
 		return m_var;
 	}
 
+	/// Get the request count.
+	int GetRequestCount() const {
+		return m_requestCount;
+	}
+
+	/// Requested this var.
+	void Requested() {
+		int count = Mediator::Get()->GetUpdateCount();
+
+		if (m_requestCount < count) {
+			m_requestCount = count;
+		}
+	}
+
 	/// Get the update count.
 	int GetUpdateCount() const {
 		return m_updateCount;
@@ -60,11 +74,19 @@ public:
 
 	/// Update the update count.
 	void Updated() {
-		m_updateCount = Mediator::Get()->GetUpdateCount();
+		int count = Mediator::Get()->GetUpdateCount();
+
+		if (m_requestCount < count) {
+			m_requestCount = count;
+		}
+		if (m_updateCount < count) {
+			m_updateCount = count;
+		}
 	}
 
 private:
 	LuaVar m_var;
+	int m_requestCount;
 	int m_updateCount;
 };
 
@@ -111,9 +133,12 @@ public:
 				GetRootItem(), wxT("                                "),
 				-1, -1, new VariableWatchItemData(LuaVar()));
 		}
+
+		ms_aliveInstanceSet.insert(this);
 	}
 
 	virtual ~VariableWatch() {
+		ms_aliveInstanceSet.erase(this);
 	}
 
 	/// Get children of the item.
@@ -146,12 +171,19 @@ private:
 
 		/// This method may be called from the other thread.
 		/// @param vars    result of the request
-		void operator()(const lldebug::Command &command, const LuaVarList &vars) {
-			if (m_updateCount < Mediator::Get()->GetUpdateCount()) {
-				return;
+		int operator()(const lldebug::Command &command, const LuaVarList &vars) {
+			// If update count was changed, new request might be sent.
+			if (m_updateCount != Mediator::Get()->GetUpdateCount()) {
+				return -1;
+			}
+
+			// Is m_watch still alive ?
+			if (ms_aliveInstanceSet.find(m_watch) == ms_aliveInstanceSet.end()) {
+				return -1;
 			}
 
 			m_watch->DoUpdateVars(m_item, vars, m_isExpanded);
+			return 0;
 		}
 
 	private:
@@ -168,13 +200,15 @@ public:
 	void BeginUpdating(wxTreeItemId item, bool isExpanded,
 					   const VarListRequester &request) {
 		VariableWatchItemData *data = GetItemData(item);
-		//bool isRoot = (item == GetRootItem());
-		bool isNeedUpdate =
-			(data->GetUpdateCount() < Mediator::Get()->GetUpdateCount());
+		if (data == NULL) {
+			return;
+		}
 
-		if (isNeedUpdate) {
+		// Does this need to request newbies ?
+		if (data->GetRequestCount() < Mediator::Get()->GetUpdateCount()) {
 			RequestVarListCallback callback(this, item, isExpanded);
 			request(callback);
+			data->Requested();
 		}
 		else if (isExpanded) {
 			wxTreeItemIdList children = GetItemChildren(item);
@@ -182,7 +216,9 @@ public:
 			wxTreeItemIdList::iterator it;
 			for (it = children.begin(); it != children.end(); ++it) {
 				VariableWatchItemData *data = GetItemData(*it);
-				BeginUpdating(*it, false, data->GetVar());
+				if (data != NULL) {
+					BeginUpdating(*it, false, data->GetVar());
+				}
 			}
 		}
 	}
@@ -276,6 +312,11 @@ private:
 	/// Update child variables of vars actually.
 	void DoUpdateVars(wxTreeItemId parent, const LuaVarList &vars,
 					  bool isExpand) {
+		VariableWatchItemData *parentData = GetItemData(parent);
+		if (parentData->GetUpdateCount() == Mediator::Get()->GetUpdateCount()) {
+			return;
+		}
+
 		// The current chilren list.
 		// If the item is updated, it is removed.
 		wxTreeItemIdList children = GetItemChildren(parent);
@@ -336,14 +377,16 @@ private:
 
 			// Refresh the chilren, too.
 			if (var.HasFields()) {
+				if (!HasChildren(item)) {
+					// Item for lazy evalution
+					AppendItem(item, _T(""));
+				}
+
 				if (IsExpanded(item)) {
 					BeginUpdating(item, true, var);
 				}
 				else if (isExpand) {
 					BeginUpdating(item, false, var);
-				}
-				else if (!HasChildren(item)) {
-					AppendItem(item, _T("$<item for lazy evalution>"));
 				}
 			}
 			else {
@@ -371,8 +414,7 @@ private:
 		}
 
 		// Update was done.
-		VariableWatchItemData *data = GetItemData(parent);
-		data->Updated();
+		parentData->Updated();
 	}
 
 private:
@@ -484,13 +526,8 @@ private:
 	}
 
 private:
-	struct UpdateData {
-		int updateCount;
-		wxTreeItemId item;
-		LuaVarList vars;
-		bool isExpanded;
-	};
-	std::queue<UpdateData> m_queue;
+	typedef std::set<VariableWatch *> InstanceSet;
+	static InstanceSet ms_aliveInstanceSet;
 
 	bool m_isLabelEditable;
 	bool m_isEvalLabels;
@@ -498,6 +535,9 @@ private:
 
 	DECLARE_EVENT_TABLE();
 };
+
+/// Alive instance set.
+VariableWatch::InstanceSet VariableWatch::ms_aliveInstanceSet;
 
 BEGIN_EVENT_TABLE(VariableWatch, wxTreeListCtrl)
 	EVT_SIZE(VariableWatch::OnSize)
@@ -510,24 +550,48 @@ END_EVENT_TABLE()
 
 /*-----------------------------------------------------------------*/
 /**
+ * @brief 
+ */
+struct OneVariableWatchView::CallbackHandler {
+	explicit CallbackHandler(VariableWatch *watch,
+					const LuaVarListCallback &callback)
+		: m_watch(watch), m_callback(callback) {
+	}
+	int operator()(const Command &command, const LuaVarList &vars) {
+		if (m_callback(command, vars) != 0) {
+			return -1;
+		}
+
+		// Expand the item, if it has some children.
+		wxTreeItemIdValue cookie;
+		wxTreeItemId item = m_watch->GetFirstChild(m_watch->GetRootItem(), cookie);
+		if (item.IsOk()) {
+			m_watch->Expand(item);
+		}
+		return 0;
+	}
+private:
+	VariableWatch *m_watch;
+	LuaVarListCallback m_callback;
+};
+
+/**
  * @brief Request for the val value evalution.
  */
 struct OneVariableWatchView::VariableRequester {
-	explicit VariableRequester(const wxString &valName) {
+	explicit VariableRequester(VariableWatch **watch,
+							   const wxString &valName)
+		: m_watch(watch) {
 		m_valNameUTF8 = wxConvToUTF8(valName);
 	}
-
 	void operator()(const LuaVarListCallback &callback) {
-		std::string eval = "return ";
-		eval += m_valNameUTF8;
-
 		Mediator::Get()->GetEngine()->EvalToMultiVar(
-			eval,
-			LuaStackFrame(LuaHandle(), 0),
-			callback);
+			"return " + m_valNameUTF8,
+			Mediator::Get()->GetStackFrame(),
+			CallbackHandler(*m_watch, callback));
 	}
-
 private:
+	VariableWatch **m_watch;
 	std::string m_valNameUTF8;
 };
 
@@ -535,23 +599,25 @@ OneVariableWatchView::OneVariableWatchView(wxWindow *parent,
 										   const wxString &valName,
 										   const wxPoint &pos,
 										   const wxSize &size)
-	: wxFrame(parent, wxID_ANY, _T(""), pos, size
+	: wxFrame(parent, wxID_ANY, _T(""), pos, wxSize(800, 800)
 		, wxFRAME_TOOL_WINDOW | wxRESIZE_BORDER
 		| wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT)
 	, m_wasInMouse(false) {
 
-	m_watch = new VariableWatch(
+	VariableWatch *watch;
+	watch = new VariableWatch(
 		this, wxID_ANY,
 		true, true, false, true,
-		VariableRequester(valName));
-	m_watch->AppendItem(
-		m_watch->GetRootItem(), valName, -1, -1,
+		VariableRequester(&watch, valName));
+	watch->AppendItem(
+		watch->GetRootItem(), valName, -1, -1,
 		new VariableWatchItemData(LuaVar()));
-	m_watch->BeginUpdating();
-	SetHandler(m_watch);
+	watch->BeginUpdating();
+	SetHandler(watch);
+	m_watch = watch;
 
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
-	sizer->Add(m_watch, 1, wxEXPAND);
+	sizer->Add(watch, 1, wxEXPAND);
 	SetSizer(sizer);
 	sizer->SetSizeHints(this);
 }

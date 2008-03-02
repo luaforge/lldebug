@@ -205,7 +205,7 @@ struct EvalResponseHandler {
 		: m_view(view), m_isVar(isVar) {
 	}
 
-	void operator()(const net::Command &command, const LuaVarList &vars) {
+	int operator()(const net::Command &command, const LuaVarList &vars) {
 		bool successed = false;
 
 		if (vars.empty()) {
@@ -228,10 +228,13 @@ struct EvalResponseHandler {
 			}
 		}
 
-		// Increment update count for WatchView and other, if need.
-		if (successed) {
-			Mediator::Get()->GetEngine()->ForceUpdateSource();
+		if (!successed) {
+			return -1;
 		}
+
+		// Increment update count for WatchView and other, if need.
+		Mediator::Get()->GetEngine()->ForceUpdateSource();
+		return 0;
 	}
 	};
 

@@ -607,11 +607,14 @@ struct RequestSourceHandler {
 		: m_view(view), m_event(event) {
 	}
 
-	void operator()(const Command &command, const Source &source) {
-		if (!source.GetKey().empty()) {
-			m_view->CreatePage(source);
-			m_view->AddPendingEvent(m_event);
+	int operator()(const Command &command, const Source &source) {
+		if (source.GetKey().empty()) {
+			return -1;
 		}
+
+		m_view->CreatePage(source);
+		m_view->AddPendingEvent(m_event);
+		return 0;
 	}
 };
 

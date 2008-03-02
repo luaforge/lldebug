@@ -35,6 +35,34 @@ namespace visual {
 class VariableWatch;
 
 /**
+ * @brief Show contents of the one specific variable.
+ */
+class OneVariableWatchView : public wxFrame {
+public:
+	explicit OneVariableWatchView(wxWindow *parent, const wxString &valName,
+								  const wxPoint &pos, const wxSize &size);
+	virtual ~OneVariableWatchView();
+
+	/// Was the mouse pointer in this control ?
+	bool WasInMouse() const {
+		return m_wasInMouse;
+	}
+
+private:
+	struct VariableRequester;
+	struct CallbackHandler;
+	void SetHandler(wxWindow *target);
+	void OnMotion(wxMouseEvent &event);
+
+private:
+	VariableWatch *m_watch;
+	bool m_wasInMouse;
+
+	DECLARE_EVENT_TABLE();
+};
+
+
+/**
  * @brief Control that shows contents of variables like global or etc.
  */
 class WatchView : public wxPanel {
@@ -65,33 +93,6 @@ private:
 
 	DECLARE_EVENT_TABLE();
 };
-
-/**
- * @brief Show contents of the one specific variable.
- */
-class OneVariableWatchView : public wxFrame {
-public:
-	explicit OneVariableWatchView(wxWindow *parent, const wxString &valName,
-								  const wxPoint &pos, const wxSize &size);
-	virtual ~OneVariableWatchView();
-
-	/// Was the mouse pointer in this control ?
-	bool WasInMouse() const {
-		return m_wasInMouse;
-	}
-
-private:
-	struct VariableRequester;
-	void SetHandler(wxWindow *target);
-	void OnMotion(wxMouseEvent &event);
-
-private:
-	VariableWatch *m_watch;
-	bool m_wasInMouse;
-
-	DECLARE_EVENT_TABLE();
-};
-
 
 } // end of namespace visual
 } // end of namespace lldebug

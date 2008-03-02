@@ -65,7 +65,7 @@ public:
 	void ProcessAllRemoteCommands();
 
 	/// Get the RemoteEngine object.
-	shared_ptr<net::RemoteEngine> GetEngine() {
+	shared_ptr<RemoteEngine> GetEngine() {
 		return m_engine;
 	}
 
@@ -139,7 +139,7 @@ private:
 private:
 	static Mediator *ms_instance;
 
-	shared_ptr<net::RemoteEngine> m_engine;
+	shared_ptr<RemoteEngine> m_engine;
 	MainFrame *m_frame;
 	BreakpointList m_breakpoints;
 	SourceManager m_sourceManager;

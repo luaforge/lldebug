@@ -77,7 +77,7 @@ END_EVENT_TABLE()
 
 MainFrame::MainFrame()
 	: wxFrame(NULL, ID_MAINFRAME
-		, wxT("Lua Debugger")
+		, wxT("lldebug frame")
 		, wxDefaultPosition, wxSize(800, 600)
 		, wxCAPTION | wxRESIZE_BORDER | wxSYSTEM_MENU | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
 	, m_auiManager(NULL) {

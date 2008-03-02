@@ -37,7 +37,7 @@ Mediator *Mediator::ms_instance = NULL;
 
 Mediator::Mediator()
 	: m_engine(new RemoteEngine), m_frame(NULL)
-	, m_breakpoints(m_engine.get()), m_sourceManager(m_engine.get())
+	, m_breakpoints(m_engine), m_sourceManager(m_engine)
 	, m_updateCount(0) {
 }
 
@@ -122,7 +122,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 	// Process remote commands.
 	switch (command.GetType()) {
 	case REMOTECOMMANDTYPE_END_CONNECTION:
-		m_breakpoints = BreakpointList(&*m_engine);
+		m_breakpoints = BreakpointList(m_engine);
 //		m_sourceManager = SourceManager(&*m_engine);
 		m_stackFrame = LuaStackFrame();
 		m_updateCount = 0;
@@ -200,7 +200,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 
 	case REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST:
 		{
-			BreakpointList bps(m_engine.get());
+			BreakpointList bps(m_engine);
 			command.GetData().Get_ChangedBreakpointList(bps);
 			m_breakpoints = bps;
 

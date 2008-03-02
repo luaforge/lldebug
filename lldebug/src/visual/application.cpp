@@ -41,7 +41,7 @@ namespace visual {
 
 Application::Application()
 	: m_mediator(new Mediator) {
-	SetAppName(wxT("Lua Debugger"));
+	SetAppName(wxT("lldebug frame"));
 }
 
 Application::~Application() {
@@ -51,8 +51,6 @@ Application::~Application() {
 	}
 }
 
-//wxFile file;
-
 bool Application::OnInit() {
 	std::string hostName = (this->argc >= 2
 		? wxConvToUTF8(this->argv[1])
@@ -60,16 +58,6 @@ bool Application::OnInit() {
 	std::string portName = (this->argc >= 3
 		? wxConvToUTF8(this->argv[2])
 		: "51123");
-
-	/*wxString str;
-	str.Printf(_T("%s_____%s.tmp"), this->argv[1], this->argv[2]);
-	wxFileName filename(wxStandardPaths().GetTempDir(), str);
-	filename.MakeAbsolute();
-	if (!file.Create(filename.GetFullPath(), true, wxS_IXUSR | wxS_IXGRP | wxS_IXOTH)) {
-		return false;
-	}*/
-
-	//::wxExecute(_T("..\\debug\\test.exe"));
 
 	// Start connecting.
 	if (m_mediator->Initialize(hostName, portName) != 0) {
@@ -79,11 +67,10 @@ bool Application::OnInit() {
 	MainFrame* frame = new MainFrame();
 	SetTopWindow(frame);
 	frame->Show();
-
-	wxLogWindow *log = new wxLogWindow(frame, _("Logger"), true);
-	wxLog::SetActiveTarget(log);
-	
 	m_mediator->SetMainFrame(frame);
+
+	wxLogWindow *log = new wxLogWindow(frame, _("lldebug logger"), true);
+	wxLog::SetActiveTarget(log);
     return true;
 }
 
