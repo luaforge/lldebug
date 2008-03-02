@@ -344,21 +344,20 @@ scoped_lua::scoped_lua(Context *ctx, lua_State *L, int n, int npop) {
 }
 
 void scoped_lua::init(Context *ctx, lua_State *L, int n, int npop) {
+	if (ctx == NULL) {
+		ctx = Context::Find(L);
+	}
+
+	if (ctx != NULL) {
+		m_isOldEnabled = ctx->IsDebugEnabled();
+		ctx->SetDebugEnable(false);
+	}
+
 	m_L = L;
 	m_n = n;
 	m_npop = npop;
 	m_ctx = ctx;
 	m_top = lua_gettop(L);
-	
-	if (ctx == NULL) {
-		ctx = Context::Find(L);
-		if (ctx != NULL) {
-			m_isOldEnabled = ctx->IsDebugEnabled();
-			ctx->SetDebugEnable(false);
-			
-			m_ctx = ctx;
-		}
-	}
 }
 
 scoped_lua::~scoped_lua() {

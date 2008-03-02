@@ -195,8 +195,13 @@ int Context::CreateDebuggerFrame() {
 		return -1;
 	}*/
 
-	if (m_engine->StartContext("localhost", "51123", 10) != 0) {
-		return -1;
+	// Try to connect the debug frame (At least, wait for 5 seconds).
+	if (m_engine->StartContext("localhost", "51123", 5) != 0) {
+		std::cerr
+			<< "lldebug doesn't work correctly, "
+			   "because the debug frame was not found."
+			<< std::endl;
+		SetDebugEnable(false);
 	}
 
 	return 0;
@@ -856,13 +861,13 @@ public:
 
 	static int auxresume (lua_State *L, lua_State *co, int narg) {
 		Context *ctx = Context::Find(L);
-		int status;
+
 		if (!lua_checkstack(co, narg))
 			luaL_error(L, "too many arguments to resume");
 		lua_xmove(L, co, narg);
 
 		ctx->BeginCoroutine(co);
-		status = lua_resume(co, narg);
+		int status = lua_resume(co, narg);
 		ctx->EndCoroutine(co);
 
 		if (status == 0 || status == LUA_YIELD) {
@@ -880,9 +885,9 @@ public:
 
 	static int coresume(lua_State *L) {
 		lua_State *co = lua_tothread(L, 1);
-		int r;
+
 		luaL_argcheck(L, co, 1, "coroutine expected");
-		r = auxresume(L, co, lua_gettop(L) - 1);
+		int r = auxresume(L, co, lua_gettop(L) - 1);
 		if (r < 0) {
 			lua_pushboolean(L, 0);
 			lua_insert(L, -2);
@@ -891,7 +896,7 @@ public:
 		else {
 			lua_pushboolean(L, 1);
 			lua_insert(L, -(r + 1));
-			return r + 1;  /* return true + `resume' returns */
+			return (r + 1);  /* return true + `resume' returns */
 		}
 	}
 
@@ -908,7 +913,7 @@ public:
 
 int Context::LuaInitialize(lua_State *L) {
 	lua_atpanic(L, LuaImpl::atpanic);
-	lua_register(L, "lldebug_atpanic", LuaImpl::atpanic);
+//	lua_register(L, "lldebug_atpanic", LuaImpl::atpanic);
 	luaopen_lldebug(L);
 	return 0;
 }
@@ -974,6 +979,7 @@ int Context::LuaOpenBase(lua_State *L) {
 
 void Context::LuaOpenLibs(lua_State *L) {
 	scoped_lock lock(m_mutex);
+	scoped_lua scoped(this, L);
 
 	static const luaL_reg libs[] = {
 #ifdef LUA_COLIBNAME
@@ -1229,6 +1235,7 @@ struct eval_string_reader {
 
 int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 	scoped_lock lock(m_mutex);
+	scoped_lua scoped(this, L);
 
 	if (str.empty()) {
 		return 0;
