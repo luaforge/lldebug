@@ -30,6 +30,7 @@
 #include "context/luautils.h"
 
 namespace lldebug {
+namespace context {
 
 /**
  * @brief variable finder
@@ -119,36 +120,25 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 			}
 		}
 
-		if (checkEnv || forceCreate) {
+		if (checkEnv) {
 			// Check the environment of the function.
 			lua_getfenv(L, -1); // Push the environment table.
 			int tableIdx = lua_gettop(L);
 			
-			if (checkEnv) {
-				lua_pushnil(L); // first key
-				for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
-					// key index: -2, value index: -1
-					std::string name = LuaToStringFast(L, -2);
-					if (target == name) {
-						lua_pop(L, 1); // Eliminate the old value.
-						lua_pushvalue(L, valueIdx);
-						lua_settable(L, -3);
-						lua_pop(L, 2);
-						return 0;
-					}
-				
-					// eliminate the value index and pushed value and key index
-					lua_pop(L, 1);
+			lua_pushnil(L); // first key
+			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
+				// key index: -2, value index: -1
+				std::string name = LuaToStringFast(L, -2);
+				if (target == name) {
+					lua_pop(L, 1); // Eliminate the old value.
+					lua_pushvalue(L, valueIdx);
+					lua_settable(L, -3);
+					lua_pop(L, 2);
+					return 0;
 				}
-			}
-			
-			// Force create
-			if (forceCreate) {
-				lua_pushlstring(L, target.c_str(), target.length());
-				lua_pushvalue(L, valueIdx);
-				lua_settable(L, tableIdx);
-				lua_pop(L, 2);
-				return 0;
+				
+				// eliminate the value index and pushed value and key index
+				lua_pop(L, 1);
 			}
 			
 			lua_pop(L, 1); // Eliminate the environment table.
@@ -157,7 +147,16 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 		lua_pop(L, 1); // Eliminate the local function.
 	}
 
+	// Force create
+	if (forceCreate) {
+		lua_pushlstring(L, target.c_str(), target.length());
+		lua_pushvalue(L, valueIdx);
+		lua_settable(L, LUA_GLOBALSINDEX);
+		return 0;
+	}
+
 	return -1;
 }
 
+} // end of namespace context
 } // end of namespace lldebug

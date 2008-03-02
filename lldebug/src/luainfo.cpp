@@ -87,10 +87,10 @@ LuaVar::~LuaVar() {
 #ifdef LLDEBUG_CONTEXT
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
 	: m_lua(lua) {
-	m_name = ConvToUTF8(name);
+	m_name = context::ConvToUTF8(name);
 
 	lua_State *L = lua.GetState();
-	m_value = ConvToUTF8(LuaToStringForVarValue(L, valueIdx));
+	m_value = context::ConvToUTF8(context::LuaToStringForVarValue(L, valueIdx));
 	m_valueType = lua_type(L, valueIdx);
 	m_tableIdx = RegisterTable(L, valueIdx);
 	m_hasFields = CheckHasFields(L, valueIdx);
@@ -100,8 +100,8 @@ LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
 			   const std::string &error)
 	: m_lua(lua), m_valueType(LUA_TNONE), m_tableIdx(-1)
 	, m_hasFields(false) {
-	m_name = ConvToUTF8(name);
-	m_value = ConvToUTF8(error);
+	m_name = context::ConvToUTF8(name);
+	m_value = context::ConvToUTF8(error);
 }
 
 bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {
@@ -135,14 +135,14 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 
 	// OriginalObj couldn't be handled correctly.
 	if (lua_islightuserdata(L, valueIdx)
-		&& lua_topointer(L, valueIdx) == &LuaAddressForInternalTable) {
+		&& lua_topointer(L, valueIdx) == &context::LuaAddressForInternalTable) {
 		return -1;
 	}
 
 	int top = lua_gettop(L);
 
 	// Try to do "table = registry[&OriginalObj]"
-	lua_pushlightuserdata(L, (void *)&LuaAddressForInternalTable);
+	lua_pushlightuserdata(L, (void *)&context::LuaAddressForInternalTable);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	if (!lua_istable(L, -1)) {
 		lua_pop(L, 1);
@@ -162,7 +162,7 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 		lua_rawseti(L, -2, 0);
 
 		// registry[&OriginalObj] = newtable
-		lua_pushlightuserdata(L, (void *)&LuaAddressForInternalTable);
+		lua_pushlightuserdata(L, (void *)&context::LuaAddressForInternalTable);
 		lua_pushvalue(L, -2);
 		lua_rawset(L, LUA_REGISTRYINDEX);
 	}
@@ -225,7 +225,7 @@ int LuaVar::PushTable(lua_State *L) const {
 	}
 
 	// push registry[&OriginalObj][m_tableIdx]
-	lua_pushlightuserdata(L, (void *)&LuaAddressForInternalTable);
+	lua_pushlightuserdata(L, (void *)&context::LuaAddressForInternalTable);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, m_tableIdx);
 	lua_remove(L, -2);
@@ -253,4 +253,4 @@ LuaBacktrace::LuaBacktrace() {
 LuaBacktrace::~LuaBacktrace() {
 }
 
-}
+} // end of namespace lldebug

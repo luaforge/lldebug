@@ -30,6 +30,7 @@
 #include "context/luaiterate.h"
 
 namespace lldebug {
+namespace context {
 
 const int LuaAddressForInternalTable = 0;
 
@@ -372,4 +373,5 @@ scoped_lua::~scoped_lua() {
 	}
 }
 
+} // end of namespace context
 } // end of namespace lldebug

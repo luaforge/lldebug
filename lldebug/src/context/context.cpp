@@ -55,6 +55,7 @@
 #define DUMMY_FUNCNAME "__LLDEBUG_DUMMY_TEMPORARY_FUNCTION_NAME__"
 
 namespace lldebug {
+namespace context {
 
 /**
  * @brief lua_State*からコンテキストを取得できるようにするクラスです。
@@ -1355,4 +1356,5 @@ LuaVar Context::LuaEvalToVar(const std::string &eval,
 	}
 }
 
+} // end of namespace context
 } // end of namespace lldebug

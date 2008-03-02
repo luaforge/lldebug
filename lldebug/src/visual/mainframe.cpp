@@ -146,7 +146,6 @@ void MainFrame::CreateGUIControls() {
 	SetMenuBar(menuBar);
 
 	CreateStatusBar(2, wxNO_BORDER);
-	//CreateStatusBar(2, wxSIMPLE_BORDER);
 
 	m_auiManager->Update();
 	SetIcon(wxNullIcon);

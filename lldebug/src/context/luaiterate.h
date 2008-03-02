@@ -32,6 +32,7 @@
 #include "context/luautils.h"
 
 namespace lldebug {
+namespace context {
 
 /// Find the local value, and push it if find.
 int find_localvalue(lua_State *L, int level, const std::string &target,
@@ -206,6 +207,7 @@ int iterate_locals(Fn &callback, lua_State *L, int level,
 	return 0;
 }
 
+} // end of namespace context
 } // end of namespace lldebug
 
 #endif

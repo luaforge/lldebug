@@ -27,9 +27,10 @@
 #ifndef __LLDEBUG_CODECONV_H__
 #define __LLDEBUG_CODECONV_H__
 
-#include "lldebug_encoding.h"
+#include "lldebug.h"
 
 namespace lldebug {
+namespace context {
 
 /// Set the encoding type.
 int SetEncoding(lldebug_Encoding encoding);
@@ -43,6 +44,7 @@ std::string ConvToUTF8(const std::string &input);
 /// Convert string from UTF8 encoding to current one.
 std::string ConvFromUTF8(const std::string &input);
 
+} // end of namespace context
 } // end of namespace lldebug
 
 #endif

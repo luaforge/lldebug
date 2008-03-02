@@ -28,7 +28,7 @@ int init_state(lua_State *L) {
 	lldebug_setencoding(LLDEBUG_ENCODING_SJIS); //ISO2022JP);
 	luaL_openlibs(L);
 
-/*	lua_getfield(L, LUA_GLOBALSINDEX, "package");
+	lua_getfield(L, LUA_GLOBALSINDEX, "package");
 	int package = lua_gettop(L);
 
 	lua_getfield(L, package, "path");
@@ -41,7 +41,7 @@ int init_state(lua_State *L) {
 	lua_concat(L, 2);
 	lua_setfield(L, package, "cpath");
 
-	lua_pop(L, 1);*/
+	lua_pop(L, 1);
 
 	for (int i = 0; s_dirlist[i] != NULL; ++i) {
 		char buffer[128];

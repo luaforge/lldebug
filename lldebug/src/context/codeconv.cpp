@@ -36,6 +36,7 @@
 #endif
 
 namespace lldebug {
+namespace context {
 
 /// The current encoding.
 static lldebug_Encoding s_lldebugEncoding = LLDEBUG_ENCODING_UTF8;
@@ -44,23 +45,23 @@ lldebug_Encoding GetEncoding() {
 	return s_lldebugEncoding;
 }
 
-#if defined(LLDEBUG_USE_ICU)
+#if defined(LLDEBUG_USE_ICU) || defined(LLDEBUG_USE_ICONV)
 /// Encoding name.
-static std::string s_icuEncoding = "";
+static std::string s_encodingName = "";
 
 int SetEncoding(lldebug_Encoding encoding) {
 	switch (encoding) {
 	case LLDEBUG_ENCODING_UTF8:
-		s_icuEncoding = "";
+		s_encodingName = "";
 		break;
 	case LLDEBUG_ENCODING_SJIS:
-		s_icuEncoding = "sjis";
+		s_encodingName = "sjis";
 		break;
 	case LLDEBUG_ENCODING_EUC:
-		s_icuEncoding = "euc-jp";
+		s_encodingName = "euc-jp";
 		break;
 	case LLDEBUG_ENCODING_ISO2022JP:
-		s_icuEncoding = "iso2022jp";
+		s_encodingName = "iso2022jp";
 		break;
 	default:
 		return -1;
@@ -69,9 +70,11 @@ int SetEncoding(lldebug_Encoding encoding) {
 	s_lldebugEncoding = encoding;
 	return 0;
 }
+#endif
 
+#if defined(LLDEBUG_USE_ICU)
 std::string ConvToUTF8(const std::string &input) {
-	if (s_icuEncoding.empty() || input.empty()) {
+	if (s_encodingName.empty() || input.empty()) {
 		return input;
 	}
 	UErrorCode error = U_ZERO_ERROR;
@@ -80,7 +83,7 @@ std::string ConvToUTF8(const std::string &input) {
 	{
 		// Make input string converter.
 		UConverter* inputConverter = ucnv_open(
-			s_icuEncoding.c_str(),
+			s_encodingName.c_str(),
 			&error);
 		assert(U_SUCCESS(error));
 
@@ -164,7 +167,7 @@ std::string ConvFromUTF8(const std::string &input) {
 	{
 		// Make utf8 string converter.
 		UConverter* outputConverter = ucnv_open(
-			s_icuEncoding.c_str(),
+			s_encodingName.c_str(),
 			&error);
 		assert(U_SUCCESS(error));
 
@@ -186,6 +189,45 @@ std::string ConvFromUTF8(const std::string &input) {
 
 		return std::string(&output[0], outputPtr - &output[0]);
 	}
+}
+
+#elif defined(LLDEBUG_USE_ICONV)
+static std::string convert(const std::string &input,
+						   const char *fromEncoding,
+						   const char *toEncoding) {
+	iconv_t cd = iconv_open(toEncoding, fromEncoding);
+	if (cd == (iconv_t)-1) {
+		return input; // Return the input.
+	}
+
+	char *inputPtr = const_cast<char *>(input.c_str());
+	size_t inputLen = input.length();
+	std::vector<char> output(input.length());
+
+	size_t resultLen;
+	do {
+		// Set the size twice.
+		output.resize(output.size() * 2);
+		size_t outputLen = output.size();
+
+		// Do convert.
+		resultLen = iconv(cd, &inputPtr, &inputLen, &output[0], &outputLen);
+	} while (resultLen == -1 && errno == E2BIG);
+
+	if (resultLen == -1) {
+		return input; // Return the input.
+	}
+
+	iconv_close(cd);
+	return std::string(&output[0], resultLen);
+}
+
+std::string ConvToUTF8(const std::string &input) {
+	return convert(input, s_encodingName.c_str(), "utf-8");
+}
+
+std::string ConvFromUTF8(const std::string &input) {
+	return convert(input, "utf-8", s_encodingName.c_str());
 }
 
 #elif defined(LLDEBUG_USE_BABEL)
@@ -251,5 +293,5 @@ std::string ConvFromUTF8(const std::string &input) {
 }
 #endif
 
+} // end of namespace context
 } // end of namespace lldebug
-

@@ -27,7 +27,7 @@
 #ifndef __LLDEBUG_ECHOSTREAM__
 #define __LLDEBUG_ECHOSTREAM__
 
-#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/udp.hpp>
 
 #include <iostream>
 
@@ -53,7 +53,7 @@ public:
 	}
 
 	/// Add the echo request to the queue.
-	void add_request(shared_ptr<boost::asio::ip::tcp::socket> sock,
+	void add_request(const boost::asio::ip::udp::endpoint &endpoint,
 					 const std::vector<char> &buffer);
 
 private:
@@ -64,16 +64,16 @@ private:
 
 	struct request;
 	void add_request(shared_ptr<request> req);
-	int get_request();
+	shared_ptr<request> get_request();
 
 private:
 	static echo_thread ms_thread;
 	shared_ptr<boost::thread> m_thread;
 	boost::asio::io_service m_service;
+	boost::asio::ip::udp::socket m_socket;
 	mutex m_mutex;
 	condition m_cond;
 	bool m_is_exit_thread;
-	shared_ptr<request> m_current;
 	std::queue<shared_ptr<request> > m_request_queue;
 };
 
@@ -102,38 +102,33 @@ public:
 			using namespace boost::asio::ip;
 			boost::asio::io_service &service =
 				echo_thread::get_instance().get_service();
-			shared_ptr<tcp::socket> sock(new tcp::socket(service));
 
-			tcp::resolver resolver(service);
-			tcp::resolver_query query(tcp::v4(), hostname, port);
-			tcp::resolver_iterator it;
+			udp::resolver resolver(service);
+			udp::resolver_query query(hostname, port);
+			udp::resolver_iterator it;
 			for (it = resolver.resolve(query); 
-				it != tcp::resolver_iterator();
+				it != udp::resolver_iterator();
 				++it) {
-				boost::system::error_code error;
-				if (!sock->connect(*it, error)) {
-					break;
-				}
+				break;
 			}
 
 			// Not found.
-			if (it == tcp::resolver_iterator()) {
+			if (it == udp::resolver_iterator()) {
 				return false;
 			}
 
-			m_socket = sock;
+			m_endpoint = *it;
 			return true;
 		}
 		catch (std::exception &) {
-			return false;
 		}
-		
-		return true;
+
+		return false;
 	}
 
 	/// Is the tcp connection opened ?
 	bool is_open() const {
-		return (m_socket != NULL);
+		return (m_endpoint != boost::asio::ip::udp::endpoint());
 	}
 
 protected:
@@ -184,7 +179,7 @@ protected:
 
 	/// Flush the data.
 	int flush_internal(bool force) {
-		if (m_socket == NULL) {
+		if (!is_open()) {
 			m_buffer.clear();
 			return -1;
 		}
@@ -194,13 +189,13 @@ protected:
 		}
 
 		// Do echo.
-		echo_thread::get_instance().add_request(m_socket, m_buffer);
+		echo_thread::get_instance().add_request(m_endpoint, m_buffer);
 		m_buffer.clear();
 		return 0;
 	}
 
 private:
-	shared_ptr<boost::asio::ip::tcp::socket> m_socket;
+	boost::asio::ip::udp::endpoint m_endpoint;
 	std::vector<Ch> m_buffer;
 	bool m_prev_cr;
 };

@@ -32,6 +32,7 @@
 static lldebug_InitState s_callbackInitState = NULL;
 
 using namespace lldebug;
+using context::Context;
 
 lldebug_InitState lldebug_setinitstate(lldebug_InitState fn) {
 	lldebug_InitState old = s_callbackInitState;
@@ -128,9 +129,9 @@ void lldebug_openlibs(lua_State *L) {
 }
 
 int lldebug_setencoding(lldebug_Encoding encoding) {
-	return lldebug::SetEncoding(encoding);
+	return lldebug::context::SetEncoding(encoding);
 }
 
 lldebug_Encoding lldebug_getencoding() {
-	return lldebug::GetEncoding();
+	return lldebug::context::GetEncoding();
 }

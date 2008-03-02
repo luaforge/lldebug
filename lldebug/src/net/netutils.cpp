@@ -47,7 +47,7 @@ static std::ostream &operator<<(std::ostream &os, const Command &command) {
 
 void EchoCommand(const Command &command) {
 #if 1 //ndef NDEBUG
-	static echo_ostream echo("localhost");
+	echo_ostream echo("localhost");
 
 	if (echo.is_open()) {
 		echo << command << std::endl;

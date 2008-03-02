@@ -39,12 +39,13 @@ using namespace boost::asio::ip;
 echo_thread echo_thread::ms_thread;
 
 struct echo_thread::request {
-	shared_ptr<tcp::socket> socket;
+	udp::endpoint endpoint;
 	std::vector<char> buffer;
 };
 
 echo_thread::echo_thread()
-	: m_is_exit_thread(false) {
+	: m_is_exit_thread(false)
+	, m_socket(m_service, udp::endpoint(udp::v4(), 0)) {
 }
 
 echo_thread::~echo_thread() {
@@ -57,13 +58,12 @@ echo_thread::~echo_thread() {
 	}
 }
 
-void echo_thread::add_request(shared_ptr<tcp::socket> sock,
+void echo_thread::add_request(const udp::endpoint &endpoint,
 							  const std::vector<char> &buffer) {
 	shared_ptr<request> req(new request);
-	req->socket = sock;
+	req->endpoint = endpoint;
 	req->buffer = buffer;
-	req->buffer.push_back('\r');
-	req->buffer.push_back('\n');
+	req->buffer.push_back(0);
 
 	add_request(req);
 }
@@ -72,10 +72,8 @@ void echo_thread::add_request(shared_ptr<tcp::socket> sock,
 void echo_thread::exit_thread() {
 	scoped_lock lock(m_mutex);
 	
-	if (m_current != NULL) {
-		m_current->socket->close();
-	}
 	m_is_exit_thread = true;
+	m_socket.close();
 	m_cond.notify_all();
 }
 
@@ -91,7 +89,7 @@ void echo_thread::add_request(shared_ptr<request> req) {
 	}
 
 	// Erase the old request, if any.
-	while (m_request_queue.size() > 50) {
+	while (m_request_queue.size() > 100) {
 		m_request_queue.pop();
 	}
 
@@ -100,49 +98,45 @@ void echo_thread::add_request(shared_ptr<request> req) {
 }
 
 /// Get a request from the queue.
-int echo_thread::get_request() {
+shared_ptr<echo_thread::request> echo_thread::get_request() {
 	scoped_lock lock(m_mutex);
 
-	m_current.reset();
 	if (m_is_exit_thread) {
-		return -1;
+		return shared_ptr<request>();
 	}
 	
 	while (m_request_queue.empty()) {
 		if (m_is_exit_thread) {
-			return -1;
+			return shared_ptr<request>();
 		}
 
 		m_cond.wait(lock);
 	}
 
-	m_current = m_request_queue.front();
+	shared_ptr<request> req = m_request_queue.front();
 	m_request_queue.pop();
-	return 0;
+	return req;
 }
 
 /// Thread function.
 void echo_thread::thread_main() {
 	for (;;) {
-		if (get_request() != 0) {
+		shared_ptr<request> req = get_request();
+		if (req == NULL) {
 			break;
 		}
 
 		// Process this request.
 		try {
-			size_t size = 0;
-			while (size < m_current->buffer.size()) {
-				size += m_current->socket->write_some(
-					boost::asio::buffer(&m_current->buffer[size], m_current->buffer.size() - size));
-			}
+			m_socket.send_to(
+				boost::asio::buffer(req->buffer),
+				req->endpoint);
 
-			size = 0;
-			while (size < m_current->buffer.size()) {
-				size += m_current->socket->read_some(
-					boost::asio::buffer(&m_current->buffer[size], m_current->buffer.size() - size));
-			}
+			m_socket.receive_from(
+				boost::asio::buffer(req->buffer),
+				req->endpoint);
 		}
-		catch (...) {
+		catch (std::exception &) {
 			/* ignore */
 		}
 	}

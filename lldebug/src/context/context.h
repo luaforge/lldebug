@@ -32,6 +32,7 @@
 #include "net/command.h"
 
 namespace lldebug {
+namespace context {
 
 class MainFrame;
 
@@ -184,7 +185,7 @@ private:
 	std::string m_rootFileKey;
 };
 
-}
+} // end of namespace context
+} // end of namespace lldebug
 
 #endif
-

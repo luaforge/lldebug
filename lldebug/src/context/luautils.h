@@ -28,6 +28,7 @@
 #define __LLDEBUG_LUAUTILS_H__
 
 namespace lldebug {
+namespace context {
 
 class Context;
 
@@ -67,6 +68,7 @@ std::string LuaMakeFuncName(lua_Debug *ar);
 
 int luaopen_lldebug(lua_State *L);
 
+} // end of namespace context
 } // end of namespace lldebug
 
 #endif

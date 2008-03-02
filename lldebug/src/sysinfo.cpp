@@ -227,7 +227,7 @@ static string_array split(std::istream &stream) {
 	// Split each line.
 	while (!stream.eof()) {
 		stream.getline(buffer, sizeof(buffer));
-		array.push_back(ConvToUTF8(buffer));
+		array.push_back(context::ConvToUTF8(buffer));
 	}
 
 	return array;
@@ -303,7 +303,7 @@ int SourceManager::Save(const std::string &key, const string_array &source) {
 			fp << std::endl;
 		}
 
-		fp << ConvFromUTF8(line);
+		fp << context::ConvFromUTF8(line);
 	}
 
 	return 0;

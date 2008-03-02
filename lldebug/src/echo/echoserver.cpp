@@ -24,23 +24,28 @@
  * SUCH DAMAGE.
  */
 
-#define _WIN32_WINNT 0x500
-#include "precomp.h"
-#include "net/echostream.h"
-
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/read_until.hpp>
-#include <boost/asio/placeholders.hpp>
-#include <boost/asio/streambuf.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/thread.hpp>
 #include <boost/bind.hpp>
+
+#define BOOST_SYSTEM_NO_LIB
+#ifdef BOOST_WINDOWS
+	#define NOMINMAX
+	#define _WIN32_WINDOWS 0x400
+#endif
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/placeholders.hpp>
 #include <iostream>
 
-namespace lldebug {
-namespace net {
+typedef boost::recursive_mutex mutex;
+typedef boost::recursive_mutex::scoped_lock scoped_lock;
 
 using namespace boost::asio::ip;
 
 static mutex s_consoleMutex;
+
 
 #ifdef BOOST_WINDOWS
 static const char *title = "echo server";
@@ -55,12 +60,11 @@ static void initialize() {
 #endif
 
 /// Write str with newline.
-static void WriteLine(const std::string &str) {
+static void WriteLine(const char *str, size_t length) {
 	scoped_lock lock(s_consoleMutex);
-	std::cout << str << std::endl;
+	std::cout.write(str, (std::streamsize)length) << std::endl;
 
-#ifdef BOOST_WINDOWS_API
-	{
+#ifdef BOOST_WINDOWS
 	if (consoleWindow == NULL) {
 		consoleWindow = FindWindowA(NULL, title);
 	}
@@ -69,56 +73,7 @@ static void WriteLine(const std::string &str) {
 		SetWindowPos(consoleWindow, HWND_TOP, 0, 0, 0, 0,
 			SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOREPOSITION);
 	}
-	}
 #endif
-}
-
-/// Do new socket session.
-static void Session(shared_ptr<tcp::socket> sock) {
-	try {
-		while (true) {
-			boost::asio::streambuf streamBuf;
-			boost::system::error_code error;
-
-			size_t size = boost::asio::read_until(*sock,
-				streamBuf, "\r\n", error);
-			if (error == boost::asio::error::eof) {
-				break;
-			}
-			else if (error) {
-				throw boost::system::system_error(error);
-			}
-
-			// Use vector as a buffer.
-			// (stringstream split the input texts by the space)
-			std::istream stream(&streamBuf);
-			std::vector<char> vec(size);
-			stream.read(&vec[0], (std::streamsize)vec.size());
-
-			// Create string object to save the instance.
-			std::string str("");
-			if (vec.size() >= 2) {
-				str = std::string(vec.begin(), vec.end() - 2);
-			}
-			WriteLine(str);
-
-			str += "\r\n";
-			sock->write_some(boost::asio::buffer(str), error);
-			if (error == boost::asio::error::eof) {
-				break;
-			}
-			else if (error) {
-				throw boost::system::system_error(error);
-			}
-		}
-	}
-	catch (std::exception &) {
-		//scoped_lock lock(s_consoleMutex);
-	}
-	catch (...) {
-		//scoped_lock lock(s_consoleMutex);
-		//std::cerr << "Unknown exception !!!" << std::endl;
-	}
 }
 
 /// Echo server main.
@@ -127,22 +82,24 @@ static int ServerMain(const std::string &serviceName) {
 
 	try {
 		boost::asio::io_service service;
+		udp::resolver resolver(service);
+		udp::resolver_query query("localhost", serviceName);
+		udp::endpoint endpoint = *resolver.resolve(query);
+	
+		udp::socket sock(service, endpoint);
+		for(;;) {
+			static char data[1024 * 10];
 
-		tcp::resolver resolver(service);
-		tcp::resolver_query query("localhost", serviceName);
-		tcp::endpoint endpoint = *resolver.resolve(query);
-	
-		tcp::acceptor acceptor(service);
-		acceptor.open(endpoint.protocol());
-		acceptor.set_option(tcp::acceptor::reuse_address(true));
-		acceptor.bind(endpoint);
-		acceptor.listen();
-	
-		while (true) {
-			shared_ptr<tcp::socket> sock(new tcp::socket(service));
-			acceptor.accept(*sock);
-		
-			boost::thread th(boost::bind(&Session, sock));
+			udp::endpoint senderPoint;
+			size_t size = sock.receive_from(
+				boost::asio::buffer(data, sizeof(data)),
+				senderPoint);
+
+			WriteLine(data, size);
+
+			sock.send_to(
+				boost::asio::buffer(data, size),
+				senderPoint);
 		}
 	}
 	catch (std::exception &ex) {
@@ -154,9 +111,6 @@ static int ServerMain(const std::string &serviceName) {
 	return 0;
 }
 
-} // end of namespace net
-} // end of namespace lldebug
-
 int main(int argc, char *argv[]) {
 	std::string serviceName = "7";
 
@@ -164,22 +118,5 @@ int main(int argc, char *argv[]) {
 		serviceName = argv[1];
 	}
 
-	return lldebug::ServerMain(serviceName);
-
-/*	boost::asio::io_service service;
-	boost::asio::ip::tcp::socket sock(service);
-
-	boost::asio::ip::tcp::resolver resolver(service);
-	boost::asio::ip::tcp::resolver_query query("localhost", "7");
-	boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
-
-	sock.connect(endpoint);
-
-	while (1) {
-		std::vector<char> vec(1000);
-		sock.write_some(
-			boost::asio::buffer("testtesttesttesttesttesttesttesttesttesttesttest"));
-//		sock.read_some(
-//			boost::asio::buffer(vec));
-	}*/
+	return ServerMain(serviceName);
 }
