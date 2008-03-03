@@ -52,15 +52,12 @@ Application::~Application() {
 }
 
 bool Application::OnInit() {
-	std::string hostName = (this->argc >= 2
+	std::string portName = (this->argc > 1
 		? wxConvToUTF8(this->argv[1])
-		: "localhost");
-	std::string portName = (this->argc >= 3
-		? wxConvToUTF8(this->argv[2])
 		: "51123");
 
 	// Start connecting.
-	if (m_mediator->Initialize(hostName, portName) != 0) {
+	if (m_mediator->Initialize("localhost", portName) != 0) {
 		return false;
 	}
 

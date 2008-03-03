@@ -46,7 +46,7 @@ public:
 	virtual ~ServerConnector();
 
 	/// Start the server connection.
-	void Start(const std::string &serviceName);
+	void Start(unsigned short port);
 
 private:
 	void HandleAccept(const boost::system::error_code &error);

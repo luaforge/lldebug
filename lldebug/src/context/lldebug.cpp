@@ -116,6 +116,30 @@ void lldebug_openlibs(lua_State *L) {
 	ctx->LuaOpenLibs(L);
 }
 
+
+static std::string s_hostname = "localhost";
+static std::string s_servicename = "51123";
+
+void lldebug_setremoteaddress(const char *hostname,
+							  const char *servicename) {
+	if (hostname != NULL) {
+		s_hostname = hostname;
+	}
+	if (servicename != NULL) {
+		s_servicename = servicename;
+	}
+}
+
+void lldebug_getremoteaddress(const char **hostname,
+							  const char **servicename) {
+	if (hostname != NULL) {
+		*hostname = s_hostname.c_str();
+	}
+	if (servicename != NULL) {
+		*servicename = s_servicename.c_str();
+	}
+}
+
 int lldebug_setencoding(lldebug_Encoding encoding) {
 	return lldebug::context::SetEncoding(encoding);
 }

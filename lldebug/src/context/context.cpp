@@ -199,8 +199,13 @@ int Context::CreateDebuggerFrame() {
 		return -1;
 	}*/
 
+	const char *hostName_, *serviceName_;
+	lldebug_getremoteaddress(&hostName_, &serviceName_);
+	std::string hostName = hostName_;
+	std::string serviceName = serviceName_;
+
 	// Try to connect the debug frame (At least, wait for 5 seconds).
-	if (m_engine->StartContext("localhost", "51123", 5) != 0) {
+	if (m_engine->StartContext(hostName, serviceName, 10) != 0) {
 		std::cerr
 			<< "lldebug doesn't work correctly, "
 			   "because the frame was not found."
@@ -1147,6 +1152,12 @@ static int index_for_eval(lua_State *L) {
 		return 1;
 	}
 
+	LuaVarList vars = Context::Find(L)->LuaGetLocals(LuaStackFrame(L, level + 3), true, true, false);
+	for (LuaVarList::iterator it = vars.begin(); it != vars.end(); ++it) {
+		LuaVar &var = *it;
+		printf("%s = %s\n", var.GetName(), var.GetValue());
+	}
+
 	lua_pushnil(L);
 	return 1; // return nil
 }
@@ -1189,23 +1200,32 @@ static int setmetatable_for_eval(lua_State *L) {
 		return 0;
 	}
 
+	// setfenv(0, setmetatable({}, meta))
 	if (lua_getinfo(L, "f", &ar) != 0) {
 		lua_getfenv(L, -1);
+		int envtable = lua_gettop(L);
 		
-		// setmetatable(table(idx=1), table)
 		// table = {__index=func1, __newindex=func2}
 		lua_newtable(L);
 		lua_pushliteral(L, "__index");
 		lua_pushnumber(L, (lua_Number)level);
+		//lua_pushvalue(L, envtable);
 		lua_pushcclosure(L, index_for_eval, 1);
 		lua_rawset(L, -4);
 		lua_pushliteral(L, "__newindex");
 		lua_pushnumber(L, (lua_Number)level);
+		//lua_pushvalue(L, envtable);
 		lua_pushcclosure(L, newindex_for_eval, 1);
 		lua_rawset(L, -4);
 
 		// set metatable
+		lua_newtable(L);
+		lua_insert(L, -2);
 		lua_setmetatable(L, -2);
+
+		// setfenv(0, table);
+		lua_setfenv(L, envtable);
+		
 		lua_pop(L, 2); // eliminate the local function and envtable.
 	}
 	

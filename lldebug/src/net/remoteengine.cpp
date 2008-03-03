@@ -86,7 +86,7 @@ RemoteEngine::~RemoteEngine() {
 	}
 }
 
-int RemoteEngine::StartFrame(const std::string &serviceName) {
+int RemoteEngine::StartFrame(unsigned short port) {
 	// Already connected.
 	if (m_connection != NULL) {
 		return 0;
@@ -94,7 +94,7 @@ int RemoteEngine::StartFrame(const std::string &serviceName) {
 
 	// Start connection.
 	shared_ptr<ServerConnector> connector(new ServerConnector(*this));
-	connector->Start(serviceName);
+	connector->Start(port);
 	return 0;
 }
 
@@ -191,7 +191,7 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 #ifdef LLDEBUG_VISUAL
 		// Start connection.
 		shared_ptr<ServerConnector> connector(new ServerConnector(*this));
-		connector->Start("51123");
+		connector->Start(51123);
 #endif
 	}
 }

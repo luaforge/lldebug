@@ -104,7 +104,7 @@ public:
 				echo_thread::get_instance().get_service();
 
 			udp::resolver resolver(service);
-			udp::resolver_query query(hostname, port);
+			udp::resolver_query query(udp::v4(), hostname, port);
 			udp::resolver_iterator it;
 			for (it = resolver.resolve(query); 
 				it != udp::resolver_iterator();
@@ -208,7 +208,7 @@ template <class Ch,class Tr=std::char_traits<Ch> >
 class basic_echo_ostream : public std::basic_ostream<Ch,Tr> {
 public:
 	explicit basic_echo_ostream(const std::string &hostname="localhost",
-								const std::string &port="7")
+								const std::string &port="42598")
 		: std::basic_ostream<Ch,Tr>(NULL) {
 		this->init(&m_buf);
 		open(hostname, port);
@@ -219,7 +219,7 @@ public:
 
 	/// Open the tcp connection.
 	bool open(const std::string &hostname="localhost",
-			  const std::string &port="7") {
+			  const std::string &port="42598") {
 		return m_buf.open(hostname, port);
 	}
 

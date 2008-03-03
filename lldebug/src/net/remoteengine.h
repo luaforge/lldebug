@@ -87,7 +87,7 @@ public:
 	}
 
 	/// Start the debugger program (frame).
-	int StartFrame(const std::string &serviceName);
+	int StartFrame(unsigned short port);
 
 	/// Start the debuggee program (context).
 	int StartContext(const std::string &hostName, const std::string &serviceName, int waitSeconds);

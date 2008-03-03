@@ -24,10 +24,7 @@
  * SUCH DAMAGE.
  */
 
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
+#include <boost/config.hpp>
 
 #define BOOST_SYSTEM_NO_LIB
 #ifdef BOOST_WINDOWS
@@ -36,16 +33,9 @@
 #endif
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/udp.hpp>
-#include <boost/asio/placeholders.hpp>
 #include <iostream>
 
-typedef boost::recursive_mutex mutex;
-typedef boost::recursive_mutex::scoped_lock scoped_lock;
-
 using namespace boost::asio::ip;
-
-static mutex s_consoleMutex;
-
 
 #ifdef BOOST_WINDOWS
 static const char *title = "echo server";
@@ -61,7 +51,6 @@ static void initialize() {
 
 /// Write str with newline.
 static void WriteLine(const char *str, size_t length) {
-	scoped_lock lock(s_consoleMutex);
 	std::cout.write(str, (std::streamsize)length) << std::endl;
 
 #ifdef BOOST_WINDOWS
@@ -77,35 +66,43 @@ static void WriteLine(const char *str, size_t length) {
 }
 
 /// Echo server main.
-static int ServerMain(const std::string &serviceName) {
+static int ServerMain(unsigned short port) {
 	initialize();
 
 	try {
 		boost::asio::io_service service;
-		udp::resolver resolver(service);
-		udp::resolver_query query("localhost", serviceName);
-		udp::endpoint endpoint = *resolver.resolve(query);
-	
+		udp::endpoint endpoint(udp::v4(), port);
 		udp::socket sock(service, endpoint);
+
+		std::cout << "echo server addressed \'localhost:" << port << "'" << std::endl;
 		for(;;) {
-			static char data[1024 * 10];
+			try {
+				static char data[1024 * 10];
 
-			udp::endpoint senderPoint;
-			size_t size = sock.receive_from(
-				boost::asio::buffer(data, sizeof(data)),
-				senderPoint);
+				udp::endpoint senderPoint;
+				size_t size = sock.receive_from(
+					boost::asio::buffer(data, sizeof(data)),
+					senderPoint);
 
-			WriteLine(data, size);
+				WriteLine(data, size);
 
-			sock.send_to(
-				boost::asio::buffer(data, size),
-				senderPoint);
+				sock.send_to(
+					boost::asio::buffer(data, size),
+					senderPoint);
+			}
+			catch (boost::system::system_error &e) {
+				const boost::system::error_code &ec = e.code();
+				if (ec == boost::asio::error::eof
+					|| ec == boost::asio::error::connection_aborted
+					|| ec == boost::asio::error::connection_reset) {
+				}
+				else {
+					throw;
+				}
+			}
 		}
 	}
-	/*catch (boost::system::system_error &e) {
-	}*/
 	catch (std::exception &ex) {
-		scoped_lock lock(s_consoleMutex);
 		std::cerr << ex.what() << std::endl;
 		return -1;
 	}
@@ -114,11 +111,11 @@ static int ServerMain(const std::string &serviceName) {
 }
 
 int main(int argc, char *argv[]) {
-	std::string serviceName = "7";
+	std::string serviceName = "42598";
 
 	if (argc >= 2) {
 		serviceName = argv[1];
 	}
 
-	return ServerMain(serviceName);
+	return ServerMain(atoi(serviceName.c_str()));
 }

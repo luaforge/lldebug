@@ -48,16 +48,14 @@ ServerConnector::ServerConnector(RemoteEngine &engine)
 ServerConnector::~ServerConnector() {
 }
 
-void ServerConnector::Start(const std::string &serviceName) {
+void ServerConnector::Start(unsigned short port) {
 	if (m_connection != NULL) {
 		return;
 	}
 	m_connection.reset(new Connection(m_engine));
 
-	// Resolve server address (service name).
-	tcp::resolver resolver(m_engine.GetService());
-	tcp::resolver_query query("localhost", serviceName);
-	tcp::endpoint endpoint = *resolver.resolve(query);
+	// Bind server address.
+	tcp::endpoint endpoint(tcp::v4(), port);
 
 	// Try to accept.
 	m_acceptor.open(endpoint.protocol());
@@ -126,7 +124,7 @@ void ClientConnector::Start(const std::string &hostName,
 	m_connection.reset(new Connection(m_engine));
 
 	// Resolve server address (service name).
-	tcp::resolver_query query(hostName, serviceName);
+	tcp::resolver_query query(tcp::v4(), hostName, serviceName);
 	m_resolver.async_resolve(query,
 		boost::bind(
 			&ClientConnector::HandleResolve, shared_from_this(),

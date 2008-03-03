@@ -51,8 +51,32 @@ Mediator::~Mediator() {
 	ms_instance = NULL;
 }
 
+static int toPortNum(const std::string &str) {
+	int result = 0;
+
+	for (std::string::size_type i = 0; i < str.length(); ++i) {
+		char c = str[i];
+
+		if (c < '0' || '9' < c) {
+			return -1;
+		}
+		result = result * 10 + (c - '0');
+	}
+
+	if (result > 0xffff) {
+		return -1;
+	}
+
+	return result;
+}
+
 int Mediator::Initialize(const std::string &hostName, const std::string &portName) {
-	if (m_engine->StartFrame(portName) != 0) {
+	int port = toPortNum(portName);
+	if (port < 0) {
+		return -1;
+	}
+
+	if (m_engine->StartFrame((unsigned short)port) != 0) {
 		return -1;
 	}
 
