@@ -61,6 +61,11 @@ typedef
  */
 class RemoteEngine {
 public:
+	typedef 
+		boost::function1<void, const Command &>
+		OnRemoteCommandType;
+
+public:
 	explicit RemoteEngine();
 	virtual ~RemoteEngine();
 
@@ -75,22 +80,10 @@ public:
 		return (m_connection != NULL);
 	}
 
-	/// Get the read command.
-	Command GetCommand() {
+	/// Set the callback function called when it receives some commands.
+	void SetOnRemoteCommand(const OnRemoteCommandType &callback) {
 		scoped_lock lock(m_mutex);
-		return m_readCommandQueue.front();
-	}
-
-	/// Pop the read command.
-	void PopCommand() {
-		scoped_lock lock(m_mutex);
-		m_readCommandQueue.pop();
-	}
-
-	/// Has this any read commands ?
-	bool HasCommands() {
-		scoped_lock lock(m_mutex);
-		return !m_readCommandQueue.empty();
+		m_onRemoteCommand = callback;
 	}
 
 	/// Start the debugger program (frame).
@@ -153,6 +146,7 @@ private:
 	void OnConnectionClosed(shared_ptr<Connection> connection,
 							const boost::system::error_code &error);
 	void OnRemoteCommand(const Command &command);
+	void NotifyRemoteCommand(const Command &command, scoped_lock &lock);
 
 private:
 	CommandHeader InitCommandHeader(RemoteCommandType type,
@@ -183,8 +177,10 @@ private:
 	typedef std::list<WaitResponseCommand> WaitResponseCommandList;
 	WaitResponseCommandList m_waitResponseCommandList;
 
-	typedef std::queue<Command> ReadCommandQueue;
-	ReadCommandQueue m_readCommandQueue; // commands that were read.
+	OnRemoteCommandType m_onRemoteCommand;
+
+	//typedef std::queue<Command> ReadCommandQueue;
+	//ReadCommandQueue m_readCommandQueue; // commands that were read.
 };
 
 } // end of namespace net

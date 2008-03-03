@@ -168,6 +168,7 @@ void MainFrame::ProcessDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlw
 }
 
 void MainFrame::OnUpdateSource(wxDebugEvent &event) {
+	Raise();
 }
 
 void MainFrame::OnIdle(wxIdleEvent &event) {

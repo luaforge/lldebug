@@ -29,6 +29,7 @@
 
 #include "sysinfo.h"
 #include "luainfo.h"
+#include "queue_mt.h"
 #include "net/command.h"
 
 namespace lldebug {
@@ -121,6 +122,7 @@ private:
 	virtual int LoadConfig();
 	virtual int SaveConfig();
 	virtual void SetState(State state);
+	void OnRemoteCommand(const Command &command);
 	int HandleCommand();
 
 	static void SetHook(lua_State *L);
@@ -174,6 +176,9 @@ private:
 	typedef std::vector<CoroutineInfo> CoroutineList;
 	CoroutineList m_coroutines;
 	CoroutineInfo m_stepinfo;
+
+	queue_mt<Command> m_readCommands;
+	condition m_commandCond;
 
 	shared_ptr<RemoteEngine> m_engine;
 	SourceManager m_sourceManager;

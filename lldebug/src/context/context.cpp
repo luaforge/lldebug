@@ -178,6 +178,10 @@ Context::Context()
 	, m_engine(new RemoteEngine)
 	, m_sourceManager(m_engine), m_breakpoints(m_engine) {
 
+	m_engine->SetOnRemoteCommand(
+		boost::bind1st(
+			boost::mem_fn(&Context::OnRemoteCommand),
+			this));
 	m_id = ms_idCounter++;
 }
 
@@ -545,13 +549,18 @@ void Context::SetState(State state) {
 	}
 }
 
+void Context::OnRemoteCommand(const Command &command) {
+	m_readCommands.push(command);
+	m_commandCond.notify_all();
+}
+
 int Context::HandleCommand() {
 	scoped_lock lock(m_mutex);
 
 	// Process the command.
-	while (m_engine->HasCommands()) {
-		Command command = m_engine->GetCommand();
-		m_engine->PopCommand();
+	while (!m_readCommands.empty()) {
+		Command command = m_readCommands.front();
+		m_readCommands.pop();
 
 		if (command.IsResponse()) {
 			command.CallResponse();
@@ -823,18 +832,18 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 			}
 			prevState = m_state;
 
-			if (!m_engine->HasCommands()) {
+			if (m_readCommands.empty()) {
 				boost::xtime xt;
 				boost::xtime_get(&xt, boost::TIME_UTC);
-				xt.nsec += 10 * 1000 * 1000;
-				boost::thread::sleep(xt);
+				xt.sec += 1;
+				m_commandCond.timed_wait(lock, xt);
 			}
 		}
 	}
 }
 
 /**
- * @brief Implementation of lua functions that users private methods of Context.
+ * @brief Implementation of lua functions that uses private methods of Context.
  */
 class Context::LuaImpl {
 public:

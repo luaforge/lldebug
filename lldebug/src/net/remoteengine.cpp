@@ -184,7 +184,7 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 		Command command(
 			InitCommandHeader(REMOTECOMMANDTYPE_END_CONNECTION, 0),
 			CommandData());
-		m_readCommandQueue.push(command);
+		OnRemoteCommand(command);
 
 		m_connection.reset();
 
@@ -216,7 +216,18 @@ void RemoteEngine::OnRemoteCommand(const Command &command_) {
 		}
 	}
 
-	m_readCommandQueue.push(command);
+	NotifyRemoteCommand(command, lock);
+}
+
+void RemoteEngine::NotifyRemoteCommand(const Command &command,
+									   scoped_lock &lock) {
+	if (!m_onRemoteCommand.empty()) {
+		OnRemoteCommandType callback = m_onRemoteCommand;
+
+		lock.unlock();
+		callback(command);
+		lock.lock();
+	}
 }
 
 CommandHeader RemoteEngine::InitCommandHeader(RemoteCommandType type,

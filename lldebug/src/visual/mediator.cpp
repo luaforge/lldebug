@@ -39,6 +39,11 @@ Mediator::Mediator()
 	: m_engine(new RemoteEngine), m_frame(NULL)
 	, m_breakpoints(m_engine), m_sourceManager(m_engine)
 	, m_updateCount(0) {
+
+	m_engine->SetOnRemoteCommand(
+		boost::bind1st(
+			boost::mem_fn(&Mediator::OnRemoteCommand),
+			this));
 }
 
 Mediator::~Mediator() {
@@ -50,22 +55,6 @@ int Mediator::Initialize(const std::string &hostName, const std::string &portNam
 	if (m_engine->StartFrame(portName) != 0) {
 		return -1;
 	}
-
-	/*boost::xtime end;
-	boost::xtime_get(&end, boost::TIME_UTC);
-	end.sec += 30;
-
-	// IsOpen become true in handleConnect.
-	while (!m_engine->IsConnecting()) {
-		boost::xtime current;
-		boost::xtime_get(&current, boost::TIME_UTC);
-		if (boost::xtime_cmp(current, end) >= 0) {
-			return -1;
-		}
-
-		current.nsec += 100 * 1000 * 1000;
-		boost::thread::sleep(current);
-	}*/
 
 	ms_instance = this;
 	return 0;
@@ -97,10 +86,19 @@ void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 	frame->ProcessDebugEvent(event, frame, true);
 }
 
+void Mediator::OnRemoteCommand(const Command &command) {
+	m_readCommands.push(command);
+
+	MainFrame *frame = GetFrame();
+	if (frame != NULL) {
+		frame->AddPendingEvent(wxIdleEvent());
+	}
+}
+
 void Mediator::ProcessAllRemoteCommands() {
-	while (m_engine->HasCommands()) {
-		Command command = m_engine->GetCommand();
-		m_engine->PopCommand();
+	while (!m_readCommands.empty()) {
+		Command command = m_readCommands.front();
+		m_readCommands.pop();
 
 		try {
 			if (command.IsResponse()) {

@@ -29,6 +29,7 @@
 
 #include "sysinfo.h"
 #include "luainfo.h"
+#include "queue_mt.h"
 #include "net/remoteengine.h"
 #include "visual/event.h"
 
@@ -125,6 +126,9 @@ public:
 	}
 
 private:
+	void OnRemoteCommand(const Command &command);
+
+private:
 	friend class Application;
 	explicit Mediator();
 	virtual ~Mediator();
@@ -138,6 +142,8 @@ private:
 
 private:
 	static Mediator *ms_instance;
+
+	queue_mt<Command> m_readCommands;
 
 	shared_ptr<RemoteEngine> m_engine;
 	MainFrame *m_frame;
