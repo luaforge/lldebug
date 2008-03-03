@@ -276,10 +276,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\include\lldebug_encoding.h"
-					>
-				</File>
-				<File
 					RelativePath="..\..\src\context\luaiterate.cpp"
 					>
 				</File>

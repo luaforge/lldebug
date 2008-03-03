@@ -37,10 +37,14 @@ extern "C" {
 
 #include "lldebug_encoding.h"
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
-#define LLDEBUG_API extern __declspec(dllexport)
+#ifdef LLDEBUG_BUILD_DLL
+	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+		#define LLDEBUG_API extern __declspec(dllexport)
+	#else
+		#define LLDEBUG_API extern
+	#endif
 #else
-#define LLDEBUG_API extern
+	#define LLDEBUG_API extern
 #endif
 
 LLDEBUG_API lua_State *lldebug_open(void);
@@ -57,6 +61,30 @@ LLDEBUG_API int lldebug_resume(lua_State *L, int narg);
 LLDEBUG_API int lldebug_openbase(lua_State *L);
 /// The substitute function for luaL_openlibs overriding 'luaopen_base'.
 LLDEBUG_API void lldebug_openlibs(lua_State *L);
+
+
+/// Set the host address and service name if you want to debug remotely.
+/**
+ * @param hostname    Host name default value is 'localhost'.
+ * @param servicename Service name default value is '51123' (decided randomly).
+ */
+LLDEBUG_API void lldebug_setremoteaddress(const char *hostname,
+										  const char *servicename);
+/// Get the host address and service name. (Set the static value)
+LLDEBUG_API void lldebug_getremoteaddress(const char **hostname,
+										  const char **servicename);
+
+/**
+ * @brief The identifier of the encoding types.
+ */
+enum lldebug_Encoding {
+	LLDEBUG_ENCODING_UTF8, /**< default encoding */
+
+	// Japanese
+	LLDEBUG_ENCODING_SJIS,
+	LLDEBUG_ENCODING_EUC,
+	LLDEBUG_ENCODING_ISO2022JP,
+};
 
 /// Set the encoding type for displaying on debugger.
 LLDEBUG_API int lldebug_setencoding(lldebug_Encoding encoding);

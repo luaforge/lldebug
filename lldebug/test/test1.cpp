@@ -7,12 +7,20 @@
 #include <fstream>
 
 int main(int argc, char **argv) {
-	if (argc != 2) {
-		printf("Usage: test filename\n");
+	if (argc < 2) {
+		printf("Usage: test filename [hostname [servicename]]\n");
 		return -1;
 	}
 
-	// Set encoding type.
+	// Set the frame address, if any.
+	if (argc > 3) {
+		lldebug_setremoteaddress(argv[2], argv[3]);
+	}
+	else if (argc > 2) {
+		lldebug_setremoteaddress(argv[2], NULL);
+	}
+
+	// Set encoding type. (default is utf8)
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
 	lldebug_setencoding(LLDEBUG_ENCODING_SJIS);
 #else
