@@ -64,7 +64,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxbase28ud.lib wxmsw28ud_core.lib wxmsw28ud_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_asio.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
+				AdditionalDependencies="wxbase28ud.lib wxmsw28ud_core.lib wxmsw28ud_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_system.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -141,7 +141,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxbase28u.lib wxmsw28u_core.lib wxmsw28u_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_asio.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
+				AdditionalDependencies="wxbase28u.lib wxmsw28u_core.lib wxmsw28u_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_system.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"

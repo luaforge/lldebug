@@ -62,7 +62,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="$(TargetDir)boost_asio.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -138,7 +137,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="$(TargetDir)boost_asio.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -173,6 +171,10 @@
 		</Configuration>
 	</Configurations>
 	<References>
+		<ProjectReference
+			ReferencedProjectIdentifier="{FDD4111D-857A-4F44-A2F0-9266156A8043}"
+			RelativePathToProject=".\boost_system\boost_system.vcproj"
+		/>
 	</References>
 	<Files>
 		<Filter
