@@ -90,7 +90,7 @@ LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
 	m_name = context::ConvToUTF8(name);
 
 	lua_State *L = lua.GetState();
-	m_value = context::ConvToUTF8(context::LuaToStringForVarValue(L, valueIdx));
+	m_value = context::ConvToUTF8(context::llutil_tostring_for_varvalue(L, valueIdx));
 	m_valueType = lua_type(L, valueIdx);
 	m_tableIdx = RegisterTable(L, valueIdx);
 	m_hasFields = CheckHasFields(L, valueIdx);
@@ -141,14 +141,14 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 
 	// OriginalObj couldn't be handled correctly.
 	if (lua_islightuserdata(L, valueIdx)
-		&& lua_topointer(L, valueIdx) == &context::LuaAddressForInternalTable) {
+		&& lua_topointer(L, valueIdx) == &context::llutil_address_for_internal_table) {
 		return -1;
 	}
 
 	int top = lua_gettop(L);
 
 	// Try to do "table = registry[&OriginalObj]"
-	lua_pushlightuserdata(L, (void *)&context::LuaAddressForInternalTable);
+	lua_pushlightuserdata(L, (void *)&context::llutil_address_for_internal_table);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	if (!lua_istable(L, -1)) {
 		lua_pop(L, 1);
@@ -168,7 +168,7 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 		lua_rawseti(L, -2, 0);
 
 		// registry[&OriginalObj] = newtable
-		lua_pushlightuserdata(L, (void *)&context::LuaAddressForInternalTable);
+		lua_pushlightuserdata(L, (void *)&context::llutil_address_for_internal_table);
 		lua_pushvalue(L, -2);
 		lua_rawset(L, LUA_REGISTRYINDEX);
 	}
@@ -231,7 +231,7 @@ int LuaVar::PushTable(lua_State *L) const {
 	}
 
 	// push registry[&OriginalObj][m_tableIdx]
-	lua_pushlightuserdata(L, (void *)&context::LuaAddressForInternalTable);
+	lua_pushlightuserdata(L, (void *)&context::llutil_address_for_internal_table);
 	lua_rawget(L, LUA_REGISTRYINDEX);
 	lua_rawgeti(L, -1, m_tableIdx);
 	lua_remove(L, -2);

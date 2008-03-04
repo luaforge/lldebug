@@ -86,7 +86,8 @@ static std::string LLDebugGetConfigDir() {
 
 namespace lldebug {
 
-std::string GetConfigDir() {
+/// Get the config dir name.
+static boost::filesystem::path GetConfigDir() {
 	using namespace boost::filesystem;
 	path basePath(LLDebugGetConfigRoot());
 	path configPath = basePath / LLDebugGetConfigDir();
@@ -103,17 +104,21 @@ std::string GetConfigDir() {
 		}
 	}
 
-	return configPath.native_directory_string();
+	return configPath;
 }
 
-std::string GetConfigFileName(const std::string &filename) {
+boost::filesystem::path GetConfigFilePath(const std::string &filename) {
 	if (filename.empty()) {
-		return std::string("");
+		return boost::filesystem::path();
 	}
 	
 	boost::filesystem::path configPath = GetConfigDir();
 	configPath /= filename;
-	return configPath.native_file_string();
+	return configPath.normalize();
+}
+
+std::string GetConfigFileName(const std::string &filename) {
+	return GetConfigFilePath(filename).native_file_string();
 }
 
 std::string EncodeToFilename(const std::string &filename) {
@@ -141,20 +146,6 @@ std::string EncodeToFilename(const std::string &filename) {
 	}
 
 	return result;
-}
-
-int OpenConfigFile(const std::string &configName,
-				   std::fstream &ifs, bool isOut) {
-	scoped_locale sloc(std::locale(""));
-
-	// Open the config file.
-	std::string path = GetConfigFileName(configName);
-	ifs.open(path.c_str(), (isOut ? std::ios::out : std::ios::in));
-	if (!ifs.is_open()) {
-		return -1;
-	}
-
-	return 0;
 }
 
 } // end of namespace lldebug

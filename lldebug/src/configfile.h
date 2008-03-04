@@ -27,21 +27,19 @@
 #ifndef __LLDEBUG_CONFIGFILE__
 #define __LLDEBUG_CONFIGFILE__
 
+#include <boost/filesystem/path.hpp>
+
 namespace lldebug {
 
-/// Get the config dir name.
-std::string GetConfigDir();
+/// Get the filepath located on the config dir.
+boost::filesystem::path GetConfigFilePath(const std::string &filename);
 
-/// Get the filename located on the config dir.
+/// Get the filepath(std::string) located on the config dir.
 std::string GetConfigFileName(const std::string &filename);
 
 /// Transform filename that may contain all characters such as ".\!#$%/&'()"
 /// to string that can use a filename.
 std::string EncodeToFilename(const std::string &filename);
-
-/// Open the 'ConfigDir/configname' file.
-int OpenConfigFile(const std::string &configName,
-				   std::fstream &stream, bool isOut);
 
 } // end of namespace lldebug
 
