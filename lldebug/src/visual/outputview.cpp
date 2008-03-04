@@ -102,8 +102,8 @@ public:
 		}
 
 		SetReadOnly(false);
-		if (!key.empty()) {
-			const Source *source = Mediator::Get()->GetSource(key);
+		const Source *source = Mediator::Get()->GetSource(key);
+		if (source != NULL) {
 			AddTextRawStd(source->GetTitle());
 			AddTextRaw("(");
 			AddTextRawStd(boost::lexical_cast<std::string>(line));

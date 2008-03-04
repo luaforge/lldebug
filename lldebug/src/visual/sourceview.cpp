@@ -68,7 +68,7 @@ public:
 	explicit SourceViewPage(SourceView *parent)
 		: wxScintilla(parent, wxID_ANY)
 		, m_parent(parent), m_initialized(false), m_isModified(false)
-		, m_currentLine(-1), m_markedLine(-1)
+		, m_hasPath(false), m_currentLine(-1), m_markedLine(-1)
 		, m_watch(NULL) {
 		CreateGUIControls();
 	}
@@ -369,7 +369,7 @@ public:
 		// The title is converted to UTF8.
 		m_key = source.GetKey();
 		m_title = wxConvFromUTF8(source.GetTitle());
-		m_path = wxConvFromUTF8(source.GetPath());
+		m_hasPath = (!source.GetPath().empty());
 		m_currentLine = -1;
 		m_initialized = true;
 
@@ -455,7 +455,7 @@ public:
 
 	/// Save source text.
 	void SaveSource() {
-		if (m_path.IsEmpty()) {
+		if (!m_hasPath) {
 			return;
 		}
 
@@ -494,7 +494,7 @@ private:
 
 	std::string m_key;
 	wxString m_title;
-	wxString m_path;
+	bool m_hasPath;
 	int m_currentLine;
 	int m_markedLine;
 

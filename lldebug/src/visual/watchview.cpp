@@ -90,7 +90,7 @@ private:
 	int m_updateCount;
 };
 
-/// The type of a function that requests the LuaVarList from RemoteEngine.
+/// The type of a function that requests LuaVarList from RemoteEngine.
 typedef
 	boost::function1<void, const LuaVarListCallback &>
 	VarListRequester;
@@ -577,7 +577,7 @@ private:
 };
 
 /**
- * @brief Request for the val value evalution.
+ * @brief Request for the evalution of one value.
  */
 struct OneVariableWatchView::VariableRequester {
 	explicit VariableRequester(VariableWatch **watch,
