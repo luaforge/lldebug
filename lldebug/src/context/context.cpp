@@ -250,6 +250,7 @@ int Context::LoadConfig() {
 		boost::filesystem::path dataPath = GetConfigFileName(filename + ".xml");
 
 		// Open the config file.
+		scoped_locale sloc(std::locale(""));
 		std::ifstream ifs(dataPath.native_file_string().c_str());
 		if (!ifs.is_open()) {
 			return -1;
@@ -283,18 +284,16 @@ int Context::SaveConfig() {
 		boost::filesystem::path tmpPath
 			= GetConfigFileName(filename + ".xml.tmp");
 
-		{
-			// Open the config file.
-			std::ofstream ofs(tmpPath.native_file_string().c_str());
-			if (!ofs.is_open()) {
-				return -1;
-			}
-		
-			boost::archive::xml_oarchive ar(ofs);
-			ar << LLDEBUG_MEMBER_NVP(breakpoints);
-			ofs.flush();
-			ofs.close();
+		// Open the config file.
+		scoped_locale sloc(std::locale(""));
+		std::ofstream ofs(tmpPath.native_file_string().c_str());
+		if (!ofs.is_open()) {
+			return -1;
 		}
+		
+		boost::archive::xml_oarchive ar(ofs);
+		ar << LLDEBUG_MEMBER_NVP(breakpoints);
+		ofs.close();
 
 		// Rename the config file
 		// because of trying to suppress the error.

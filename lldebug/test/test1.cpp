@@ -38,17 +38,17 @@ int main(int argc, char **argv) {
 	// Load the lua script.
 	if (lldebug_loadfile(L, argv[1]) != 0) {
 		printf("%s\n", lua_tostring(L, -1));
-		lua_close(L);
+		lldebug_close(L);
 		return -1;
 	}
 
 	// Execute !
 	if (lua_pcall(L, 0, 0, 0) != 0) {
 		printf("%s\n", lua_tostring(L, -1));
-		lua_close(L);
+		lldebug_close(L);
 		return -1;
 	}
 
-	lua_close(L);
+	lldebug_close(L);
 	return 0;
 }

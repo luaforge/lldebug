@@ -35,8 +35,6 @@ extern "C" {
 #include "lualib.h"
 #include "lauxlib.h"
 
-#include "lldebug_encoding.h"
-
 #ifdef LLDEBUG_BUILD_DLL
 	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
 		#define LLDEBUG_API extern __declspec(dllexport)
