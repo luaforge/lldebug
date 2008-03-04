@@ -77,6 +77,7 @@ RemoteEngine::~RemoteEngine() {
 	{
 		scoped_lock lock(m_mutex);
 		m_isExitThread = true;
+		m_onRemoteCommand.clear();
 	}
 
 	// We must join the thread.

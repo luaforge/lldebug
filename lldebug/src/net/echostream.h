@@ -38,17 +38,20 @@ namespace net {
  * @brief Thread functions of basic_echo_ostreambuf.
  * 
  * basic_echo_ostreambuf is a template class,
- * so if I include those in it, I can't put those in a .cpp file.
+ * so if I include this class in it, I can't put in a cpp file.
  */
 struct echo_thread {
 public:
+	~echo_thread();
+
 	/// Get the io_service object.
-	static echo_thread &get_instance() {
-		return ms_thread;
+	static echo_thread *get_instance() {
+		return &ms_instance;
 	}
 
 	/// Get the io_service object.
 	boost::asio::io_service &get_service() {
+		scoped_lock lock(m_mutex);
 		return m_service;
 	}
 
@@ -58,7 +61,6 @@ public:
 
 private:
 	explicit echo_thread();
-	~echo_thread();
 	void exit_thread();
 	void thread_main();
 
@@ -67,7 +69,7 @@ private:
 	shared_ptr<request> get_request();
 
 private:
-	static echo_thread ms_thread;
+	static echo_thread ms_instance;
 	shared_ptr<boost::thread> m_thread;
 	boost::asio::io_service m_service;
 	boost::asio::ip::udp::socket m_socket;
@@ -100,10 +102,12 @@ public:
 	bool open(const std::string &hostname, const std::string &port) {
 		try {
 			using namespace boost::asio::ip;
-			boost::asio::io_service &service =
-				echo_thread::get_instance().get_service();
+			echo_thread *instance = echo_thread::get_instance();
+			if (instance == NULL) {
+				return false;
+			}
 
-			udp::resolver resolver(service);
+			udp::resolver resolver(instance->get_service());
 			udp::resolver_query query(udp::v4(), hostname, port);
 			udp::resolver_iterator it;
 			for (it = resolver.resolve(query); 
@@ -189,7 +193,10 @@ protected:
 		}
 
 		// Do echo.
-		echo_thread::get_instance().add_request(m_endpoint, m_buffer);
+		echo_thread *instance = echo_thread::get_instance();
+		if (instance != NULL) {
+			instance->add_request(m_endpoint, m_buffer);
+		}
 		m_buffer.clear();
 		return 0;
 	}

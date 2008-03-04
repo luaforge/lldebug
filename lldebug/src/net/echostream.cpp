@@ -36,7 +36,7 @@ namespace net {
 
 using namespace boost::asio::ip;
 
-echo_thread echo_thread::ms_thread;
+echo_thread echo_thread::ms_instance;
 
 struct echo_thread::request {
 	udp::endpoint endpoint;
