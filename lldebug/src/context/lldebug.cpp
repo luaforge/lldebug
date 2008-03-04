@@ -33,8 +33,12 @@ using namespace lldebug;
 using context::Context;
 
 lua_State *lldebug_open() {
-	Context *ctx = Context::Create();
+	shared_ptr<Context> ctx(new Context);
 	if (ctx == NULL) {
+		return NULL;
+	}
+
+	if (ctx->Initialize() != 0) {
 		return NULL;
 	}
 	
@@ -42,7 +46,7 @@ lua_State *lldebug_open() {
 }
 
 void lldebug_close(lua_State *L) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 
 	if (ctx != NULL && ctx->GetMainLua() == L) {
 		ctx->Delete();
@@ -50,7 +54,7 @@ void lldebug_close(lua_State *L) {
 }
 
 int lldebug_loadfile(lua_State *L, const char *filename) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {
 		return -1;
 	}
@@ -59,7 +63,7 @@ int lldebug_loadfile(lua_State *L, const char *filename) {
 }
 
 int lldebug_loadstring(lua_State *L, const char *str) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {
 		return -1;
 	}
@@ -68,7 +72,7 @@ int lldebug_loadstring(lua_State *L, const char *str) {
 }
 
 void lldebug_call(lua_State *L, int narg, int nresult) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL) {
 		lua_pushliteral(L, "Couldn't find the Context object.");
 		return;
@@ -78,7 +82,7 @@ void lldebug_call(lua_State *L, int narg, int nresult) {
 }
 
 int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL) {
 		lua_pushliteral(L, "Conldn't find the Context object.");
 		return -1;
@@ -89,7 +93,7 @@ int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc) {
 }
 
 int lldebug_resume(lua_State *L, int narg) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL) {
 		lua_pushliteral(L, "Conldn't find the Context object.");
 		return -1;
@@ -99,7 +103,7 @@ int lldebug_resume(lua_State *L, int narg) {
 }
 
 int lldebug_openbase(lua_State *L) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {
 		return -1;
 	}
@@ -108,7 +112,7 @@ int lldebug_openbase(lua_State *L) {
 }
 
 void lldebug_openlibs(lua_State *L) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {
 		return;
 	}

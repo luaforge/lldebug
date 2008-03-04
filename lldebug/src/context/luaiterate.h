@@ -34,6 +34,13 @@
 namespace lldebug {
 namespace context {
 
+/// Find the table value, and push it if find.
+int find_fieldvalue(lua_State *L, int idx, const std::string &target);
+
+/// Set the new value to the field's value.
+int set_fieldvalue(lua_State *L, int idx, const std::string &target,
+				   int valueIdx, bool forceCreate);
+
 /// Find the local value, and push it if find.
 int find_localvalue(lua_State *L, int level, const std::string &target,
 					bool checkLocal, bool checkUpvalue, bool checkEnv);
@@ -77,7 +84,7 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 			return ret;
 		}
 	}
-		
+	
 	if (lua_type(L, idx) != LUA_TTABLE) {
 		return 0;
 	}
@@ -87,10 +94,10 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 		// key index: top - 1, value index: top
 		int top = lua_gettop(L);
 		if (idx == LUA_REGISTRYINDEX && lua_islightuserdata(L, -2)
-			&& lua_topointer(L, -2) == &LuaAddressForInternalTable) {
+			&& lua_topointer(L, -2) == &llutil_address_for_internal_table) {
 		}
 		else {
-			int ret = callback(L, LuaToStringFast(L, top - 1), top);
+			int ret = callback(L, llutil_tostring_default(L, top - 1), top);
 			if (ret != 0) {
 				lua_pop(L, 2);
 				return ret;
@@ -108,13 +115,15 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 template<class Fn>
 int iterate_var(Fn &callback, const LuaVar &var) {
 	lua_State *L = var.GetLua().GetState();
+	scoped_lua slua(L, 0);
 
 	if (var.PushTable(L) != 0) {
 		return -1;
 	}
 
-	scoped_lua scoped(L, 0, 1);
-	return iterate_fields(callback, L, lua_gettop(L));
+	int ret = iterate_fields(callback, L, lua_gettop(L));
+	lua_pop(L, 1);
+	return ret;
 }
 
 /// Iterate the stacks.
@@ -182,20 +191,12 @@ int iterate_locals(Fn &callback, lua_State *L, int level,
 		// Check the environ table.
 		if (checkEnviron) {
 			lua_getfenv(L, -1);
-			int tableIdx = lua_gettop(L);
 
-			lua_pushnil(L);  // first key
-			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
-				// key index: top - 1, value index: top
-				int top = lua_gettop(L);
-				int ret = callback(L, LuaToStringFast(L, top - 1), top);
-				if (ret != 0) {
-					lua_pop(L, 4);
-					return ret;
-				}
-
-				// eliminate the value index.
-				lua_pop(L, 1);
+			// Iterate environ table.
+			int ret = iterate_fields(callback, L, lua_gettop(L));
+			if (ret != 0) {
+				lua_pop(L, 2);
+				return ret;
 			}
 
 			lua_pop(L, 1); // eliminate the environ table.

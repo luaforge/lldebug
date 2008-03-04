@@ -66,6 +66,46 @@ private:
 	bool m_replaced;
 };
 
+int find_fieldvalue(lua_State *L, int idx, const std::string &target) {
+	variable_finder finder(L, target);
+
+	int ret = iterate_fields(finder, L, idx);
+	if (ret == 0xffff) {
+		return 0;
+	}
+
+	return -1;
+}
+
+int set_fieldvalue(lua_State *L, int idx, const std::string &target,
+				   int valueIdx, bool forceCreate) {
+	if (lua_type(L, idx) != LUA_TTABLE) {
+		return -1;
+	}
+
+	lua_pushnil(L);  // first key
+	for (int i = 0; lua_next(L, idx) != 0; ++i) {
+		lua_pop(L, 1); // eliminate the value index
+
+		int key = lua_gettop(L);
+		if (llutil_tostring_default(L, key) == target) {
+			lua_pushvalue(L, valueIdx);
+			lua_settable(L, idx);
+			return 0;
+		}
+	}
+
+	// If you want to force to create new field...
+	if (forceCreate) {
+		lua_pushlstring(L, target.c_str(), target.length());
+		lua_pushvalue(L, valueIdx);
+		lua_settable(L, idx);
+		return 0;
+	}
+
+	return -1;
+}
+
 int find_localvalue(lua_State *L, int level, const std::string &target,
 					bool checkLocal, bool checkUpvalue, bool checkEnv) {
 	variable_finder finder(L, target);
@@ -128,7 +168,7 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 			lua_pushnil(L); // first key
 			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
 				// key index: -2, value index: -1
-				std::string name = LuaToStringFast(L, -2);
+				std::string name = llutil_tostring_default(L, -2);
 				if (target == name) {
 					lua_pop(L, 1); // Eliminate the old value.
 					lua_pushvalue(L, valueIdx);

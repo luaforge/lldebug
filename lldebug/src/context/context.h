@@ -42,7 +42,8 @@ enum TableType {
 	TABLETYPE_REGISTRY,
 };
 
-class Context {
+class Context
+	: public boost::enable_shared_from_this<Context> {
 public:
 	enum State {
 		STATE_INITIAL,
@@ -55,10 +56,12 @@ public:
 	};
 
 public:
-	static Context *Create();
+	explicit Context();
+	virtual ~Context();
+	virtual int Initialize();
 	virtual void Delete();
 
-	static Context *Find(lua_State *L);
+	static shared_ptr<Context> Find(lua_State *L);
 	virtual void Quit();
 
 	void OutputLuaError(const char *str);
@@ -79,10 +82,10 @@ public:
 	LuaVarList LuaGetStack();
 	LuaBacktraceList LuaGetBacktrace();
 
-	int LuaEval(lua_State *L, int level, const std::string &str);
-	LuaVarList LuaEvalsToVarList(const string_array &array, const LuaStackFrame &stackFrame);
-	LuaVarList LuaEvalToMultiVar(const std::string &str, const LuaStackFrame &stackFrame);
-	LuaVar LuaEvalToVar(const std::string &str, const LuaStackFrame &stackFrame);
+	int LuaEval(lua_State *L, int level, const std::string &str, bool withDebug);
+	LuaVarList LuaEvalsToVarList(const string_array &array, const LuaStackFrame &stackFrame, bool withDebug);
+	LuaVarList LuaEvalToMultiVar(const std::string &str, const LuaStackFrame &stackFrame, bool withDebug);
+	LuaVar LuaEvalToVar(const std::string &str, const LuaStackFrame &stackFrame, bool withDebug);
 
 	/// Get the context ID.
 	int GetId() {
@@ -115,9 +118,6 @@ public:
 	}
 
 private:
-	explicit Context();
-	virtual ~Context();
-	virtual int Initialize();
 	virtual int CreateDebuggerFrame();
 	virtual int LoadConfig();
 	virtual int SaveConfig();

@@ -38,35 +38,60 @@ class Context;
 class scoped_lua {
 public:
 	explicit scoped_lua(lua_State *L);
-	explicit scoped_lua(lua_State *L, int n, int npop = 0);
-	explicit scoped_lua(Context *ctx, lua_State *L);
-	explicit scoped_lua(Context *ctx, lua_State *L, int n, int npop = 0);
+	explicit scoped_lua(lua_State *L, int n);
+	explicit scoped_lua(Context *ctx, lua_State *L, bool withDebug=false);
+	explicit scoped_lua(Context *ctx, lua_State *L, int n, bool withDebug=false);
 	~scoped_lua();
 	
 private:
-	void init(Context *ctx, lua_State *L, int n, int npop);
+	void init(Context *ctx, lua_State *L, int n, bool withDebug);
 	Context *m_ctx;
 	lua_State *m_L;
 	int m_top, m_n;
-	int m_npop;
 	bool m_isOldEnabled;
 };
 
 /// A dummy object that offers original address for lua.
-extern const int LuaAddressForInternalTable;
-
-/// Convert the lua object placed on idx to string.
-/// It doesn't use any lua functions.
-std::string LuaToStringFast(lua_State *L, int idx);
-
-/// Convert the lua object placed on idx to string for the value of LuaVar.
-/// It uses lua script functions.
-std::string LuaToStringForVarValue(lua_State *L, int idx);
+extern const int llutil_address_for_internal_table;
 
 /// Get the original name of the lua function.
-std::string LuaMakeFuncName(lua_Debug *ar);
+std::string llutil_make_funcname(lua_Debug *ar);
 
+/// Clone the table(idx).
+int llutil_clone_table(lua_State *L, int idx);
+
+/// Get the environ table binded the specified stack level.
+int llutil_getfenv(lua_State *L, int level);
+
+
+/// Convert to the string.
+/** It doesn't use any lua functions
+ */
+std::string llutil_tostring_default(lua_State *L, int idx);
+
+/// Convert to the string.
+/** It calls 'lldebug.tostring' first,
+ * if failed it calls the default function.
+ */
+std::string llutil_tostring(lua_State *L, int idx);
+
+/// Convert to the string.
+/** It is a lua function.
+ */
+int llutil_lua_tostring(lua_State *L);
+
+/// Make a string of 'LuaVar' value.
+/** It calls 'lldebug.tostring_for_varvalue' first,
+ * if failed it calls the default function.
+ */
+std::string llutil_tostring_for_varvalue(lua_State *L, int idx);
+
+/// Make a detail string of the lua object.
+int llutil_lua_tostring_detail(lua_State *L);
+
+/// Open the lldebug library.
 int luaopen_lldebug(lua_State *L);
+
 
 } // end of namespace context
 } // end of namespace lldebug

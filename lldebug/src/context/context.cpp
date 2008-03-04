@@ -52,13 +52,13 @@
 #include <sstream>
 
 /// Dummy function name for eval.
-#define DUMMY_FUNCNAME "__LLDEBUG_DUMMY_TEMPORARY_FUNCTION_NAME__"
+#define DUMMY_FUNCNAME "__LLDEBUG_DUMMY_FUNCTION__"
 
 namespace lldebug {
 namespace context {
 
 /**
- * @brief lua_State*からコンテキストを取得できるようにするクラスです。
+ * @brief Convert lua_State* to 'Context' used by Context::Find and others.
  */
 class Context::ContextManager {
 public:
@@ -66,12 +66,6 @@ public:
 	}
 
 	~ContextManager() {
-		scoped_lock lock(m_mutex);
-
-		while (!m_map.empty()) {
-			Context *ctx = (*m_map.begin()).second;
-			ctx->Delete();
-		}
 	}
 
 	/// Get weather this object is empty.
@@ -82,7 +76,7 @@ public:
 	}
 
 	/// Add the pair of (L, ctx).
-	void Add(Context *ctx, lua_State *L) {
+	void Add(shared_ptr<Context> ctx, lua_State *L) {
 		scoped_lock lock(m_mutex);
 
 		if (ctx == NULL || L == NULL) {
@@ -92,8 +86,8 @@ public:
 		m_map.insert(std::make_pair(L, ctx));
 	}
 
-	/// Erase the 'ctx' and corresponding lua_State objects.
-	void Erase(Context *ctx) {
+	/// Erase (not delete) the 'ctx' and corresponding lua_State objects.
+	void Erase(shared_ptr<Context> ctx) {
 		scoped_lock lock(m_mutex);
 
 		if (ctx == NULL) {
@@ -101,7 +95,7 @@ public:
 		}
 
 		for (Map::iterator it = m_map.begin(); it != m_map.end(); ) {
-			Context *p = (*it).second;
+			shared_ptr<Context> p = (*it).second;
  
 			if (p == ctx) {
 				m_map.erase(it++);
@@ -113,23 +107,23 @@ public:
 	}
 
 	/// Find the Context object from a lua_State object.
-	Context *Find(lua_State *L) {
+	shared_ptr<Context> Find(lua_State *L) {
 		scoped_lock lock(m_mutex);
 
 		if (L == NULL) {
-			return NULL;
+			return shared_ptr<Context>();
 		}
 
 		Map::iterator it = m_map.find(L);
 		if (it == m_map.end()) {
-			return NULL;
+			return shared_ptr<Context>();
 		}
 
 		return (*it).second;
 	}
 
 private:
-	typedef std::map<lua_State *, Context *> Map;
+	typedef std::map<lua_State *, shared_ptr<Context> > Map;
 	Map m_map;
 	mutex m_mutex;
 };
@@ -138,38 +132,6 @@ private:
 /*-----------------------------------------------------------------*/
 shared_ptr<Context::ContextManager> Context::ms_manager;
 int Context::ms_idCounter = 0;
-
-Context *Context::Create() {
-	// It's impossible to use 'xxx_ptr' classes,
-	// because ctx don't have public delete.
-	Context *ctx = new Context;
-
-	try {
-		if (ctx->Initialize() != 0) {
-			ctx->Delete();
-			return NULL;
-		}
-
-		// After the all initialization was done,
-		// we create a new frame for this context.
-		if (ctx->CreateDebuggerFrame() != 0) {
-			ctx->Delete();
-			return NULL;
-		}
-
-		if (ms_manager == NULL) {
-			ms_manager.reset(new ContextManager);
-		}
-
-		ms_manager->Add(ctx, ctx->GetLua());
-	}
-	catch (...) {
-		ctx->Delete();
-		return NULL;
-	}
-
-	return ctx;
-}
 
 Context::Context()
 	: m_id(0), m_lua(NULL), m_state(STATE_INITIAL)
@@ -183,6 +145,40 @@ Context::Context()
 			boost::mem_fn(&Context::OnRemoteCommand),
 			this));
 	m_id = ms_idCounter++;
+}
+
+int Context::Initialize() {
+	scoped_lock lock(m_mutex);
+
+	// It may call the dll function, so the error check is necessary.
+	lua_State *L = lua_open();
+	if (L == NULL) {
+		return -1;
+	}
+
+	if (LuaInitialize(L) != 0) {
+		lua_close(L);
+		return -1;
+	}
+
+	SetHook(L);
+	m_lua = L;
+	m_state = STATE_STEPINTO; //NORMAL;
+	m_coroutines.push_back(CoroutineInfo(L));
+
+	// Add this to manager.
+	if (ms_manager == NULL) {
+		ms_manager.reset(new ContextManager);
+	}
+	ms_manager->Add(shared_from_this(), L);
+
+	// After the all initialization was done,
+	// we create a new frame for this context.
+	if (CreateDebuggerFrame() != 0) {
+		return -1;
+	}
+
+	return 0;
 }
 
 /// Create the new debug frame.
@@ -216,67 +212,54 @@ int Context::CreateDebuggerFrame() {
 	return 0;
 }
 
-int Context::Initialize() {
+Context::~Context() {
 	scoped_lock lock(m_mutex);
 
-	// dllからの呼び出しなので普通に失敗する可能性があります。
-	lua_State *L = lua_open();
-	if (L == NULL) {
-		return -1;
-	}
-
-	if (LuaInitialize(L) != 0) {
-		lua_close(L);
-		return -1;
-	}
-
-	SetHook(L);
-	m_lua = L;
-	m_state = STATE_STEPINTO; //NORMAL;
-	m_coroutines.push_back(CoroutineInfo(L));
-	return 0;
-}
-
-Context::~Context() {
 	SaveConfig();
 	m_engine.reset();
-
-	scoped_lock lock(m_mutex);
 
 	if (m_lua != NULL) {
 		lua_close(m_lua);
 		m_lua = NULL;
 	}
-
-	// 最初のコンテキストの作成に失敗している可能性があります。
-	if (ms_manager != NULL) {
-		ms_manager->Erase(this);
-
-		if (ms_manager->IsEmpty()) {
-			ms_manager.reset();
-		}
-	}
 }
 
 void Context::Delete() {
-	delete this;
+	if (ms_manager == NULL) {
+		return;
+	}
+
+	// Erase this from the context manager.
+	ms_manager->Erase(shared_from_this());
+
+	if (ms_manager->IsEmpty()) {
+		ms_manager.reset();
+	}
 }
 
 int Context::LoadConfig() {
 	scoped_lock lock(m_mutex);
 
 	try {
-		std::string filename = EncodeToFilename(m_rootFileKey);
-		std::fstream ifs;
-		if (OpenConfigFile(filename + ".xml", ifs, false) != 0) {
+		if (m_rootFileKey.empty()) {
 			return -1;
 		}
 
+		// Detect filenames.
+		std::string filename = EncodeToFilename(m_rootFileKey);
+		boost::filesystem::path dataPath = GetConfigFileName(filename + ".xml");
+
+		// Open the config file.
+		std::ifstream ifs(dataPath.native_file_string().c_str());
+		if (!ifs.is_open()) {
+			return -1;
+		}
+		
 		boost::archive::xml_iarchive ar(ifs);
 		BreakpointList bps(m_engine);
-		ar & BOOST_SERIALIZATION_NVP(bps);
+		ar >> BOOST_SERIALIZATION_NVP(bps);
 
-		// set values
+		// Set values.
 		m_breakpoints = bps;
 		m_engine->ChangedBreakpointList(m_breakpoints);
 	}
@@ -291,25 +274,45 @@ int Context::SaveConfig() {
 	scoped_lock lock(m_mutex);
 
 	try {
-		std::string filename = EncodeToFilename(m_rootFileKey);
-		std::fstream ofs;
-		if (OpenConfigFile(filename + ".xml", ofs, true) != 0) {
+		if (m_rootFileKey.empty()) {
 			return -1;
 		}
 
-		boost::archive::xml_oarchive ar(ofs);
-		ar & LLDEBUG_MEMBER_NVP(breakpoints);
+		// Detect filenames.
+		std::string filename = EncodeToFilename(m_rootFileKey);
+		boost::filesystem::path tmpPath
+			= GetConfigFileName(filename + ".xml.tmp");
+
+		{
+			// Open the config file.
+			std::ofstream ofs(tmpPath.native_file_string().c_str());
+			if (!ofs.is_open()) {
+				return -1;
+			}
+		
+			boost::archive::xml_oarchive ar(ofs);
+			ar << LLDEBUG_MEMBER_NVP(breakpoints);
+			ofs.flush();
+			ofs.close();
+		}
+
+		// Rename the config file
+		// because of trying to suppress the error.
+		boost::filesystem::path dataPath
+			= GetConfigFileName(filename + ".xml");
+		boost::filesystem::remove(dataPath);
+		boost::filesystem::rename(tmpPath, dataPath);
 	}
-	catch (std::exception &) {
-		OutputError("Couldn't save the config file.");
+	catch (std::exception &ex) {
+		OutputError(std::string("Couldn't save the config file (") + ex.what() + ").");
 	}
 
 	return 0;
 }
 
-Context *Context::Find(lua_State *L) {
+shared_ptr<Context> Context::Find(lua_State *L) {
 	if (ms_manager == NULL) {
-		return NULL;
+		return shared_ptr<Context>();
 	}
 
 	return ms_manager->Find(L);
@@ -457,7 +460,7 @@ void Context::SetHook(lua_State *L) {
 }
 
 void Context::s_HookCallback(lua_State *L, lua_Debug *ar) {
-	Context *ctx = Context::Find(L);
+	shared_ptr<Context> ctx = Context::Find(L);
 
 	if (ctx != NULL) {
 		ctx->HookCallback(L, ar);
@@ -620,7 +623,7 @@ int Context::HandleCommand() {
 				string_array evals;
 				LuaStackFrame stackFrame;
 				command.GetData().Get_EvalsToVarList(evals, stackFrame);
-				m_engine->ResponseVarList(command, LuaEvalsToVarList(evals, stackFrame));
+				m_engine->ResponseVarList(command, LuaEvalsToVarList(evals, stackFrame, true));
 			}
 			break;
 		case REMOTECOMMANDTYPE_EVAL_TO_MULTIVAR:
@@ -628,7 +631,7 @@ int Context::HandleCommand() {
 				std::string eval;
 				LuaStackFrame stackFrame;
 				command.GetData().Get_EvalToMultiVar(eval, stackFrame);
-				m_engine->ResponseVarList(command, LuaEvalToMultiVar(eval, stackFrame));
+				m_engine->ResponseVarList(command, LuaEvalToMultiVar(eval, stackFrame, true));
 			}
 			break;
 		case REMOTECOMMANDTYPE_EVAL_TO_VAR:
@@ -636,7 +639,7 @@ int Context::HandleCommand() {
 				std::string eval;
 				LuaStackFrame stackFrame;
 				command.GetData().Get_EvalToVar(eval, stackFrame);
-				m_engine->ResponseVar(command, LuaEvalToVar(eval, stackFrame));
+				m_engine->ResponseVar(command, LuaEvalToVar(eval, stackFrame, true));
 			}
 			break;
 		
@@ -745,13 +748,13 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		lua_getinfo(L, "nSl", ar);
 		switch (ar->event) {
 		case LUA_HOOKCALL:
-			printf("OnCall: %s\n", LuaMakeFuncName(ar).c_str());
+			printf("OnCall: %s\n", llutil_make_funcname(ar).c_str());
 			break;
 		case LUA_HOOKRET:
-			printf("OnReturn: %s\n", LuaMakeFuncName(ar).c_str());
+			printf("OnReturn: %s\n", llutil_make_funcname(ar).c_str());
 			break;
 		case LUA_HOOKTAILRET:
-			printf("OnTailReturn: %s\n", LuaMakeFuncName(ar).c_str());
+			printf("OnTailReturn: %s\n", llutil_make_funcname(ar).c_str());
 			break;
 		}
 	}
@@ -871,7 +874,7 @@ public:
 	}
 
 	static int auxresume (lua_State *L, lua_State *co, int narg) {
-		Context *ctx = Context::Find(L);
+		shared_ptr<Context> ctx = Context::Find(L);
 
 		if (!lua_checkstack(co, narg))
 			luaL_error(L, "too many arguments to resume");
@@ -1122,7 +1125,7 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 				sourceTitle = source->GetTitle();
 			}
 
-			std::string name = LuaMakeFuncName(&ar);
+			std::string name = llutil_make_funcname(&ar);
 			array.push_back(LuaBacktrace(L1, name, ar.source, sourceTitle, ar.currentline, level));
 		}
 	}
@@ -1139,6 +1142,7 @@ static int index_for_eval(lua_State *L) {
 	}
 	std::string target(lua_tostring(L, 2));
 	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
+	int oldEnvIdx = lua_upvalueindex(2);
 
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
@@ -1152,24 +1156,23 @@ static int index_for_eval(lua_State *L) {
 		return 1;
 	}
 
-	LuaVarList vars = Context::Find(L)->LuaGetLocals(LuaStackFrame(L, level + 3), true, true, false);
-	for (LuaVarList::iterator it = vars.begin(); it != vars.end(); ++it) {
-		LuaVar &var = *it;
-		printf("%s = %s\n", var.GetName(), var.GetValue());
-	}
+	/*if (find_fieldvalue(L, oldEnvIdx, target) == 0) {
+		return 1;
+	}*/
 
 	lua_pushnil(L);
 	return 1; // return nil
 }
 
 static int newindex_for_eval(lua_State *L) {
-	scoped_lua scoped(L, 0);
+	{scoped_lua scoped(L, 0);
 
 	if (!lua_isstring(L, 2)) {
 		return 0;
 	}
 	std::string target(lua_tostring(L, 2));
 	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
+	int oldEnvIdx = lua_upvalueindex(2);
 	
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
@@ -1179,10 +1182,15 @@ static int newindex_for_eval(lua_State *L) {
 		return 0;
 	}
 
-	if (set_localvalue(L, level + 3, target, 3, true, true, true, true) == 0) {
+	if (set_localvalue(L, level + 3, target, 3, true, true, true, false) == 0) {
 		return 0;
 	}
 
+	/*if (set_fieldvalue(L, oldEnvIdx, target, 3, false) == 0) {
+		return 0;
+	}*/}
+
+	luaL_error(L, "Variable '%s' doesn't exist here.", lua_tostring(L, 2));
 	return 0;
 }
 
@@ -1193,40 +1201,49 @@ static int setmetatable_for_eval(lua_State *L) {
 	// level 1: __lldebug_dummy__ function
 	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
 	// level 3: current running function
-	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
+	int level = (int)luaL_checkinteger(L, lua_upvalueindex(1));
 
 	lua_Debug ar;
 	if (lua_getstack(L, level + 1, &ar) == 0) {
 		return 0;
 	}
 
-	// setfenv(0, setmetatable({}, meta))
+	// setfenv(0, setmetatable(clone(setfenv()), meta))
 	if (lua_getinfo(L, "f", &ar) != 0) {
-		lua_getfenv(L, -1);
-		int envtable = lua_gettop(L);
+		int func = lua_gettop(L);
 		
-		// table = {__index=func1, __newindex=func2}
+		// table = clone(getfenv())
+		{
+			lua_getfenv(L, -1);
+			int envtable = lua_gettop(L);
+			if (llutil_clone_table(L, envtable) == 0) {
+				lua_newtable(L); // If failed to clone.
+			}
+			lua_remove(L, envtable);
+		}
+
+		// Cloned environ table.
+		int newenvtable = lua_gettop(L);
+		
+		// meta = {__index=func1, __newindex=func2}
 		lua_newtable(L);
+		int meta = lua_gettop(L);
 		lua_pushliteral(L, "__index");
 		lua_pushnumber(L, (lua_Number)level);
-		//lua_pushvalue(L, envtable);
-		lua_pushcclosure(L, index_for_eval, 1);
-		lua_rawset(L, -4);
+		lua_pushvalue(L, newenvtable);
+		lua_pushcclosure(L, index_for_eval, 2);
+		lua_rawset(L, meta);
 		lua_pushliteral(L, "__newindex");
 		lua_pushnumber(L, (lua_Number)level);
-		//lua_pushvalue(L, envtable);
-		lua_pushcclosure(L, newindex_for_eval, 1);
-		lua_rawset(L, -4);
+		lua_pushvalue(L, newenvtable);
+		lua_pushcclosure(L, newindex_for_eval, 2);
+		lua_rawset(L, meta);
 
-		// set metatable
-		lua_newtable(L);
-		lua_insert(L, -2);
+		// setfenv(0, meta)
 		lua_setmetatable(L, -2);
-
-		// setfenv(0, table);
-		lua_setfenv(L, envtable);
+		lua_setfenv(L, func);
 		
-		lua_pop(L, 2); // eliminate the local function and envtable.
+		lua_pop(L, 1); // eliminate the local function and envtable.
 	}
 	
 	return 0;
@@ -1257,7 +1274,6 @@ struct eval_string_reader {
 				return reader->beginning;
 			}
 			// fall through
-
 		case 1: // content part
 			++reader->state;
 			if (!reader->str.empty()) {
@@ -1265,7 +1281,6 @@ struct eval_string_reader {
 				return reader->str.c_str();
 			}
 			// fall through
-
 		case 2: // ending function part
 			++reader->state;
 			if (reader->ending != NULL) {
@@ -1279,12 +1294,17 @@ struct eval_string_reader {
 	}
 	};
 
-int Context::LuaEval(lua_State *L, int level, const std::string &str) {
+int Context::LuaEval(lua_State *L, int level, const std::string &str, bool withDebug) {
 	scoped_lock lock(m_mutex);
+	scoped_lua slua(this, L, withDebug);
 
 	if (str.empty()) {
 		return 0;
 	}
+
+	/*lua_State *oldL = L;
+	L = lua_newthread(oldL);
+	int newthreadpos = lua_gettop(oldL);*/
 
 	const char *beginning = NULL;
 	const char *ending = NULL;
@@ -1295,12 +1315,31 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 		ending =
 			"\nend)()";
 
+		/*if (llutil_getfenv(oldL, level) != 0) {
+			if (clone_table(oldL, lua_gettop(oldL)) == 0) {
+				lua_pushnil(oldL);
+			}
+			lua_remove(L, -2);
+		}
+		else {
+			lua_pushnil(oldL);
+		}*/
+
+		// Export functions used here because of preparation for error state
+		// like that all basic functions are unusable.
+
 		// globals[__lldebug_setmetatable__] = function
 		lua_pushliteral(L, "__lldebug_setmetatable__");
+		//lua_xmove(oldL, L, 1);
 		lua_pushnumber(L, (lua_Number)level);
 		lua_pushcclosure(L, setmetatable_for_eval, 1);
 		lua_rawset(L, LUA_GLOBALSINDEX);
 	}
+
+	// __lldebug_tostring_detail__
+	lua_pushliteral(L, "__lldebug_tostring_detail__");
+	lua_pushcclosure(L, llutil_lua_tostring_detail, 0);
+	lua_rawset(L, LUA_GLOBALSINDEX);
 
 	// on exit: globals[__lldebug_setmetatable__] = nil
 	struct call_on_exit {
@@ -1310,11 +1349,14 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 			lua_pushliteral(L, "__lldebug_setmetatable__");
 			lua_pushnil(L);
 			lua_rawset(L, LUA_GLOBALSINDEX);
+
+			lua_pushliteral(L, "__lldebug_tostring_detail__");
+			lua_pushnil(L);
+			lua_rawset(L, LUA_GLOBALSINDEX);
 		}
 	} exit_obj(L);
 
-	// Load string using lua_load.
-	// (existence of luaL_loadstring depends on the lua version)
+	// Load string (use lua_load).
 	eval_string_reader reader(str, beginning, ending);
 	if (lua_load(L, eval_string_reader::exec, &reader, DUMMY_FUNCNAME) != 0) {
 		return -1;
@@ -1325,35 +1367,39 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str) {
 		return -1;
 	}
 
+	//lua_xmove(L, oldL, lua_gettop(L));
+	//lua_remove(L, newthreadpos);
 	return 0;
 }
 
 LuaVarList Context::LuaEvalsToVarList(const string_array &evals,
-									  const LuaStackFrame &stackFrame) {
+									  const LuaStackFrame &stackFrame,
+									  bool withDebug) {
 	lua_State *L = stackFrame.GetLua().GetState();
 	if (L == NULL) L = GetLua();
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 0);
+	scoped_lua scoped(this, L, 0, withDebug);
 	LuaVarList result;
 
 	string_array::const_iterator it;
 	for (it = evals.begin(); it != evals.end(); ++it) {
-		result.push_back(LuaEvalToVar(*it, stackFrame));
+		result.push_back(LuaEvalToVar(*it, stackFrame, withDebug));
 	}
 
 	return result;
 }
 
 LuaVarList Context::LuaEvalToMultiVar(const std::string &eval,
-									  const LuaStackFrame &stackFrame) {
+									  const LuaStackFrame &stackFrame,
+									  bool withDebug) {
 	lua_State *L = stackFrame.GetLua().GetState();
 	if (L == NULL) L = GetLua();
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 0);
+	scoped_lua scoped(this, L, 0, withDebug);
 	LuaVarList result;
 	int beginningtop = lua_gettop(L);
 
-	if (LuaEval(L, stackFrame.GetLevel(), eval) != 0) {
+	if (LuaEval(L, stackFrame.GetLevel(), eval, withDebug) != 0) {
 		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);
 		result.push_back(LuaVar(LuaHandle(L), "<error>", ParseLuaError(error).message));
@@ -1371,14 +1417,15 @@ LuaVarList Context::LuaEvalToMultiVar(const std::string &eval,
 }
 
 LuaVar Context::LuaEvalToVar(const std::string &eval,
-							 const LuaStackFrame &stackFrame) {
+							 const LuaStackFrame &stackFrame,
+							 bool withDebug) {
 	lua_State *L = stackFrame.GetLua().GetState();
 	if (L == NULL) L = GetLua();
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 0);
+	scoped_lua scoped(this, L, 0, withDebug);
 	int beginningtop = lua_gettop(L);
 
-	if (LuaEval(L, stackFrame.GetLevel(), eval) != 0) {
+	if (LuaEval(L, stackFrame.GetLevel(), eval, withDebug) != 0) {
 		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);
 		return LuaVar(LuaHandle(L), "<error>", ParseLuaError(error).message);
