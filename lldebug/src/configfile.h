@@ -28,8 +28,13 @@
 #define __LLDEBUG_CONFIGFILE__
 
 #include <boost/filesystem/path.hpp>
+#include <fstream>
 
 namespace lldebug {
+
+/// Transform filename that may contain all characters such as ".\!#$%/&'()"
+/// to string that can use a filename.
+std::string EncodeToFilename(const std::string &filename);
 
 /// Get the filepath located on the config dir.
 boost::filesystem::path GetConfigFilePath(const std::string &filename);
@@ -37,9 +42,34 @@ boost::filesystem::path GetConfigFilePath(const std::string &filename);
 /// Get the filepath(std::string) located on the config dir.
 std::string GetConfigFileName(const std::string &filename);
 
-/// Transform filename that may contain all characters such as ".\!#$%/&'()"
-/// to string that can use a filename.
-std::string EncodeToFilename(const std::string &filename);
+
+/**
+ * @brief Save file only when the output was successed.
+ */
+class safe_ofstream {
+public:
+	explicit safe_ofstream();
+	~safe_ofstream();
+
+	/// Open the file.
+	bool open(const std::string &filename, int mode);
+
+	/// Is this stream open ?
+	bool is_open() const;
+
+	/// If successed, close and rename from temporary file to target.
+	void close();
+
+	/// Get the ofstream object.
+	std::ofstream &stream() {
+		return m_stream;
+	}
+
+private:
+	std::ofstream m_stream;
+	boost::filesystem::path m_filePath;
+	boost::filesystem::path m_tmpPath;
+};
 
 } // end of namespace lldebug
 

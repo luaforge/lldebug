@@ -231,6 +231,10 @@
 				RelativePath="..\..\src\sysinfo.h"
 				>
 			</File>
+			<File
+				RelativePath="..\..\src\vectorstream.h"
+				>
+			</File>
 			<Filter
 				Name="visual"
 				>
@@ -364,10 +368,6 @@
 				</File>
 				<File
 					RelativePath="..\..\src\net\remoteengine.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\net\vectorstream.h"
 					>
 				</File>
 			</Filter>

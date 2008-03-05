@@ -6,7 +6,7 @@ debug = require "debug"
 table = require "table"
 string = require "string"
 
-require "strict"
+--require "strict"
 
 -- recursive
 local function self_recursive(count, through)

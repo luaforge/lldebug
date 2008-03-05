@@ -79,6 +79,8 @@ int find_fieldvalue(lua_State *L, int idx, const std::string &target) {
 
 int set_fieldvalue(lua_State *L, int idx, const std::string &target,
 				   int valueIdx, bool forceCreate) {
+	scoped_lua scoped(L);
+
 	if (lua_type(L, idx) != LUA_TTABLE) {
 		return -1;
 	}
@@ -88,9 +90,10 @@ int set_fieldvalue(lua_State *L, int idx, const std::string &target,
 		lua_pop(L, 1); // eliminate the value index
 
 		int key = lua_gettop(L);
-		if (llutil_tostring_default(L, key) == target) {
+		if (llutil_tostring_fast(L, key) == target) {
 			lua_pushvalue(L, valueIdx);
 			lua_settable(L, idx);
+			scoped.check(0);
 			return 0;
 		}
 	}
@@ -100,9 +103,11 @@ int set_fieldvalue(lua_State *L, int idx, const std::string &target,
 		lua_pushlstring(L, target.c_str(), target.length());
 		lua_pushvalue(L, valueIdx);
 		lua_settable(L, idx);
+		scoped.check(0);
 		return 0;
 	}
 
+	scoped.check(0);
 	return -1;
 }
 
@@ -123,7 +128,7 @@ int find_localvalue(lua_State *L, int level, const std::string &target,
 int set_localvalue(lua_State *L, int level, const std::string &target,
 				   int valueIdx, bool checkLocal, bool checkUpvalue,
 				   bool checkEnv, bool forceCreate) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 	const char *cname;
 	lua_Debug ar;
 
@@ -139,6 +144,7 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 				lua_pushvalue(L, valueIdx); // new value
 				lua_setlocal(L, &ar, i);
 				lua_pop(L, 1);
+				scoped.check(0);
 				return 0;
 			}
 			lua_pop(L, 1); // Eliminate the local value.
@@ -154,6 +160,7 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 					lua_pushvalue(L, 3); // new value
 					lua_setupvalue(L, -1, i);
 					lua_pop(L, 2); // Eliminate the upvalue and the local function.
+					scoped.check(0);
 					return 0;
 				}
 				lua_pop(L, 1); // Eliminate the upvalue.
@@ -168,12 +175,13 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 			lua_pushnil(L); // first key
 			for (int i = 0; lua_next(L, tableIdx) != 0; ++i) {
 				// key index: -2, value index: -1
-				std::string name = llutil_tostring_default(L, -2);
+				std::string name = llutil_tostring_fast(L, -2);
 				if (target == name) {
 					lua_pop(L, 1); // Eliminate the old value.
 					lua_pushvalue(L, valueIdx);
 					lua_settable(L, -3);
 					lua_pop(L, 2);
+					scoped.check(0);
 					return 0;
 				}
 				
@@ -192,9 +200,11 @@ int set_localvalue(lua_State *L, int level, const std::string &target,
 		lua_pushlstring(L, target.c_str(), target.length());
 		lua_pushvalue(L, valueIdx);
 		lua_settable(L, LUA_GLOBALSINDEX);
+		scoped.check(0);
 		return 0;
 	}
 
+	scoped.check(0);
 	return -1;
 }
 

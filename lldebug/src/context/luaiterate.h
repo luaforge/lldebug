@@ -72,7 +72,7 @@ private:
 /// Iterate the all fields of idx object.
 template<class Fn>
 int iterate_fields(Fn &callback, lua_State *L, int idx) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 
 	// check metatable
 	if (lua_getmetatable(L, idx)) {
@@ -81,11 +81,13 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 		int ret = callback(L, std::string("(*metatable)"), top);
 		lua_pop(L, 1);
 		if (ret != 0) {
+			scoped.check(0);
 			return ret;
 		}
 	}
 	
 	if (lua_type(L, idx) != LUA_TTABLE) {
+		scoped.check(0);
 		return 0;
 	}
 
@@ -97,9 +99,10 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 			&& lua_topointer(L, -2) == &llutil_address_for_internal_table) {
 		}
 		else {
-			int ret = callback(L, llutil_tostring_default(L, top - 1), top);
+			int ret = callback(L, llutil_tostring_fast(L, top - 1), top);
 			if (ret != 0) {
 				lua_pop(L, 2);
+				scoped.check(0);
 				return ret;
 			}
 		}
@@ -108,6 +111,7 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 		lua_pop(L, 1);
 	}
 
+	scoped.check(0);
 	return 0;
 }
 
@@ -115,21 +119,27 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 template<class Fn>
 int iterate_var(Fn &callback, const LuaVar &var) {
 	lua_State *L = var.GetLua().GetState();
-	scoped_lua slua(L, 0);
+	scoped_lua scoped(L);
+
+	if (!var.IsOk()) {
+		return -1;
+	}
 
 	if (var.PushTable(L) != 0) {
+		scoped.check(0);
 		return -1;
 	}
 
 	int ret = iterate_fields(callback, L, lua_gettop(L));
 	lua_pop(L, 1);
+	scoped.check(0);
 	return ret;
 }
 
 /// Iterate the stacks.
 template<class Fn>
 int iterate_stacks(Fn &callback, lua_State *L) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 	int top = lua_gettop(L);
 
 	for (int idx = 1; idx <= top; ++idx) {
@@ -137,19 +147,20 @@ int iterate_stacks(Fn &callback, lua_State *L) {
 		snprintf(buffer, sizeof(buffer), "stack:%d", idx);
 		int ret = callback(L, buffer, idx);
 		if (ret != 0) {
+			scoped.check(0);
 			return ret;
 		}
 	}
 
+	scoped.check(0);
 	return 0;
 }
 
 /// Iterates the local fields.
 template<class Fn>
 int iterate_locals(Fn &callback, lua_State *L, int level,
-						  bool checkLocal, bool checkUpvalue,
-						  bool checkEnviron) {
-	scoped_lua scoped(L, 0);
+				   bool checkLocal, bool checkUpvalue, bool checkEnviron) {
+	scoped_lua scoped(L);
 	lua_Debug ar;
 	const char *name;
 
@@ -165,6 +176,7 @@ int iterate_locals(Fn &callback, lua_State *L, int level,
 				int ret = callback(L, name, lua_gettop(L));
 				if (ret != 0) {
 					lua_pop(L, 1);
+					scoped.check(0);
 					return ret;
 				}
 			}
@@ -181,6 +193,7 @@ int iterate_locals(Fn &callback, lua_State *L, int level,
 					int ret = callback(L, name, lua_gettop(L));
 					if (ret != 0) {
 						lua_pop(L, 2);
+						scoped.check(0);
 						return ret;
 					}
 				}
@@ -196,6 +209,7 @@ int iterate_locals(Fn &callback, lua_State *L, int level,
 			int ret = iterate_fields(callback, L, lua_gettop(L));
 			if (ret != 0) {
 				lua_pop(L, 2);
+				scoped.check(0);
 				return ret;
 			}
 
@@ -205,6 +219,7 @@ int iterate_locals(Fn &callback, lua_State *L, int level,
 		lua_pop(L, 1); // eliminate the local function.
 	}
 
+	scoped.check(0);
 	return 0;
 }
 

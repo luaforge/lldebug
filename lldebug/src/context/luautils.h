@@ -38,16 +38,17 @@ class Context;
 class scoped_lua {
 public:
 	explicit scoped_lua(lua_State *L);
-	explicit scoped_lua(lua_State *L, int n);
 	explicit scoped_lua(Context *ctx, lua_State *L, bool withDebug=false);
-	explicit scoped_lua(Context *ctx, lua_State *L, int n, bool withDebug=false);
 	~scoped_lua();
-	
+
+	/// Check the stack top, and return n.
+	int check(int n);
+
 private:
-	void init(Context *ctx, lua_State *L, int n, bool withDebug);
+	void init(Context *ctx, lua_State *L, bool withDebug);
 	Context *m_ctx;
 	lua_State *m_L;
-	int m_top, m_n;
+	int m_top;
 	bool m_isOldEnabled;
 };
 
@@ -55,19 +56,26 @@ private:
 extern const int llutil_address_for_internal_table;
 
 /// Get the original name of the lua function.
-std::string llutil_make_funcname(lua_Debug *ar);
+std::string llutil_makefuncname(lua_Debug *ar);
 
 /// Clone the table(idx).
-int llutil_clone_table(lua_State *L, int idx);
+int llutil_clonetable(lua_State *L, int idx);
 
-/// Get the environ table binded the specified stack level.
+/// Get the environ table binded the local function.
 int llutil_getfenv(lua_State *L, int level);
+
+/// Set the environ table to the local function.
+int llutil_setfenv(lua_State *L, int level, int idx);
+
+/// Get the table that has local variables.
+int llutil_getlocals(lua_State *L, int level, bool checkLocal,
+					 bool checkUpvalue, bool checkEnv);
 
 
 /// Convert to the string.
 /** It doesn't use any lua functions
  */
-std::string llutil_tostring_default(lua_State *L, int idx);
+std::string llutil_tostring_fast(lua_State *L, int idx);
 
 /// Convert to the string.
 /** It calls 'lldebug.tostring' first,
@@ -89,9 +97,9 @@ std::string llutil_tostring_for_varvalue(lua_State *L, int idx);
 /// Make a detail string of the lua object.
 int llutil_lua_tostring_detail(lua_State *L);
 
+
 /// Open the lldebug library.
 int luaopen_lldebug(lua_State *L);
-
 
 } // end of namespace context
 } // end of namespace lldebug

@@ -157,6 +157,8 @@ END_EVENT_TABLE()
 InteractiveView::InteractiveView(wxWindow *parent)
 	: wxPanel(parent, ID_INTERACTIVEVIEW) {
 	CreateGUIControls();
+
+	lldebug::GetConfigFileName("interactive.dat.tmp");
 }
 
 InteractiveView::~InteractiveView() {
@@ -253,7 +255,7 @@ void InteractiveView::Run() {
 		wxString stripped = str;
 		stripped = stripped.Remove(0, 1).Strip(wxString::both);
 
-		evalstr = "return __lldebug_tostring_detail__(";
+		evalstr = "return lldebug.tostring_detail(";
 		evalstr += wxConvToUTF8(stripped);
 		evalstr += ")";
 		isVar = true;

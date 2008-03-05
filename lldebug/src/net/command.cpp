@@ -25,8 +25,8 @@
  */
 
 #include "precomp.h"
+#include "vectorstream.h"
 #include "net/command.h"
-#include "net/vectorstream.h"
 
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>

@@ -205,6 +205,11 @@ int Context::CreateDebuggerFrame() {
 		std::cerr
 			<< "lldebug doesn't work correctly, "
 			   "because the frame was not found."
+			<< std::endl
+			<< "Now this program starts without debugging."
+			<< std::endl
+			<< "(If you want to debug visually, "
+			<< "please excute 'lldebug_frame.exe' first.)"
 			<< std::endl;
 		SetDebugEnable(false);
 	}
@@ -240,18 +245,18 @@ void Context::Delete() {
 int Context::LoadConfig() {
 	scoped_lock lock(m_mutex);
 
-	try {
-		if (m_rootFileKey.empty()) {
-			return -1;
-		}
+	if (m_rootFileKey.empty()) {
+		return -1;
+	}
 
+	try {
 		// Detect filenames.
 		std::string filename = EncodeToFilename(m_rootFileKey);
-		boost::filesystem::path dataPath = GetConfigFileName(filename + ".xml");
+		std::string filepath = GetConfigFileName(filename + ".xml");
 
 		// Open the config file.
 		scoped_locale sloc(std::locale(""));
-		std::ifstream ifs(dataPath.native_file_string().c_str());
+		std::ifstream ifs(filepath.c_str());
 		if (!ifs.is_open()) {
 			return -1;
 		}
@@ -274,36 +279,29 @@ int Context::LoadConfig() {
 int Context::SaveConfig() {
 	scoped_lock lock(m_mutex);
 
-	try {
-		if (m_rootFileKey.empty()) {
-			return -1;
-		}
+	if (m_rootFileKey.empty()) {
+		return -1;
+	}
 
+	try {
 		// Detect filenames.
 		std::string filename = EncodeToFilename(m_rootFileKey);
-		boost::filesystem::path tmpPath
-			= GetConfigFileName(filename + ".xml.tmp");
+		std::string filepath = GetConfigFileName(filename + ".xml");
 
 		// Open the config file.
 		scoped_locale sloc(std::locale(""));
-		std::ofstream ofs(tmpPath.native_file_string().c_str());
-		if (!ofs.is_open()) {
+		safe_ofstream sfs;
+		if (!sfs.open(filepath, std::ios_base::out)) {
 			return -1;
 		}
 		
-		boost::archive::xml_oarchive ar(ofs);
+		boost::archive::xml_oarchive ar(sfs.stream());
 		ar << LLDEBUG_MEMBER_NVP(breakpoints);
-		ofs.close();
-
-		// Rename the config file
-		// because of trying to suppress the error.
-		boost::filesystem::path dataPath
-			= GetConfigFileName(filename + ".xml");
-		boost::filesystem::remove(dataPath);
-		boost::filesystem::rename(tmpPath, dataPath);
+		sfs.close();
 	}
 	catch (std::exception &ex) {
 		OutputError(std::string("Couldn't save the config file (") + ex.what() + ").");
+		throw;
 	}
 
 	return 0;
@@ -747,13 +745,13 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		lua_getinfo(L, "nSl", ar);
 		switch (ar->event) {
 		case LUA_HOOKCALL:
-			printf("OnCall: %s\n", llutil_make_funcname(ar).c_str());
+			printf("OnCall: %s\n", llutil_makefuncname(ar).c_str());
 			break;
 		case LUA_HOOKRET:
-			printf("OnReturn: %s\n", llutil_make_funcname(ar).c_str());
+			printf("OnReturn: %s\n", llutil_makefuncname(ar).c_str());
 			break;
 		case LUA_HOOKTAILRET:
-			printf("OnTailReturn: %s\n", llutil_make_funcname(ar).c_str());
+			printf("OnTailReturn: %s\n", llutil_makefuncname(ar).c_str());
 			break;
 		}
 	}
@@ -872,7 +870,7 @@ public:
 		return 1;
 	}
 
-	static int auxresume (lua_State *L, lua_State *co, int narg) {
+	static int auxresume(lua_State *L, lua_State *co, int narg) {
 		shared_ptr<Context> ctx = Context::Find(L);
 
 		if (!lua_checkstack(co, narg))
@@ -987,7 +985,7 @@ int Context::LuaOpenBase(lua_State *L) {
 
 void Context::LuaOpenLibs(lua_State *L) {
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L);
+	scoped_lua scoped(this, L, false);
 
 	static const luaL_reg libs[] = {
 #ifdef LUA_COLIBNAME
@@ -1104,13 +1102,14 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 	CoroutineList::reverse_iterator it;
 	for (it = m_coroutines.rbegin(); it != m_coroutines.rend(); ++it) {
 		lua_State *L1 = it->L;
-		scoped_lua scoped(this, L1, 0);
+		scoped_lua scoped(this, L1);
 		lua_Debug ar;
 
 		// level 0 may be this own function
 		for (int level = 0; lua_getstack(L1, level, &ar); ++level) {
 			if (level > LEVEL_MAX) {
 				assert(false && "stack size is too many");
+				scoped.check(0);
 				return array;
 			}
 
@@ -1124,77 +1123,62 @@ LuaBacktraceList Context::LuaGetBacktrace() {
 				sourceTitle = source->GetTitle();
 			}
 
-			std::string name = llutil_make_funcname(&ar);
-			array.push_back(LuaBacktrace(L1, name, ar.source, sourceTitle, ar.currentline, level));
+			std::string name = llutil_makefuncname(&ar);
+			array.push_back(LuaBacktrace(
+				L1, name, ar.source, sourceTitle,
+				ar.currentline, level));
 		}
+
+		scoped.check(0);
 	}
 
 	return array;
 }
 
 static int index_for_eval(lua_State *L) {
-	scoped_lua scoped(L, 1);
-
-	if (!lua_isstring(L, 2)) {
-		lua_pushnil(L);
-		return 1;
-	}
-	std::string target(lua_tostring(L, 2));
+	scoped_lua scoped(L);
+	std::string target(luaL_checkstring(L, 2));
 	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
-	int oldEnvIdx = lua_upvalueindex(2);
 
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
 	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
 	// level 3: current running function
-	if (find_localvalue(L, level + 1, target, true, true, false) == 0) {
-		return 1;
+	if (find_localvalue(L, 1, target, true, true, false) == 0) {
+		return scoped.check(1);
 	}
 
 	if (find_localvalue(L, level + 3, target, true, true, true) == 0) {
-		return 1;
+		return scoped.check(1);
 	}
 
-	/*if (find_fieldvalue(L, oldEnvIdx, target) == 0) {
-		return 1;
-	}*/
-
 	lua_pushnil(L);
-	return 1; // return nil
+	return scoped.check(1); // return nil
 }
 
 static int newindex_for_eval(lua_State *L) {
-	{scoped_lua scoped(L, 0);
-
-	if (!lua_isstring(L, 2)) {
-		return 0;
-	}
-	std::string target(lua_tostring(L, 2));
+	scoped_lua scoped(L);
+	std::string target(luaL_checkstring(L, 2));
 	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
-	int oldEnvIdx = lua_upvalueindex(2);
 	
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
 	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
 	// level 3: current running function
-	if (set_localvalue(L, level + 1, target, 3, true, true, false, false) == 0) {
-		return 0;
+	if (set_localvalue(L, 1, target, 3, true, true, false, false) == 0) {
+		return scoped.check(0);
 	}
 
 	if (set_localvalue(L, level + 3, target, 3, true, true, true, false) == 0) {
-		return 0;
+		return scoped.check(0);
 	}
 
-	/*if (set_fieldvalue(L, oldEnvIdx, target, 3, false) == 0) {
-		return 0;
-	}*/}
-
 	luaL_error(L, "Variable '%s' doesn't exist here.", lua_tostring(L, 2));
-	return 0;
+	return scoped.check(0);
 }
 
 static int setmetatable_for_eval(lua_State *L) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 
 	// level 0: this C function
 	// level 1: __lldebug_dummy__ function
@@ -1202,50 +1186,40 @@ static int setmetatable_for_eval(lua_State *L) {
 	// level 3: current running function
 	int level = (int)luaL_checkinteger(L, lua_upvalueindex(1));
 
-	lua_Debug ar;
-	if (lua_getstack(L, level + 1, &ar) == 0) {
-		return 0;
-	}
+	// table = {}, meta = {}
+	lua_newtable(L);
+	lua_newtable(L);
+	int meta = lua_gettop(L);
 
-	// setfenv(0, setmetatable(clone(setfenv()), meta))
-	if (lua_getinfo(L, "f", &ar) != 0) {
-		int func = lua_gettop(L);
-		
-		// table = clone(getfenv())
-		{
-			lua_getfenv(L, -1);
-			int envtable = lua_gettop(L);
-			if (llutil_clone_table(L, envtable) == 0) {
-				lua_newtable(L); // If failed to clone.
-			}
-			lua_remove(L, envtable);
-		}
+	// meta.__index = func1; meta.__newindex = func2
+	lua_pushliteral(L, "__index");
+	lua_pushnumber(L, (lua_Number)level);
+	lua_pushcclosure(L, index_for_eval, 1);
+	lua_rawset(L, meta);
+	lua_pushliteral(L, "__newindex");
+	lua_pushnumber(L, (lua_Number)level);
+	lua_pushcclosure(L, newindex_for_eval, 1);
+	lua_rawset(L, meta);
 
-		// Cloned environ table.
-		int newenvtable = lua_gettop(L);
-		
-		// meta = {__index=func1, __newindex=func2}
-		lua_newtable(L);
-		int meta = lua_gettop(L);
-		lua_pushliteral(L, "__index");
-		lua_pushnumber(L, (lua_Number)level);
-		lua_pushvalue(L, newenvtable);
-		lua_pushcclosure(L, index_for_eval, 2);
-		lua_rawset(L, meta);
-		lua_pushliteral(L, "__newindex");
-		lua_pushnumber(L, (lua_Number)level);
-		lua_pushvalue(L, newenvtable);
-		lua_pushcclosure(L, newindex_for_eval, 2);
-		lua_rawset(L, meta);
+	// setfenv(1, setmetatable({}, meta))
+	lua_setmetatable(L, -2);
+	llutil_setfenv(L, 1, -1);
+	lua_pop(L, 1);
+	return scoped.check(0);
+}
 
-		// setfenv(0, meta)
-		lua_setmetatable(L, -2);
-		lua_setfenv(L, func);
-		
-		lua_pop(L, 1); // eliminate the local function and envtable.
-	}
-	
-	return 0;
+static int getlocals_for_eval(lua_State *L) {
+	scoped_lua scoped(L);
+	int level = (int)luaL_checkinteger(L, lua_upvalueindex(1));
+	int n = lua_gettop(L);
+	bool checkLocal =
+		(n >= 1 && lua_isboolean(L, 1) ? (lua_toboolean(L, 1) != 0) : true);
+	bool checkUpvalue =
+		(n >= 2 && lua_isboolean(L, 2) ? (lua_toboolean(L, 2) != 0) : true);
+	bool checkEnv =
+		(n >= 3 && lua_isboolean(L, 3) ? (lua_toboolean(L, 3) != 0) : false);
+
+	return llutil_getlocals(L, level + 3, checkLocal, checkUpvalue, checkEnv);
 }
 
 /**
@@ -1295,50 +1269,37 @@ struct eval_string_reader {
 
 int Context::LuaEval(lua_State *L, int level, const std::string &str, bool withDebug) {
 	scoped_lock lock(m_mutex);
-	scoped_lua slua(this, L, withDebug);
+	scoped_lua scoped(this, L, withDebug);
 
 	if (str.empty()) {
 		return 0;
 	}
-
-	/*lua_State *oldL = L;
-	L = lua_newthread(oldL);
-	int newthreadpos = lua_gettop(oldL);*/
 
 	const char *beginning = NULL;
 	const char *ending = NULL;
 	if (level >= 0) {
 		beginning =
 			"return (function()\n"
+			"  local lldebug = lldebug\n"
+			"  local getlocals = __lldebug_getlocals__\n"
 			"  __lldebug_setmetatable__()\n";
 		ending =
 			"\nend)()";
-
-		/*if (llutil_getfenv(oldL, level) != 0) {
-			if (clone_table(oldL, lua_gettop(oldL)) == 0) {
-				lua_pushnil(oldL);
-			}
-			lua_remove(L, -2);
-		}
-		else {
-			lua_pushnil(oldL);
-		}*/
 
 		// Export functions used here because of preparation for error state
 		// like that all basic functions are unusable.
 
 		// globals[__lldebug_setmetatable__] = function
 		lua_pushliteral(L, "__lldebug_setmetatable__");
-		//lua_xmove(oldL, L, 1);
 		lua_pushnumber(L, (lua_Number)level);
 		lua_pushcclosure(L, setmetatable_for_eval, 1);
 		lua_rawset(L, LUA_GLOBALSINDEX);
-	}
 
-	// __lldebug_tostring_detail__
-	lua_pushliteral(L, "__lldebug_tostring_detail__");
-	lua_pushcclosure(L, llutil_lua_tostring_detail, 0);
-	lua_rawset(L, LUA_GLOBALSINDEX);
+		lua_pushliteral(L, "__lldebug_getlocals__");
+		lua_pushnumber(L, (lua_Number)level);
+		lua_pushcclosure(L, getlocals_for_eval, 1);
+		lua_rawset(L, LUA_GLOBALSINDEX);
+	}
 
 	// on exit: globals[__lldebug_setmetatable__] = nil
 	struct call_on_exit {
@@ -1348,8 +1309,7 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str, bool withD
 			lua_pushliteral(L, "__lldebug_setmetatable__");
 			lua_pushnil(L);
 			lua_rawset(L, LUA_GLOBALSINDEX);
-
-			lua_pushliteral(L, "__lldebug_tostring_detail__");
+			lua_pushliteral(L, "__lldebug_getlocals__");
 			lua_pushnil(L);
 			lua_rawset(L, LUA_GLOBALSINDEX);
 		}
@@ -1358,16 +1318,16 @@ int Context::LuaEval(lua_State *L, int level, const std::string &str, bool withD
 	// Load string (use lua_load).
 	eval_string_reader reader(str, beginning, ending);
 	if (lua_load(L, eval_string_reader::exec, &reader, DUMMY_FUNCNAME) != 0) {
+		scoped.check(1);
 		return -1;
 	}
 
 	// Do execute !
 	if (lua_pcall(L, 0, LUA_MULTRET, 0) != 0) {
+		scoped.check(1);
 		return -1;
 	}
 
-	//lua_xmove(L, oldL, lua_gettop(L));
-	//lua_remove(L, newthreadpos);
 	return 0;
 }
 
@@ -1377,7 +1337,7 @@ LuaVarList Context::LuaEvalsToVarList(const string_array &evals,
 	lua_State *L = stackFrame.GetLua().GetState();
 	if (L == NULL) L = GetLua();
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 0, withDebug);
+	scoped_lua scoped(this, L, withDebug);
 	LuaVarList result;
 
 	string_array::const_iterator it;
@@ -1385,6 +1345,7 @@ LuaVarList Context::LuaEvalsToVarList(const string_array &evals,
 		result.push_back(LuaEvalToVar(*it, stackFrame, withDebug));
 	}
 
+	scoped.check(0);
 	return result;
 }
 
@@ -1394,14 +1355,15 @@ LuaVarList Context::LuaEvalToMultiVar(const std::string &eval,
 	lua_State *L = stackFrame.GetLua().GetState();
 	if (L == NULL) L = GetLua();
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 0, withDebug);
+	scoped_lua scoped(this, L, withDebug);
 	LuaVarList result;
 	int beginningtop = lua_gettop(L);
 
 	if (LuaEval(L, stackFrame.GetLevel(), eval, withDebug) != 0) {
-		std::string error = lua_tostring(L, -1);
+		std::string error = llutil_tostring(L, -1);
 		lua_pop(L, 1);
 		result.push_back(LuaVar(LuaHandle(L), "<error>", ParseLuaError(error).message));
+		scoped.check(0);
 		return result;
 	}
 
@@ -1412,6 +1374,7 @@ LuaVarList Context::LuaEvalToMultiVar(const std::string &eval,
 	}
 
 	lua_settop(L, beginningtop); // adjust the stack top
+	scoped.check(0);
 	return result;
 }
 
@@ -1421,23 +1384,26 @@ LuaVar Context::LuaEvalToVar(const std::string &eval,
 	lua_State *L = stackFrame.GetLua().GetState();
 	if (L == NULL) L = GetLua();
 	scoped_lock lock(m_mutex);
-	scoped_lua scoped(this, L, 0, withDebug);
+	scoped_lua scoped(this, L, withDebug);
 	int beginningtop = lua_gettop(L);
 
 	if (LuaEval(L, stackFrame.GetLevel(), eval, withDebug) != 0) {
 		std::string error = lua_tostring(L, -1);
 		lua_pop(L, 1);
+		scoped.check(0);
 		return LuaVar(LuaHandle(L), "<error>", ParseLuaError(error).message);
 	}
 
 	// Convert the result to a LuaVar object.
 	int top = lua_gettop(L);
 	if (top == beginningtop) {
+		scoped.check(0);
 		return LuaVar();
 	}
 	else {
 		LuaVar result(LuaHandle(L), eval, beginningtop + 1);
 		lua_settop(L, beginningtop); // adjust the stack top
+		scoped.check(0);
 		return result;
 	}
 }

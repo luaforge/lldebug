@@ -86,6 +86,33 @@ static std::string LLDebugGetConfigDir() {
 
 namespace lldebug {
 
+std::string EncodeToFilename(const std::string &filename) {
+	const char s_lookupTable[] = 
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz"
+		"0123456789"
+		"_-";
+	std::string result;
+	unsigned int c = 0;
+	int bcount = 0;
+
+	// Encode the filename (almost same as the base64 encoding).
+	for (std::string::size_type i = 0; i <= filename.size(); ++i) {
+		c = (c << 8) | (i == filename.size() ? 0 : filename[i]);
+		bcount += 8;
+
+		while (bcount >= 6) {
+			const unsigned int shiftcount = bcount - 6;
+			const unsigned int mask = ((1 << 6) - 1);
+			result += s_lookupTable[(c >> shiftcount) & mask];
+			c &= (1 << shiftcount) - 1;
+			bcount -= 6;
+		}
+	}
+
+	return result;
+}
+
 /// Get the config dir name.
 static boost::filesystem::path GetConfigDir() {
 	using namespace boost::filesystem;
@@ -121,31 +148,50 @@ std::string GetConfigFileName(const std::string &filename) {
 	return GetConfigFilePath(filename).native_file_string();
 }
 
-std::string EncodeToFilename(const std::string &filename) {
-	const char s_lookupTable[] = 
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		"abcdefghijklmnopqrstuvwxyz"
-		"0123456789"
-		"_-";
-	std::string result;
-	unsigned int c = 0;
-	int bcount = 0;
 
-	// Encode the filename (almost same as the base64 encoding).
-	for (std::string::size_type i = 0; i <= filename.size(); ++i) {
-		c = (c << 8) | (i == filename.size() ? 0 : filename[i]);
-		bcount += 8;
+/*-----------------------------------------------------------------*/
+safe_ofstream::safe_ofstream() {
+}
 
-		while (bcount >= 6) {
-			const unsigned int shiftcount = bcount - 6;
-			const unsigned int mask = ((1 << 6) - 1);
-			result += s_lookupTable[(c >> shiftcount) & mask];
-			c &= (1 << shiftcount) - 1;
-			bcount -= 6;
-		}
+safe_ofstream::~safe_ofstream() {
+}
+
+bool safe_ofstream::open(const std::string &filename, int mode) {
+	boost::filesystem::path filePath = filename;
+	boost::filesystem::path tmpPath = filename + ".tmp";
+
+	filePath = boost::filesystem::complete(filePath).normalize();
+	tmpPath = boost::filesystem::complete(tmpPath).normalize();
+
+	// Open the temporary file.
+	m_stream.open(tmpPath.native_file_string().c_str(), mode);
+	if (!m_stream.is_open()) {
+		return false;
 	}
 
-	return result;
+	m_filePath = filePath;
+	m_tmpPath = tmpPath;
+	return true;
+}
+
+bool safe_ofstream::is_open() const {
+	return m_stream.is_open();
+}
+
+void safe_ofstream::close() {
+	m_stream.close();
+
+	if (m_filePath.empty() || m_tmpPath.empty()) {
+		return;
+	}
+
+	// Does the temporary file exist ?
+	if (!boost::filesystem::exists(m_tmpPath)) {
+		return;
+	}
+	
+	boost::filesystem::remove(m_filePath);
+	boost::filesystem::rename(m_tmpPath, m_filePath);
 }
 
 } // end of namespace lldebug

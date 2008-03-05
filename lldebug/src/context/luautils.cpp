@@ -35,7 +35,7 @@ namespace context {
 const int llutil_address_for_internal_table = 0;
 
 /// Get field from the 'lldebug' table.
-static int llutil_gettable(lua_State *L, const char *name) {
+int llutil_rawget(lua_State *L, const char *name) {
 	lua_pushliteral(L, "lldebug");
 	lua_rawget(L, LUA_GLOBALSINDEX);
 	if (!lua_istable(L, -1)) {
@@ -49,7 +49,7 @@ static int llutil_gettable(lua_State *L, const char *name) {
 	return 1;
 }
 
-std::string llutil_make_funcname(lua_Debug *ar) {
+std::string llutil_makefuncname(lua_Debug *ar) {
 	std::string name;
 
 	if (*ar->namewhat != '\0') { /* is there a name? */
@@ -73,23 +73,24 @@ std::string llutil_make_funcname(lua_Debug *ar) {
 	return name;
 }
 
-int llutil_list_localfunc(lua_State *L) {
+int llutil_listlocalfuncs(lua_State *L) {
 	lua_Debug ar;
 
 	for (int level = 0; lua_getstack(L, level, &ar) != 0; ++level) {
 		lua_getinfo(L, "Snl", &ar);
-		std::string name = llutil_make_funcname(&ar);
+		std::string name = llutil_makefuncname(&ar);
 		printf("level %d: %s\n", level, name.c_str());
 	}
 
 	return 0;
 }
 
-int llutil_clone_table(lua_State *L, int idx) {
+int llutil_clonetable(lua_State *L, int idx) {
+	scoped_lua scoped(L);
+
 	if (!lua_istable(L, idx)) {
 		return 0;
 	}
-	scoped_lua scoped(L, 1);
 
 	// Create new table.
 	lua_newtable(L);
@@ -103,7 +104,7 @@ int llutil_clone_table(lua_State *L, int idx) {
 		lua_rawset(L, table);
 	}
 
-	return 1;
+	return scoped.check(1);
 }
 
 int llutil_getfenv(lua_State *L, int level) {
@@ -122,9 +123,69 @@ int llutil_getfenv(lua_State *L, int level) {
 	return 1;
 }
 
+int llutil_setfenv(lua_State *L, int level, int idx) {
+	lua_Debug ar;
 
-std::string llutil_tostring_default(lua_State *L, int idx) {
-	scoped_lua scoped(L, 0);
+	if (!lua_istable(L, idx)) {
+		return -1;
+	}
+
+	// Get the stack frame.
+	if (lua_getstack(L, level, &ar) == 0) {
+		return -1;
+	}
+
+	// Push idx now, because idx may move after lua_getinfo.
+	lua_pushvalue(L, idx);
+	if (lua_getinfo(L, "f", &ar) == 0) {
+		lua_pop(L, 1);
+		return -1;
+	}
+
+	lua_insert(L, -2);
+	lua_setfenv(L, -2);
+	lua_remove(L, -1); // eliminate the local function.
+	return 0;
+}
+
+/**
+ * @brief Make the table that has all local variables.
+ */
+struct variable_table {
+	lua_State *m_L;
+	int m_table;
+	explicit variable_table(lua_State *L, int table)
+		: m_L(L), m_table(table) {
+	}
+	int operator()(lua_State *L, const std::string &name, int valueIdx) {
+		lua_pushlstring(L, name.c_str(), name.length());
+		lua_pushvalue(L, valueIdx);
+		lua_rawset(L, m_table);
+		return 0;
+	}
+	};
+
+int llutil_getlocals(lua_State *L, int level, bool checkLocal,
+					  bool checkUpvalue, bool checkEnv) {
+	scoped_lua scoped(L);
+
+	// Push result table.
+	lua_newtable(L);
+	int table = lua_gettop(L);
+
+	variable_table callback(L, table);
+	if (iterate_locals(
+		callback, L, level, checkLocal, checkUpvalue, checkEnv) != 0) {
+		lua_remove(L, table);
+		return scoped.check(0);
+	}
+
+	return scoped.check(1);
+}
+
+
+std::string llutil_tostring_fast(lua_State *L, int idx) {
+	scoped_lua scoped(L);
 	int type = lua_type(L, idx);
 	std::string str;
 	char buffer[512];
@@ -153,29 +214,36 @@ std::string llutil_tostring_default(lua_State *L, int idx) {
 		break;
 	}
 
+	scoped.check(0);
 	return str;
 }
 
 static int llutil_lua_tostring_default(lua_State *L) {
-	std::string str = llutil_tostring_default(L, 1);
+	std::string str = llutil_tostring_fast(L, 1);
 	lua_pushlstring(L, str.c_str(), str.length());
 	return 1;
 }
 
 std::string llutil_tostring(lua_State *L, int idx) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 
-	if (llutil_gettable(L, "tostring") == 0) {
-		return llutil_tostring_default(L, idx);
+	if (llutil_rawget(L, "tostring") == 0) {
+		scoped.check(0);
+		return llutil_tostring_fast(L, idx);
 	}
 
 	// Call the function.
 	lua_pushvalue(L, idx);
-	lua_pcall(L, 1, 1, 0);
+	if (lua_pcall(L, 1, 1, 0) != 0) {
+		lua_pop(L, 1); // eliminate error message
+		scoped.check(0);
+		return llutil_tostring_fast(L, idx);
+	}
 
 	const char *cstr = lua_tostring(L, -1);
 	std::string str = (cstr != NULL ? cstr : "");
 	lua_pop(L, 1);
+	scoped.check(0);
 	return str;
 }
 
@@ -190,13 +258,14 @@ int llutil_lua_tostring(lua_State *L) {
 /** It doesn't use any lua functions.
  */
 static std::string llutil_tostring_for_varvalue_default(lua_State *L, int idx) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 	std::string result;
 
 	if (luaL_callmeta(L, idx, "__tostring") != 0) {
 		const char *cstr = lua_tostring(L, -1);
 		result = (cstr != NULL ? cstr : "");
 		lua_pop(L, 1);
+		scoped.check(0);
 		return result;
 	}
 
@@ -223,6 +292,7 @@ static std::string llutil_tostring_for_varvalue_default(lua_State *L, int idx) {
 		break;
 	}
 
+	scoped.check(0);
 	return result;
 }
 
@@ -236,19 +306,25 @@ static int llutil_lua_tostring_for_varvalue_default(lua_State *L) {
 }
 
 std::string llutil_tostring_for_varvalue(lua_State *L, int idx) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 
-	if (llutil_gettable(L, "tostring_for_varvalue") == 0) {
+	if (llutil_rawget(L, "tostring_for_varvalue") == 0) {
+		scoped.check(0);
 		return llutil_tostring_for_varvalue_default(L, idx);
 	}
 
 	// Call 'lldebug.tostring_for_varvalue'
 	lua_pushvalue(L, idx);
-	lua_pcall(L, 1, 1, 0);
+	if (lua_pcall(L, 1, 1, 0) != 0) {
+		lua_pop(L, 1);
+		scoped.check(0);
+		return llutil_tostring_for_varvalue_default(L, idx);
+	}
 
 	const char *cstr = lua_tostring(L, -1);
 	std::string str = (cstr != NULL ? cstr : "");
 	lua_pop(L, 1);
+	scoped.check(0);
 	return str;
 }
 
@@ -293,7 +369,7 @@ private:
 	};
 
 static std::string llutil_tostring_detail_default(lua_State *L, int first, int last) {
-	scoped_lua scoped(L, 0);
+	scoped_lua scoped(L);
 	int top = lua_gettop(L);
 
 	for (int i = first; i <= last; ++i) {
@@ -318,6 +394,7 @@ static std::string llutil_tostring_detail_default(lua_State *L, int first, int l
 
 	// Does any strings exist ?
 	if (top == lua_gettop(L)) {
+		scoped.check(0);
 		return std::string("");
 	}
 
@@ -325,6 +402,7 @@ static std::string llutil_tostring_detail_default(lua_State *L, int first, int l
 	lua_concat(L, lua_gettop(L) - top);
 	const char *cstr = lua_tostring(L, -1);
 	lua_pop(L, 1);
+	scoped.check(0);
 	return std::string(cstr != NULL ? cstr : "");
 }
 
@@ -335,18 +413,26 @@ static int llutil_lua_tostring_detail_default(lua_State *L) {
 }
 
 int llutil_lua_tostring_detail(lua_State *L) {
-	scoped_lua scoped(L, 1);
+	scoped_lua scoped(L);
 	int top = lua_gettop(L);
 
-	if (llutil_gettable(L, "tostring_detail") == 0) {
+	if (llutil_rawget(L, "tostring_detail") == 0) {
+		scoped.check(0);
 		return llutil_lua_tostring_detail_default(L);
 	}
 
-	// Call 'lldebug.tostring_detail'
+	// Push all arguments.
 	for (int i = 1; i <= top; ++i) {
 		lua_pushvalue(L, i);
 	}
-	lua_pcall(L, top, 1, 0);
+	
+	// Call 'lldebug.tostring_detail'
+	if (lua_pcall(L, top, 1, 0) != 0) {
+		scoped.check(1);
+		return 1; // Return the error message.
+	}
+
+	scoped.check(1);
 	return 1;
 }
 
@@ -358,40 +444,11 @@ static int llutil_get_luavar_table(lua_State *L) {
 	return 1;
 }
 
-struct variable_table {
-	lua_State *m_L;
-	int m_table;
-	explicit variable_table(lua_State *L, int table)
-		: m_L(L), m_table(table) {
-	}
-	int operator()(lua_State *L, const std::string &name, int valueIdx) {
-		lua_pushlstring(L, name.c_str(), name.length());
-		lua_pushvalue(L, valueIdx);
-		lua_rawset(L, m_table);
-		return 0;
-	}
-	};
-
-static int llutil_get_locals(lua_State *L) {
-	lua_newtable(L);
-	int table = lua_gettop(L);
-
-	variable_table callback(L, table);
-	if (iterate_locals(callback, L, 3, true, true, false) != 0) {
-		lua_remove(L, table);
-		return 0;
-	}
-
-	return 1;
-}
-
 static const luaL_reg llutils_regs[] = {
 	{"tostring", llutil_lua_tostring_default},
 	{"tostring_for_varvalue", llutil_lua_tostring_for_varvalue_default},
 	{"tostring_detail", llutil_lua_tostring_detail_default},
 	{"get_luavar_table", llutil_get_luavar_table},
-	{"getlocals", llutil_get_locals},
-//	{"toluavar", llutil_toluavar},
 	{NULL, NULL}
 };
 
@@ -403,44 +460,36 @@ int luaopen_lldebug(lua_State *L) {
 
 /*-----------------------------------------------------------------*/
 scoped_lua::scoped_lua(lua_State *L) {
-	init(NULL, L, -1, false);
-	m_top = -1; // suppress the stack check
-}
-
-scoped_lua::scoped_lua(lua_State *L, int n) {
-	init(NULL, L, n, false);
+	init(NULL, L, false);
 }
 
 scoped_lua::scoped_lua(Context *ctx, lua_State *L, bool withDebug) {
-	init(ctx, L, -1, withDebug);
-	m_top = -1; // suppress the stack check
+	init(ctx, L, withDebug);
 }
 
-scoped_lua::scoped_lua(Context *ctx, lua_State *L, int n, bool withDebug) {
-	init(ctx, L, n, withDebug);
-}
-
-void scoped_lua::init(Context *ctx, lua_State *L, int n, bool withDebug) {
+void scoped_lua::init(Context *ctx, lua_State *L, bool withDebug) {
 	if (ctx != NULL) {
 		m_isOldEnabled = ctx->IsDebugEnabled();
 		ctx->SetDebugEnable(withDebug);
 	}
 
 	m_L = L;
-	m_n = n;
 	m_ctx = ctx;
-	m_top = lua_gettop(L);
+	m_top = (L != NULL ? lua_gettop(L) : -1);
 }
 
 scoped_lua::~scoped_lua() {
-	if (m_top >= 0) {
-		assert(m_top + m_n == lua_gettop(m_L));
-	}
-
-	// Restore the debug state.
 	if (m_ctx != NULL) {
 		m_ctx->SetDebugEnable(m_isOldEnabled);
 	}
+}
+
+int scoped_lua::check(int n) {
+	if (m_top >= 0) {
+		assert(m_top + n == lua_gettop(m_L));
+	}
+
+	return n;
 }
 
 } // end of namespace context
