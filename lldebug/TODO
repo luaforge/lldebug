@@ -6,16 +6,17 @@
 - consider 'lldebug_serialization.h'
 - need to refactor RemoteEngine class
 - file refactoring
-- history (interactive view)
+- input history (interactive view)
 - variable watch (source editor)
 - encoding problem
 - backtrace
 - made the frame reusable
+- save and load input history (interactive view)
 
-/ lldebug_startfile, lldebug_startstring
-/ break, restart, and exit
 / GC view
 / auto complete (interactive view)
 / status bar
-* error support
-* popup menu
+/ popup menu
+* lldebug_startfile, lldebug_startstring
+* break, restart, and exit
+* log system and error support

@@ -30,11 +30,17 @@
 namespace lldebug {
 namespace visual {
 
-/// Convert wxString object to UTF8 std::string.
+/// Convert wxString object to UTF8 encoding.
 std::string wxConvToUTF8(const wxString &str);
 
-/// Convert UTF8 std::string object to wxString encoding.
+/// Convert std::string(UTF8) object to wxString encoding.
 wxString wxConvFromUTF8(const std::string &str);
+
+/// Convert wxString object to current encoding.
+std::string wxConvToCurrent(const wxString &str);
+
+/// Convert std::string(current encoding) object to wxString encoding.
+wxString wxConvFromCurrent(const std::string &str);
 
 } // end of namespace visual
 } // end of namespace lldebug

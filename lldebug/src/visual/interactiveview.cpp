@@ -30,6 +30,9 @@
 #include "visual/mediator.h"
 #include "visual/strutils.h"
 
+#include "wx/file.h"
+#include "wx/textfile.h"
+
 namespace lldebug {
 namespace visual {
 
@@ -75,9 +78,11 @@ public:
 		: wxTextCtrl(parent, wxID_ANY, wxT(""), pos, size
 			, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB)
 		, m_parent(parent), m_historyPos(m_historyTexts.end()) {
+		LoadHistory();
 	}
 
 	virtual ~TextInput() {
+		SaveHistory();
 	}
 
 	/// Add the evaled string.
@@ -93,6 +98,56 @@ public:
 	}
 
 private:
+	/// Load the input history file.
+	int LoadHistory() {
+		std::string filename = GetConfigFileName("interactive.history");
+		wxString wxfilename = wxConvFromCurrent(filename);
+
+		if (!wxFile::Exists(wxfilename.c_str())) {
+			return -1;
+		}
+
+		wxTextFile file;
+		if (!file.Open(wxfilename)) {
+			return -1;
+		}
+		file.GoToLine(0); // To avoid bug.
+
+		// Read data from the file.
+		wxString str = file.GetFirstLine();
+		while (!file.Eof()) {
+			m_historyTexts.push_back(str);
+			str = file.GetNextLine();
+		}
+
+		return 0;
+	}
+
+	/// Save the input history to the file.
+	int SaveHistory() {
+		std::string filename = GetConfigFileName("interactive.history");
+		wxString wxfilename = wxConvFromCurrent(filename);
+
+		wxTempFile file;
+		if (!file.Open(wxfilename)) {
+			return -1;
+		}
+
+		// Save texts.
+		HistoryTexts::iterator it;
+		for (it = m_historyTexts.begin(); it != m_historyTexts.end(); ++it) {
+			file.Write(*it, wxConvUTF8);
+			file.Write(_T("\n"), wxConvUTF8);
+		}
+
+		// Commit the changes.
+		if (!file.Commit()) {
+			return -1;
+		}
+
+		return 0;
+	}
+
 	/// Set the text of the history.
 	void SetHistory(HistoryTexts::iterator it) {
 		if (it == m_historyTexts.end()) {

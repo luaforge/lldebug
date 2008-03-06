@@ -25,36 +25,53 @@
  */
 
 #include "precomp.h"
-#include "visual/strutils.h"
+#include <memory.h>
 
 namespace lldebug {
-namespace visual {
 
-std::string wxConvToUTF8(const wxString &str) {
-	return std::string(wxConvUTF8.cWX2MB(str.c_str()));
+/**
+ * @brief MD2 hash generator.
+ * 
+ * MD2 is a old hash function, but it's enough for this project and
+ * calculation is easy.
+ *
+ * @see http://www.ietf.org/rfc/rfc1319.txt
+ */
+class MD2Generator {
+public:
+	explicit MD2Generator();
+	~MD2Generator();
+
+	/// Get the MD2 digest.
+	void ToDigest(unsigned char digest[16],
+				  const unsigned char *input, size_t inputLen);
+
+	/// Get the string of MD2 digest.
+	std::string ToDigestString(const unsigned char *input, size_t inputLen);
+
+	/// MD2 block update operation.
+	/** Continues an MD2 message-digest operation, processing another
+	 * message block, and updating the context.
+	 */
+	void Update(const unsigned char *input, size_t inputLen);
+
+	/// Ends an MD2 message-digest operation, writing the message digest.
+	void Final();
+
+private:
+	void Transform(const unsigned char block[16]);
+
+private:
+	unsigned char m_state[16]; ///< state
+	unsigned char m_checksum[16]; /// checksum
+	unsigned int m_count; /// number of bytes, modulo 16
+	unsigned char m_buffer[16]; /// input buffer
+};
+
+/// Generate MD2 message-digest from a container object.
+static std::string GenerateMD2(const char *str) {
+	MD2Generator md2;
+	return md2.ToDigestString((const unsigned char *)str, strlen(str));
 }
 
-wxString wxConvFromUTF8(const std::string &str) {
-	return wxString(wxConvUTF8.cMB2WX(str.c_str()));
-}
-
-std::string wxConvToCurrent(const wxString &str) {
-	wxMBConv *conv = wxConvCurrent;
-
-	if (conv == NULL) {
-		conv = &wxConvUTF8;
-	}
-	return std::string(conv->cWX2MB(str.c_str()));
-}
-
-wxString wxConvFromCurrent(const std::string &str) {
-	wxMBConv *conv = wxConvCurrent;
-
-	if (conv == NULL) {
-		conv = &wxConvUTF8;
-	}
-	return wxString(conv->cMB2WX(str.c_str()));
-}
-
-} // end of namespace visual
 } // end of namespace lldebug

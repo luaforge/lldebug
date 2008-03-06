@@ -200,6 +200,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\md2.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\md2.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\precomp.cpp"
 				>
 				<FileConfiguration

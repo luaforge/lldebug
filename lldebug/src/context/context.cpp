@@ -931,11 +931,12 @@ int Context::LuaInitialize(lua_State *L) {
 
 int Context::LoadFile(const char *filename) {
 	scoped_lock lock(m_mutex);
+	boost::filesystem::path path(filename);
+	path = boost::filesystem::complete(path);
+	std::string name = path.native_file_string();
 
-	if (luaL_loadfile(m_lua, filename) != 0) {
-		if (filename != NULL) {
-			m_sourceManager.Add(std::string("@") + filename, filename);
-		}
+	if (luaL_loadfile(m_lua, name.c_str()) != 0) {
+		m_sourceManager.Add(std::string("@") + name, name);
 		OutputLuaError(lua_tostring(m_lua, -1));
 		return -1;
 	}
@@ -943,11 +944,11 @@ int Context::LoadFile(const char *filename) {
 	// Save the first key.
 	if (m_rootFileKey.empty()) {
 		m_rootFileKey = "@";
-		m_rootFileKey += filename;
+		m_rootFileKey += name;
 		LoadConfig();
 	}
 
-	m_sourceManager.Add(std::string("@") + filename, filename);
+	m_sourceManager.Add(std::string("@") + name, name);
 	return 0;
 }
 
@@ -955,17 +956,9 @@ int Context::LoadString(const char *str) {
 	scoped_lock lock(m_mutex);
 	
 	if (luaL_loadbuffer(m_lua, str, strlen(str), str) != 0) {
-		if (str != NULL) {
-			m_sourceManager.Add(str, str);
-		}
+		m_sourceManager.Add(str, str);
 		OutputLuaError(lua_tostring(m_lua, -1));
 		return -1;
-	}
-
-	// Save the first key.
-	if (m_rootFileKey.empty()) {
-		m_rootFileKey = str;
-		LoadConfig();
 	}
 
 	m_sourceManager.Add(str, str);

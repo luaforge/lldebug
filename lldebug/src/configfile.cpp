@@ -27,6 +27,7 @@
 #include "precomp.h"
 #include "sysinfo.h"
 #include "configfile.h"
+#include "md2.h"
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -86,33 +87,6 @@ static std::string LLDebugGetConfigDir() {
 
 namespace lldebug {
 
-std::string EncodeToFilename(const std::string &filename) {
-	const char s_lookupTable[] = 
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		"abcdefghijklmnopqrstuvwxyz"
-		"0123456789"
-		"_-";
-	std::string result;
-	unsigned int c = 0;
-	int bcount = 0;
-
-	// Encode the filename (almost same as the base64 encoding).
-	for (std::string::size_type i = 0; i <= filename.size(); ++i) {
-		c = (c << 8) | (i == filename.size() ? 0 : filename[i]);
-		bcount += 8;
-
-		while (bcount >= 6) {
-			const unsigned int shiftcount = bcount - 6;
-			const unsigned int mask = ((1 << 6) - 1);
-			result += s_lookupTable[(c >> shiftcount) & mask];
-			c &= (1 << shiftcount) - 1;
-			bcount -= 6;
-		}
-	}
-
-	return result;
-}
-
 /// Get the config dir name.
 static boost::filesystem::path GetConfigDir() {
 	using namespace boost::filesystem;
@@ -146,6 +120,16 @@ boost::filesystem::path GetConfigFilePath(const std::string &filename) {
 
 std::string GetConfigFileName(const std::string &filename) {
 	return GetConfigFilePath(filename).native_file_string();
+}
+
+std::string EncodeToFilename(const std::string &filename) {
+	if (filename.empty()) {
+		return std::string("");
+	}
+
+	MD2Generator md2;
+	const unsigned char *data = (const unsigned char *)filename.c_str();
+	return md2.ToDigestString(data, filename.size());
 }
 
 
