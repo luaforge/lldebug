@@ -59,7 +59,8 @@ typedef
 /**
  * @brief Remote engine for debugger.
  */
-class RemoteEngine {
+class RemoteEngine
+	: public boost::enable_shared_from_this<RemoteEngine> {
 public:
 	typedef 
 		boost::function1<void, const Command &>
@@ -90,47 +91,50 @@ public:
 	int StartFrame(unsigned short port);
 
 	/// Start the debuggee program (context).
-	int StartContext(const std::string &hostName, const std::string &serviceName, int waitSeconds);
+	int StartContext(const std::string &hostName,
+					 const std::string &serviceName, int waitSeconds);
+
+	/// Send log to local and remote.
+	void OutputLog(LogType type, const std::string &msg);
+
+	void SendChangedState(bool isBreak);
+	void SendUpdateSource(const std::string &key, int line, int updateCount,
+						  bool isRefreshOnly, const CommandCallback &response);
+	void SendForceUpdateSource();
+	void SendAddedSource(const Source &source);
+	void SendSaveSource(const std::string &key, const string_array &sources);
+	void SendSetUpdateCount(int updateCount);
+
+	void SendSetBreakpoint(const Breakpoint &bp);
+	void SendRemoveBreakpoint(const Breakpoint &bp);
+	void SendChangedBreakpointList(const BreakpointList &bps);
+
+	void SendBreak();
+	void SendResume();
+	void SendStepInto();
+	void SendStepOver();
+	void SendStepReturn();
+
+	void SendOutputLog(const LogData &logData);
+	void SendEvalsToVarList(const string_array &eval, const LuaStackFrame &stackFrame,
+							const LuaVarListCallback &callback);
+	void SendEvalToMultiVar(const std::string &eval, const LuaStackFrame &stackFrame,
+							const LuaVarListCallback &callback);
+	void SendEvalToVar(const std::string &eval, const LuaStackFrame &stackFrame,
+					   const LuaVarCallback &callback);
+	
+	void SendRequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
+	void SendRequestLocalVarList(const LuaStackFrame &stackFrame, bool checkLocal,
+								 bool checkUpvalue, bool checkEnviron,
+								 const LuaVarListCallback &callback);
+	void SendRequestGlobalVarList(const LuaVarListCallback &callback);
+	void SendRequestRegistryVarList(const LuaVarListCallback &callback);
+	void SendRequestStackList(const LuaVarListCallback &callback);
+	void SendRequestSource(const std::string &key, const SourceCallback &callback);
+	void SendRequestBacktraceList(const LuaBacktraceListCallback &callback);
 
 	void ResponseSuccessed(const Command &command);
 	void ResponseFailed(const Command &command);
-
-	void ChangedState(bool isBreak);
-	void UpdateSource(const std::string &key, int line, int updateCount,
-					  bool isRefreshOnly, const CommandCallback &response);
-	void ForceUpdateSource();
-	void AddedSource(const Source &source);
-	void SaveSource(const std::string &key, const string_array &sources);
-	void SetUpdateCount(int updateCount);
-
-	void SetBreakpoint(const Breakpoint &bp);
-	void RemoveBreakpoint(const Breakpoint &bp);
-	void ChangedBreakpointList(const BreakpointList &bps);
-
-	void Break();
-	void Resume();
-	void StepInto();
-	void StepOver();
-	void StepReturn();
-
-	void OutputLog(LogType type, const std::string &str, const std::string &key, int line);
-	void EvalsToVarList(const string_array &eval, const LuaStackFrame &stackFrame,
-						const LuaVarListCallback &callback);
-	void EvalToMultiVar(const std::string &eval, const LuaStackFrame &stackFrame,
-						const LuaVarListCallback &callback);
-	void EvalToVar(const std::string &eval, const LuaStackFrame &stackFrame,
-				   const LuaVarCallback &callback);
-	
-	void RequestFieldsVarList(const LuaVar &var, const LuaVarListCallback &callback);
-	void RequestLocalVarList(const LuaStackFrame &stackFrame, bool checkLocal,
-							 bool checkUpvalue, bool checkEnviron,
-							 const LuaVarListCallback &callback);
-	void RequestGlobalVarList(const LuaVarListCallback &callback);
-	void RequestRegistryVarList(const LuaVarListCallback &callback);
-	void RequestStackList(const LuaVarListCallback &callback);
-	void RequestSource(const std::string &key, const SourceCallback &callback);
-	void RequestBacktraceList(const LuaBacktraceListCallback &callback);
-
 	void ResponseString(const Command &command, const std::string &str);
 	void ResponseSource(const Command &command, const Source &source);
 	void ResponseBacktraceList(const Command &command, const LuaBacktraceList &backtraces);
@@ -146,20 +150,19 @@ private:
 	void OnConnectionClosed(shared_ptr<Connection> connection,
 							const boost::system::error_code &error);
 	void OnRemoteCommand(const Command &command);
-	void NotifyRemoteCommand(const Command &command, scoped_lock &lock);
 
 private:
 	CommandHeader InitCommandHeader(RemoteCommandType type,
 										  size_t dataSize,
 										  int commandId = 0);
-	void WriteCommand(RemoteCommandType type,
-					  const CommandData &data);
-	void WriteCommand(RemoteCommandType type,
-					  const CommandData &data,
-					  const CommandCallback &callback);
-	void WriteResponse(const Command &readCommand,
-					   RemoteCommandType type,
-					   const CommandData &data);
+	void SendCommand(RemoteCommandType type,
+					 const CommandData &data);
+	void SendCommand(RemoteCommandType type,
+					 const CommandData &data,
+					 const CommandCallback &callback);
+	void ResponseCommand(const Command &readCommand,
+						 RemoteCommandType type,
+						 const CommandData &data);
 
 private:
 	boost::asio::io_service m_service;

@@ -12,6 +12,7 @@
 - backtrace
 - made the frame reusable
 - save and load input history (interactive view)
+- log system
 
 / GC view
 / auto complete (interactive view)
@@ -19,4 +20,4 @@
 / popup menu
 * lldebug_startfile, lldebug_startstring
 * break, restart, and exit
-* log system and error support
+* error support

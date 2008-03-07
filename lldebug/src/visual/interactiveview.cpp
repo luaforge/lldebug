@@ -290,7 +290,7 @@ struct EvalResponseHandler {
 		}
 
 		// Increment update count for WatchView and other, if need.
-		Mediator::Get()->GetEngine()->ForceUpdateSource();
+		Mediator::Get()->GetEngine()->SendForceUpdateSource();
 		return 0;
 	}
 	};
@@ -321,7 +321,7 @@ void InteractiveView::Run() {
 	}
 
 	// Eval the string.
-	Mediator::Get()->GetEngine()->EvalToMultiVar(
+	Mediator::Get()->GetEngine()->SendEvalToMultiVar(
 		evalstr,
 		Mediator::Get()->GetStackFrame(),
 		EvalResponseHandler(this, isVar));

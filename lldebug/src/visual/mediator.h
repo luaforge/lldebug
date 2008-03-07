@@ -59,6 +59,9 @@ public:
 	/// Focus the backtrace.
 	void FocusBacktraceLine(const LuaBacktrace &bt);
 
+	/// Output the log.
+	void OutputLog(LogType type, const wxString &msg);
+
 	/// Process the remote command.
 	void ProcessRemoteCommand(const Command &command);
 
@@ -126,6 +129,7 @@ public:
 	}
 
 private:
+	void OutputLogInternal(const LogData &logData, bool sendRemote);
 	void OnRemoteCommand(const Command &command);
 
 private:

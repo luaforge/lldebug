@@ -93,6 +93,8 @@ int RemoteEngine::StartFrame(unsigned short port) {
 		return 0;
 	}
 
+	OutputLog(LOGTYPE_TRACE, "Start the frame.");
+
 	// Start connection.
 	shared_ptr<ServerConnector> connector(new ServerConnector(*this));
 	connector->Start(port);
@@ -107,6 +109,8 @@ int RemoteEngine::StartContext(const std::string &hostName,
 		return 0;
 	}
 
+	OutputLog(LOGTYPE_TRACE, "Start the context.");
+
 	// Start connection.
 	shared_ptr<ClientConnector> connector(new ClientConnector(*this));
 	connector->Start(hostName, serviceName);
@@ -120,6 +124,7 @@ int RemoteEngine::StartContext(const std::string &hostName,
 	while (!IsConnecting()) {
 		boost::xtime_get(&current, boost::TIME_UTC);
 		if (boost::xtime_cmp(current, end) >= 0) {
+			OutputLog(LOGTYPE_TRACE, "Failed the context.");
 			return -1;
 		}
 
@@ -127,6 +132,7 @@ int RemoteEngine::StartContext(const std::string &hostName,
 		boost::thread::sleep(current);
 	}
 
+	OutputLog(LOGTYPE_TRACE, "Succeeded in the context.");
 	return 0;
 }
 
@@ -171,7 +177,7 @@ bool RemoteEngine::OnConnectionConnected(shared_ptr<Connection> connection) {
 	}
 
 	m_connection = connection;
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_START_CONNECTION,
 		CommandData());
 	return true;
@@ -217,11 +223,6 @@ void RemoteEngine::OnRemoteCommand(const Command &command_) {
 		}
 	}
 
-	NotifyRemoteCommand(command, lock);
-}
-
-void RemoteEngine::NotifyRemoteCommand(const Command &command,
-									   scoped_lock &lock) {
 	if (!m_onRemoteCommand.empty()) {
 		OnRemoteCommandType callback = m_onRemoteCommand;
 
@@ -229,6 +230,21 @@ void RemoteEngine::NotifyRemoteCommand(const Command &command,
 		callback(command);
 		lock.lock();
 	}
+}
+
+void RemoteEngine::OutputLog(LogType type, const std::string &msg) {
+	scoped_lock lock(m_mutex);
+	LogData logData(type, msg);
+	CommandData data;
+
+	// Output log to the local.
+	data.Set_OutputLog(logData);
+	OnRemoteCommand(Command(
+		InitCommandHeader(REMOTECOMMANDTYPE_OUTPUT_LOG, data.GetSize()),
+		data));
+
+	// Output log through the network.
+	SendOutputLog(logData);
 }
 
 CommandHeader RemoteEngine::InitCommandHeader(RemoteCommandType type,
@@ -251,8 +267,8 @@ CommandHeader RemoteEngine::InitCommandHeader(RemoteCommandType type,
 	return header;
 }
 
-void RemoteEngine::WriteCommand(RemoteCommandType type,
-								const CommandData &data) {
+void RemoteEngine::SendCommand(RemoteCommandType type,
+							   const CommandData &data) {
 	scoped_lock lock(m_mutex);
 
 	if (m_connection != NULL) {
@@ -263,9 +279,9 @@ void RemoteEngine::WriteCommand(RemoteCommandType type,
 	}
 }
 
-void RemoteEngine::WriteCommand(RemoteCommandType type,
-								const CommandData &data,
-								const CommandCallback &response) {
+void RemoteEngine::SendCommand(RemoteCommandType type,
+							   const CommandData &data,
+							   const CommandCallback &response) {
 	scoped_lock lock(m_mutex);
 
 	if (m_connection != NULL) {
@@ -278,9 +294,9 @@ void RemoteEngine::WriteCommand(RemoteCommandType type,
 	}
 }
 
-void RemoteEngine::WriteResponse(const Command &readCommand,
-								 RemoteCommandType type,
-								 const CommandData &data) {
+void RemoteEngine::ResponseCommand(const Command &readCommand,
+								   RemoteCommandType type,
+								   const CommandData &data) {
 	scoped_lock lock(m_mutex);
 
 	if (m_connection != NULL) {
@@ -293,139 +309,126 @@ void RemoteEngine::WriteResponse(const Command &readCommand,
 	}
 }
 
-void RemoteEngine::ResponseSuccessed(const Command &command) {
-	WriteResponse(
-		command,
-		REMOTECOMMANDTYPE_SUCCESSED,
-		CommandData());
-}
-
-void RemoteEngine::ResponseFailed(const Command &command) {
-	WriteResponse(
-		command,
-		REMOTECOMMANDTYPE_FAILED,
-		CommandData());
-}
-
-void RemoteEngine::ChangedState(bool isBreak) {
+void RemoteEngine::SendChangedState(bool isBreak) {
 	CommandData data;
 
 	data.Set_ChangedState(isBreak);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_CHANGED_STATE,
 		data);
 }
 
-void RemoteEngine::UpdateSource(const std::string &key, int line,
-								int updateSourceCount, bool isRefreshOnly,
-								const CommandCallback &response) {
+void RemoteEngine::SendUpdateSource(const std::string &key, int line,
+									int updateSourceCount, bool isRefreshOnly,
+									const CommandCallback &response) {
 	CommandData data;
 
 	data.Set_UpdateSource(key, line, updateSourceCount, isRefreshOnly);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_UPDATE_SOURCE,
 		data,
 		response);
 }
 
-void RemoteEngine::ForceUpdateSource() {
-	WriteCommand(
+void RemoteEngine::SendForceUpdateSource() {
+	SendCommand(
 		REMOTECOMMANDTYPE_FORCE_UPDATESOURCE,
 		CommandData());
 }
 
-void RemoteEngine::AddedSource(const Source &source) {
+void RemoteEngine::SendAddedSource(const Source &source) {
 	CommandData data;
 
 	data.Set_AddedSource(source);
-	SaveCommand("send.txt", Command(InitCommandHeader(REMOTECOMMANDTYPE_ADDED_SOURCE, data.GetSize()), data));
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_ADDED_SOURCE,
 		data);
 }
 
-void RemoteEngine::SaveSource(const std::string &key,
-							  const string_array &sources) {
+void RemoteEngine::SendSaveSource(const std::string &key,
+								  const string_array &sources) {
 	CommandData data;
 
 	data.Set_SaveSource(key, sources);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_SAVE_SOURCE,
 		data);
 }
 
-void RemoteEngine::SetUpdateCount(int updateCount) {
+void RemoteEngine::SendSetUpdateCount(int updateCount) {
 	CommandData data;
 
 	data.Set_SetUpdateCount(updateCount);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_SET_UPDATECOUNT,
 		data);
 }
 
 /// Notify that the breakpoint was set.
-void RemoteEngine::SetBreakpoint(const Breakpoint &bp) {
+void RemoteEngine::SendSetBreakpoint(const Breakpoint &bp) {
 	CommandData data;
 
 	data.Set_SetBreakpoint(bp);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_SET_BREAKPOINT,
 		data);
 }
 
-void RemoteEngine::RemoveBreakpoint(const Breakpoint &bp) {
+void RemoteEngine::SendRemoveBreakpoint(const Breakpoint &bp) {
 	CommandData data;
 
 	data.Set_RemoveBreakpoint(bp);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_REMOVE_BREAKPOINT,
 		data);
 }
 
-void RemoteEngine::ChangedBreakpointList(const BreakpointList &bps) {
+void RemoteEngine::SendChangedBreakpointList(const BreakpointList &bps) {
 	CommandData data;
 
 	data.Set_ChangedBreakpointList(bps);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST,
 		data);
 }
 
-void RemoteEngine::Break() {
-	WriteCommand(
+void RemoteEngine::SendBreak() {
+	SendCommand(
 		REMOTECOMMANDTYPE_BREAK,
 		CommandData());
 }
 
-void RemoteEngine::Resume() {
-	WriteCommand(
+void RemoteEngine::SendResume() {
+	SendCommand(
 		REMOTECOMMANDTYPE_RESUME,
 		CommandData());
 }
 
-void RemoteEngine::StepInto() {
-	WriteCommand(
+void RemoteEngine::SendStepInto() {
+	SendCommand(
 		REMOTECOMMANDTYPE_STEPINTO,
 		CommandData());
 }
 
-void RemoteEngine::StepOver() {
-	WriteCommand(
+void RemoteEngine::SendStepOver() {
+	SendCommand(
 		REMOTECOMMANDTYPE_STEPOVER,
 		CommandData());
 }
 
-void RemoteEngine::StepReturn() {
-	WriteCommand(
+void RemoteEngine::SendStepReturn() {
+	SendCommand(
 		REMOTECOMMANDTYPE_STEPRETURN,
 		CommandData());
 }
 
-void RemoteEngine::OutputLog(LogType type, const std::string &str, const std::string &key, int line) {
-	CommandData data;
+void RemoteEngine::SendOutputLog(const LogData &logData) {
+	LogData logData_ = logData;
+	logData_.SetRemote();
 
-	data.Set_OutputLog(type, str, key, line);
-	WriteCommand(
+	CommandData data;
+	data.Set_OutputLog(logData_);
+	SendCommand(
 		REMOTECOMMANDTYPE_OUTPUT_LOG,
 		data);
 }
@@ -464,83 +467,83 @@ struct LuaVarResponseHandler {
 	}
 };
 
-void RemoteEngine::EvalsToVarList(const string_array &evals,
-								  const LuaStackFrame &stackFrame,
-								  const LuaVarListCallback &callback) {
+void RemoteEngine::SendEvalsToVarList(const string_array &evals,
+									  const LuaStackFrame &stackFrame,
+									  const LuaVarListCallback &callback) {
 	CommandData data;
 
 	data.Set_EvalsToVarList(evals, stackFrame);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_EVALS_TO_VARLIST,
 		data,
 		LuaVarListResponseHandler(callback));
 }
 
-void RemoteEngine::EvalToMultiVar(const std::string &eval,
-								  const LuaStackFrame &stackFrame,
-								  const LuaVarListCallback &callback) {
+void RemoteEngine::SendEvalToMultiVar(const std::string &eval,
+									  const LuaStackFrame &stackFrame,
+									  const LuaVarListCallback &callback) {
 	CommandData data;
 
 	data.Set_EvalToMultiVar(eval, stackFrame);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_EVAL_TO_MULTIVAR,
 		data,
 		LuaVarListResponseHandler(callback));
 }
 
-void RemoteEngine::EvalToVar(const std::string &eval,
-							 const LuaStackFrame &stackFrame,
-							 const LuaVarCallback &callback) {
+void RemoteEngine::SendEvalToVar(const std::string &eval,
+								 const LuaStackFrame &stackFrame,
+								 const LuaVarCallback &callback) {
 	CommandData data;
 
 	data.Set_EvalToVar(eval, stackFrame);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_EVAL_TO_VAR,
 		data,
 		LuaVarResponseHandler(callback));
 }
 
-void RemoteEngine::RequestFieldsVarList(const LuaVar &var,
-										const LuaVarListCallback &callback) {
+void RemoteEngine::SendRequestFieldsVarList(const LuaVar &var,
+											const LuaVarListCallback &callback) {
 	CommandData data;
 
 	data.Set_RequestFieldVarList(var);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_FIELDSVARLIST,
 		data,
 		LuaVarListResponseHandler(callback));
 }
 
-void RemoteEngine::RequestLocalVarList(const LuaStackFrame &stackFrame,
-									   bool checkLocal, bool checkUpvalue,
-									   bool checkEnviron,
-									   const LuaVarListCallback &callback) {
+void RemoteEngine::SendRequestLocalVarList(const LuaStackFrame &stackFrame,
+										   bool checkLocal, bool checkUpvalue,
+										   bool checkEnviron,
+										   const LuaVarListCallback &callback) {
 	CommandData data;
 
 	data.Set_RequestLocalVarList(stackFrame, checkLocal, checkUpvalue,
 								 checkEnviron);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
 		data,
 		LuaVarListResponseHandler(callback));
 }
 
-void RemoteEngine::RequestGlobalVarList(const LuaVarListCallback &callback) {
-	WriteCommand(
+void RemoteEngine::SendRequestGlobalVarList(const LuaVarListCallback &callback) {
+	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST,
 		CommandData(),
 		LuaVarListResponseHandler(callback));
 }
 
-void RemoteEngine::RequestRegistryVarList(const LuaVarListCallback &callback) {
-	WriteCommand(
+void RemoteEngine::SendRequestRegistryVarList(const LuaVarListCallback &callback) {
+	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST,
 		CommandData(),
 		LuaVarListResponseHandler(callback));
 }
 
-void RemoteEngine::RequestStackList(const LuaVarListCallback &callback) {
-	WriteCommand(
+void RemoteEngine::SendRequestStackList(const LuaVarListCallback &callback) {
+	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_STACKLIST,
 		CommandData(),
 		LuaVarListResponseHandler(callback));
@@ -563,12 +566,12 @@ struct SourceResponseHandler {
 	}
 };
 
-void RemoteEngine::RequestSource(const std::string &key,
-								 const SourceCallback &callback) {
+void RemoteEngine::SendRequestSource(const std::string &key,
+									 const SourceCallback &callback) {
 	CommandData data;
 
 	data.Set_RequestSource(key);
-	WriteCommand(
+	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_SOURCE,
 		data,
 		SourceResponseHandler(callback));
@@ -591,18 +594,33 @@ struct BacktraceListHandler {
 	}
 };
 
-void RemoteEngine::RequestBacktraceList(const LuaBacktraceListCallback &callback) {
-	WriteCommand(
+void RemoteEngine::SendRequestBacktraceList(const LuaBacktraceListCallback &callback) {
+	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST,
 		CommandData(),
 		BacktraceListHandler(callback));
+}
+
+
+void RemoteEngine::ResponseSuccessed(const Command &command) {
+	ResponseCommand(
+		command,
+		REMOTECOMMANDTYPE_SUCCESSED,
+		CommandData());
+}
+
+void RemoteEngine::ResponseFailed(const Command &command) {
+	ResponseCommand(
+		command,
+		REMOTECOMMANDTYPE_FAILED,
+		CommandData());
 }
 
 void RemoteEngine::ResponseString(const Command &command, const std::string &str) {
 	CommandData data;
 
 	data.Set_ValueString(str);
-	WriteResponse(
+	ResponseCommand(
 		command,
 		REMOTECOMMANDTYPE_VALUE_STRING,
 		data);
@@ -612,17 +630,18 @@ void RemoteEngine::ResponseSource(const Command &command, const Source &source) 
 	CommandData data;
 
 	data.Set_ValueSource(source);
-	WriteResponse(
+	ResponseCommand(
 		command,
 		REMOTECOMMANDTYPE_VALUE_SOURCE,
 		data);
 }
 
-void RemoteEngine::ResponseVarList(const Command &command, const LuaVarList &vars) {
+void RemoteEngine::ResponseVarList(const Command &command,
+								   const LuaVarList &vars) {
 	CommandData data;
 
 	data.Set_ValueVarList(vars);
-	WriteResponse(
+	ResponseCommand(
 		command,
 		REMOTECOMMANDTYPE_VALUE_VARLIST,
 		data);
@@ -632,17 +651,18 @@ void RemoteEngine::ResponseVar(const Command &command, const LuaVar &var) {
 	CommandData data;
 
 	data.Set_ValueVar(var);
-	WriteResponse(
+	ResponseCommand(
 		command,
 		REMOTECOMMANDTYPE_VALUE_VAR,
 		data);
 }
 
-void RemoteEngine::ResponseBacktraceList(const Command &command, const LuaBacktraceList &backtraces) {
+void RemoteEngine::ResponseBacktraceList(const Command &command,
+										 const LuaBacktraceList &backtraces) {
 	CommandData data;
 
 	data.Set_ValueBacktraceList(backtraces);
-	WriteResponse(
+	ResponseCommand(
 		command,
 		REMOTECOMMANDTYPE_VALUE_BACKTRACELIST,
 		data);

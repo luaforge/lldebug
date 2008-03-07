@@ -50,9 +50,9 @@ LLDEBUG_API void lldebug_close(lua_State *L);
 LLDEBUG_API int lldebug_loadfile(lua_State *L, const char *filename);
 LLDEBUG_API int lldebug_loadstring(lua_State *L, const char *str);
 
-LLDEBUG_API void lldebug_call(lua_State *L, int narg, int nresult);
-LLDEBUG_API int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc);
-LLDEBUG_API int lldebug_resume(lua_State *L, int narg);
+LLDEBUG_API void lldebug_call(lua_State *L, int nargs, int nresults);
+LLDEBUG_API int lldebug_pcall(lua_State *L, int nargs, int nresults, int errfunc);
+LLDEBUG_API int lldebug_resume(lua_State *L, int nargs);
 
 /// The substitute function for luaopen_base overriding coroutine.create
 /// and coroutine.resume.

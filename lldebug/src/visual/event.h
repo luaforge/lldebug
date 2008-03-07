@@ -110,11 +110,9 @@ public:
 	}
 
 	/// OutputLog event
-	explicit wxDebugEvent(wxEventType type, int winid,
-						  LogType logType, const wxString &str,
-						  const std::string &key, int line)
-		: wxEvent(winid, type), m_str(str)
-		, m_key(key), m_line(line), m_logType(logType) {
+	explicit wxDebugEvent(wxEventType type, int winid, const LogData &logData)
+		: wxEvent(winid, type), m_key(logData.GetKey())
+		, m_line(logData.GetLine()), m_logData(logData) {
 		wxASSERT(type == wxEVT_DEBUG_OUTPUT_LOG);
 	}
 
@@ -135,9 +133,9 @@ public:
 		return m_backtrace;
 	}
 
-	/// Get the string object.
-	const wxString &GetStr() const {
-		return m_str;
+	/// Get identifier key of the source file.
+	const std::string &GetKey() const {
+		return m_key;
 	}
 
 	/// Get the number of line.
@@ -145,14 +143,9 @@ public:
 		return m_line;
 	}
 
-	/// Get identifier key of the source file.
-	const std::string &GetKey() const {
-		return m_key;
-	}
-
 	/// Get the log type.
-	LogType GetLogType() const {
-		return m_logType;
+	const LogData &GetLogData() const {
+		return m_logData;
 	}
 
 	/// Get the count of 'update source'.
@@ -173,10 +166,9 @@ public:
 private:
 	Source m_source;
 	LuaBacktrace m_backtrace;
-	wxString m_str;
 	std::string m_key;
 	int m_line;
-	LogType m_logType;
+	LogData m_logData;
 	int m_updateCount;
 	bool m_isRefreshOnly;
 	bool m_isBreak;

@@ -281,19 +281,19 @@ void MainFrame::OnMenu(wxCommandEvent &event) {
 		Close(true);
 		break;
 	case ID_MENU_BREAK:
-		Mediator::Get()->GetEngine()->Break();
+		Mediator::Get()->GetEngine()->SendBreak();
 		break;
 	case ID_MENU_RESTART:
-		Mediator::Get()->GetEngine()->Resume();
+		Mediator::Get()->GetEngine()->SendResume();
 		break;
 	case ID_MENU_STEPOVER:
-		Mediator::Get()->GetEngine()->StepOver();
+		Mediator::Get()->GetEngine()->SendStepOver();
 		break;
 	case ID_MENU_STEPINTO:
-		Mediator::Get()->GetEngine()->StepInto();
+		Mediator::Get()->GetEngine()->SendStepInto();
 		break;
 	case ID_MENU_STEPRETURN:
-		Mediator::Get()->GetEngine()->StepReturn();
+		Mediator::Get()->GetEngine()->SendStepReturn();
 		break;
 	case ID_MENU_TOGGLE_BREAKPOINT:
 		m_sourceView->ToggleBreakpoint();

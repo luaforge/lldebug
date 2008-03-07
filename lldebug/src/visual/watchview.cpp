@@ -229,7 +229,8 @@ public:
 			: m_var(var) {
 		}
 		void operator()(const LuaVarListCallback &callback) {
-			Mediator::Get()->GetEngine()->RequestFieldsVarList(m_var, callback);
+			Mediator::Get()->GetEngine()->SendRequestFieldsVarList(
+				m_var, callback);
 		}
 	private:
 		LuaVar m_var;
@@ -265,7 +266,7 @@ public:
 				}
 			}
 
-			Mediator::Get()->GetEngine()->EvalsToVarList(
+			Mediator::Get()->GetEngine()->SendEvalsToVarList(
 				labels,
 				Mediator::Get()->GetStackFrame(),
 				callback);
@@ -586,7 +587,7 @@ struct OneVariableWatchView::VariableRequester {
 		m_valNameUTF8 = wxConvToUTF8(valName);
 	}
 	void operator()(const LuaVarListCallback &callback) {
-		Mediator::Get()->GetEngine()->EvalToMultiVar(
+		Mediator::Get()->GetEngine()->SendEvalToMultiVar(
 			"return " + m_valNameUTF8,
 			Mediator::Get()->GetStackFrame(),
 			CallbackHandler(*m_watch, callback));
@@ -685,23 +686,23 @@ struct VarUpdateRequester {
 	void operator()(const LuaVarListCallback &callback) {
 		switch (m_type) {
 		case WatchView::TYPE_LOCALWATCH:
-			Mediator::Get()->GetEngine()->RequestLocalVarList(
+			Mediator::Get()->GetEngine()->SendRequestLocalVarList(
 				Mediator::Get()->GetStackFrame(),
 				true, true, false, callback);
 			break;
 		case WatchView::TYPE_ENVIRONWATCH:
-			Mediator::Get()->GetEngine()->RequestLocalVarList(
+			Mediator::Get()->GetEngine()->SendRequestLocalVarList(
 				Mediator::Get()->GetStackFrame(),
 				false, false, true, callback);
 			break;
 		case WatchView::TYPE_GLOBALWATCH:
-			Mediator::Get()->GetEngine()->RequestGlobalVarList(callback);
+			Mediator::Get()->GetEngine()->SendRequestGlobalVarList(callback);
 			break;
 		case WatchView::TYPE_REGISTRYWATCH:
-			Mediator::Get()->GetEngine()->RequestRegistryVarList(callback);
+			Mediator::Get()->GetEngine()->SendRequestRegistryVarList(callback);
 			break;
 		case WatchView::TYPE_STACKWATCH:
-			Mediator::Get()->GetEngine()->RequestStackList(callback);
+			Mediator::Get()->GetEngine()->SendRequestStackList(callback);
 			break;
 		case WatchView::TYPE_WATCH:
 			wxASSERT(false);

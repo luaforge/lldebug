@@ -106,7 +106,7 @@ void BreakpointList::Set(const Breakpoint &bp) {
 	}
 
 #ifdef LLDEBUG_VISUAL
-	m_engine->SetBreakpoint(bp);
+	m_engine->SendSetBreakpoint(bp);
 #else
 	// Insert certainly.
 	ImplSet::iterator it = m_set.find(bp);
@@ -115,7 +115,7 @@ void BreakpointList::Set(const Breakpoint &bp) {
 	}
 
 	m_set.insert(bp);
-	m_engine->ChangedBreakpointList(*this);
+	m_engine->SendChangedBreakpointList(*this);
 #endif
 }
 
@@ -126,10 +126,10 @@ void BreakpointList::Remove(const Breakpoint &bp) {
 	}
 
 #ifdef LLDEBUG_VISUAL
-	m_engine->RemoveBreakpoint(bp);
+	m_engine->SendRemoveBreakpoint(bp);
 #else
 	m_set.erase(it);
-	m_engine->ChangedBreakpointList(*this);
+	m_engine->SendChangedBreakpointList(*this);
 #endif
 }
 
@@ -244,7 +244,7 @@ int SourceManager::Add(const std::string &key, const std::string &src) {
 
 		Source source(key, path.leaf(), split(ifs), pathstr);
 		m_sourceMap.insert(std::make_pair(key, source));
-		m_engine->AddedSource(source);
+		m_engine->SendAddedSource(source);
 	}
 	else {
 		// We make the original source title and don't use the key,
@@ -256,7 +256,7 @@ int SourceManager::Add(const std::string &key, const std::string &src) {
 		std::stringstream sstream(src);
 		Source source(key, title.str(), split(sstream));
 		m_sourceMap.insert(std::make_pair(key, source));
-		m_engine->AddedSource(source);
+		m_engine->SendAddedSource(source);
 	}
 	
 	return 0;

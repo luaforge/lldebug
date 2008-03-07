@@ -133,6 +133,24 @@ private:
 shared_ptr<Context::ContextManager> Context::ms_manager;
 int Context::ms_idCounter = 0;
 
+struct StdOutLogger {
+	void operator()(shared_ptr<Context> ctx, const LogData &data) {
+		const Source *source = ctx->GetSource(data.GetKey());
+
+		std::cout << (data.IsRemote() ? "Frame: ": "Context: ");
+
+		if (source != NULL) {
+			std::string name =
+				( !source->GetPath().empty()
+				? source->GetPath()
+				: source->GetTitle());
+			std::cout << name << "(" << data.GetLine() << "): ";
+		}
+
+		std::cout << data.GetLog() << std::endl;
+	}
+};
+
 Context::Context()
 	: m_id(0), m_lua(NULL), m_state(STATE_INITIAL)
 	, m_isEnabled(true), m_updateCount(0)
@@ -145,6 +163,7 @@ Context::Context()
 			boost::mem_fn(&Context::OnRemoteCommand),
 			this));
 	m_id = ms_idCounter++;
+	m_logger = StdOutLogger();
 }
 
 int Context::Initialize() {
@@ -202,7 +221,8 @@ int Context::CreateDebuggerFrame() {
 
 	// Try to connect the debug frame (At least, wait for 5 seconds).
 	if (m_engine->StartContext(hostName, serviceName, 10) != 0) {
-		std::cerr
+		std::stringstream stream;
+		stream 
 			<< "lldebug doesn't work correctly, "
 			   "because the frame was not found."
 			<< std::endl
@@ -211,6 +231,7 @@ int Context::CreateDebuggerFrame() {
 			<< "(If you want to debug visually, "
 			<< "please excute 'lldebug_frame.exe' first.)"
 			<< std::endl;
+		OutputLog(LOGTYPE_ERROR, stream.str());
 		SetDebugEnable(false);
 	}
 
@@ -221,7 +242,7 @@ Context::~Context() {
 	scoped_lock lock(m_mutex);
 
 	SaveConfig();
-	m_engine.reset();
+	m_engine->SetOnRemoteCommand(RemoteEngine::OnRemoteCommandType());
 
 	if (m_lua != NULL) {
 		lua_close(m_lua);
@@ -267,10 +288,10 @@ int Context::LoadConfig() {
 
 		// Set values.
 		m_breakpoints = bps;
-		m_engine->ChangedBreakpointList(m_breakpoints);
+		m_engine->SendChangedBreakpointList(m_breakpoints);
 	}
 	catch (std::exception &) {
-		OutputError("Couldn't open the config file.");
+		OutputLog(LOGTYPE_ERROR, "Couldn't open the config file.");
 	}
 
 	return 0;
@@ -300,7 +321,9 @@ int Context::SaveConfig() {
 		sfs.close();
 	}
 	catch (std::exception &ex) {
-		OutputError(std::string("Couldn't save the config file (") + ex.what() + ").");
+		OutputLog(
+			LOGTYPE_ERROR,
+			std::string("Couldn't save the config file (") + ex.what() + ").");
 		throw;
 	}
 
@@ -396,11 +419,27 @@ Context::LuaErrorData Context::ParseLuaError(const std::string &str) {
 	return LuaErrorData(str, "", -1);
 }
 
-void Context::OutputLog(LogType type, const std::string &str) {
+void Context::OutputLogInternal(const LogData &logData, bool sendRemote) {
 	scoped_lock lock(m_mutex);
 
-	LuaErrorData data = ParseLuaError(str);
-	m_engine->OutputLog(type, data.message, data.filekey, data.line);
+	if (sendRemote && m_engine->IsConnecting()) {
+		m_engine->SendOutputLog(logData);
+	}
+
+	if (!m_logger.empty()) {
+		LoggerType logger = m_logger;
+
+		lock.unlock();
+		logger(shared_from_this(), logData);
+		lock.lock();
+	}
+}
+
+void Context::OutputLog(LogType type, const std::string &str,
+						const std::string &key, int line) {
+	scoped_lock lock(m_mutex);
+
+	OutputLogInternal(LogData(type, str, key, line), true);
 }
 
 void Context::OutputLuaError(const char *str) {
@@ -410,19 +449,8 @@ void Context::OutputLuaError(const char *str) {
 		return;
 	}
 
-	OutputLog(LOGTYPE_ERROR, str);
-}
-
-void Context::OutputLog(const std::string &str) {
-	scoped_lock lock(m_mutex);
-
-	OutputLog(LOGTYPE_MESSAGE, str);
-}
-
-void Context::OutputError(const std::string &str) {
-	scoped_lock lock(m_mutex);
-
-	OutputLog(LOGTYPE_ERROR, str);
+	LuaErrorData data = ParseLuaError(str);
+	OutputLog(LOGTYPE_ERROR, data.message, data.filekey, data.line);
 }
 
 void Context::BeginCoroutine(lua_State *L) {
@@ -485,7 +513,7 @@ void Context::SetState(State state) {
 		switch (state) {
 		case STATE_BREAK:
 			m_state = state;
-			m_engine->ChangedState(true);
+			m_engine->SendChangedState(true);
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
@@ -505,13 +533,13 @@ void Context::SetState(State state) {
 		switch (state) {
 		case STATE_NORMAL:
 			m_state = state;
-			m_engine->ChangedState(false);
+			m_engine->SendChangedState(false);
 			break;
 		case STATE_STEPOVER:
 		case STATE_STEPINTO:
 		case STATE_STEPRETURN:
 			m_state = state;
-			m_engine->ChangedState(false);
+			m_engine->SendChangedState(false);
 			break;
 		default:
 			/* error */
@@ -530,7 +558,7 @@ void Context::SetState(State state) {
 			/* ignore */
 			break;
 		case STATE_BREAK:
-			m_engine->ChangedState(true);
+			m_engine->SendChangedState(true);
 			m_state = state;
 			break;
 		default:
@@ -595,7 +623,6 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_FORCE_UPDATESOURCE:
 			m_isMustUpdate = true;
 			break;
-
 		case REMOTECOMMANDTYPE_SAVE_SOURCE:
 			{
 				std::string key;
@@ -604,7 +631,6 @@ int Context::HandleCommand() {
 				m_sourceManager.Save(key, sources);
 			}
 			break;
-
 		case REMOTECOMMANDTYPE_SET_UPDATECOUNT:
 			{
 				int count;
@@ -612,6 +638,14 @@ int Context::HandleCommand() {
 				if (count > m_updateCount) {
 					m_updateCount = count;
 				}
+			}
+			break;
+
+		case REMOTECOMMANDTYPE_OUTPUT_LOG:
+			{
+				LogData logData;
+				command.GetData().Get_OutputLog(logData);
+				OutputLogInternal(logData, false);
 			}
 			break;
 
@@ -640,7 +674,6 @@ int Context::HandleCommand() {
 			}
 			break;
 		
-
 		case REMOTECOMMANDTYPE_SET_BREAKPOINT:
 			{
 				Breakpoint bp;
@@ -674,10 +707,10 @@ int Context::HandleCommand() {
 			}
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_GLOBALVARLIST:
-			m_engine->ResponseVarList(command, LuaGetFields(TABLETYPE_GLOBAL));
+			m_engine->ResponseVarList(command, LuaGetGlobals());
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_REGISTRYVARLIST:
-			m_engine->ResponseVarList(command, LuaGetFields(TABLETYPE_REGISTRY));
+			m_engine->ResponseVarList(command, LuaGetRegistories());
 			break;
 		case REMOTECOMMANDTYPE_REQUEST_STACKLIST:
 			m_engine->ResponseVarList(command, LuaGetStack());
@@ -701,7 +734,7 @@ int Context::HandleCommand() {
 		case REMOTECOMMANDTYPE_UPDATE_SOURCE:
 		case REMOTECOMMANDTYPE_ADDED_SOURCE:
 		case REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST:
-		case REMOTECOMMANDTYPE_OUTPUT_LOG:
+		
 		case REMOTECOMMANDTYPE_VALUE_STRING:
 		case REMOTECOMMANDTYPE_VALUE_SOURCE:
 		case REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST:
@@ -777,7 +810,8 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	// Stop running if need.
 	switch (m_state) {
 	case STATE_QUIT:
-		luaL_error(L, "quited");
+		m_isCallSuccess = true;
+		luaL_error(L, "");
 		return;
 	case STATE_STEPOVER: {
 		const CoroutineInfo &info = m_coroutines.back();
@@ -813,7 +847,8 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	for (;;) {
 		// handle event and message queue
 		if (HandleCommand() != 0 || !m_engine->IsConnecting()) {
-			luaL_error(L, "quited");
+			m_isCallSuccess = true;
+			luaL_error(L, "");
 			return;
 		}
 
@@ -821,30 +856,52 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		if (m_state != STATE_BREAK) {
 			break;
 		}
-		else {
-			if (m_isMustUpdate || prevState != STATE_BREAK) {
-				if (m_sourceManager.Get(ar->source) == NULL) {
-					if (m_sourceManager.Add(ar->source, ar->short_src) != 0) {
-						OutputError(std::string("Couldn't open the '") + ar->short_src + "'.");
-					}
+
+		if (m_isMustUpdate || prevState != STATE_BREAK) {
+			if (m_sourceManager.Get(ar->source) == NULL) {
+				if (m_sourceManager.Add(ar->source, ar->short_src) != 0) {
+					OutputLog(LOGTYPE_ERROR,
+						std::string("Couldn't open the '") + ar->short_src + "' file.");
 				}
-				m_isMustUpdate = false;
-
-				m_engine->UpdateSource(
-					ar->source, ar->currentline,
-					++m_updateCount, (prevState == STATE_BREAK),
-					UpdateResponseWaiter(&m_waitUpdateCount));
 			}
-			prevState = m_state;
+			m_isMustUpdate = false;
 
-			if (m_readCommands.empty()) {
-				boost::xtime xt;
-				boost::xtime_get(&xt, boost::TIME_UTC);
-				xt.sec += 1;
-				m_commandCond.timed_wait(lock, xt);
-			}
+			m_engine->SendUpdateSource(
+				ar->source, ar->currentline,
+				++m_updateCount, (prevState == STATE_BREAK),
+				UpdateResponseWaiter(&m_waitUpdateCount));
+		}
+		prevState = m_state;
+
+		// Wait...
+		if (m_readCommands.empty()) {
+			boost::xtime xt;
+			boost::xtime_get(&xt, boost::TIME_UTC);
+			xt.sec += 1;
+			m_commandCond.timed_wait(lock, xt);
 		}
 	}
+}
+
+int Context::WaitLoop() {
+	scoped_lock lock(m_mutex);
+
+	for (;;) {
+		// handle event and message queue
+		if (HandleCommand() != 0 || !m_engine->IsConnecting()) {
+			return 0;
+		}
+
+		// Wait...
+		if (m_readCommands.empty()) {
+			boost::xtime xt;
+			boost::xtime_get(&xt, boost::TIME_UTC);
+			xt.sec += 1;
+			m_commandCond.timed_wait(lock, xt);
+		}
+	}
+
+	return 0;
 }
 
 /**
@@ -929,16 +986,18 @@ int Context::LuaInitialize(lua_State *L) {
 	return 0;
 }
 
-int Context::LoadFile(const char *filename) {
+int Context::LoadFile(lua_State *L, const char *filename) {
 	scoped_lock lock(m_mutex);
 	boost::filesystem::path path(filename);
 	path = boost::filesystem::complete(path);
 	std::string name = path.native_file_string();
 
-	if (luaL_loadfile(m_lua, name.c_str()) != 0) {
+	int ret = luaL_loadfile(L, name.c_str());
+	if (ret != 0) {
 		m_sourceManager.Add(std::string("@") + name, name);
-		OutputLuaError(lua_tostring(m_lua, -1));
-		return -1;
+		OutputLuaError(lua_tostring(L, -1));
+		WaitLoop();
+		return ret;
 	}
 
 	// Save the first key.
@@ -952,13 +1011,14 @@ int Context::LoadFile(const char *filename) {
 	return 0;
 }
 
-int Context::LoadString(const char *str) {
+int Context::LoadString(lua_State *L, const char *str) {
 	scoped_lock lock(m_mutex);
 	
-	if (luaL_loadbuffer(m_lua, str, strlen(str), str) != 0) {
+	int ret = luaL_loadbuffer(m_lua, str, strlen(str), str);
+	if (ret != 0) {
 		m_sourceManager.Add(str, str);
 		OutputLuaError(lua_tostring(m_lua, -1));
-		return -1;
+		return ret;
 	}
 
 	m_sourceManager.Add(str, str);
@@ -1018,28 +1078,49 @@ void Context::LuaOpenLibs(lua_State *L) {
 	LuaImpl::override_baselib(L);
 }
 
+void Context::Call(lua_State *L, int nargs, int nresults) {
+	scoped_lock lock(m_mutex);
+}
+
+int Context::PCall(lua_State *L, int nargs, int nresults, int errfunc) {
+	scoped_lock lock(m_mutex);
+	m_isCallSuccess = false;
+
+	int ret = lua_pcall(L, nargs, nresults, errfunc);
+	if (ret == 0) {
+		m_isCallSuccess = true;
+		return 0;
+	}
+
+	if (m_isCallSuccess) {
+		lua_pop(L, 1);
+		return 0;
+	}
+
+	OutputLuaError(lua_tostring(L, -1));
+	return ret;
+}
+
 
 /*-----------------------------------------------------------------*/
-LuaVarList Context::LuaGetFields(TableType type) {
+LuaVarList Context::LuaGetGlobals() {
 	scoped_lock lock(m_mutex);
-	int rootType = 0;
 
-	// Detect table type.
-	switch (type) {
-	case TABLETYPE_GLOBAL:
-		rootType = LUA_GLOBALSINDEX;
-		break;
-	case TABLETYPE_REGISTRY:
-		rootType = LUA_REGISTRYINDEX;
-		break;
-	default:
-		assert(0 && "type [:TableType] is invalid");
+	// Get the fields of the global table.
+	varlist_maker callback;
+	if (iterate_fields(callback, GetLua(), LUA_GLOBALSINDEX) != 0) {
 		return LuaVarList();
 	}
 
-	// Get the fields of the table.
+	return callback.get_result();
+}
+
+LuaVarList Context::LuaGetRegistories() {
+	scoped_lock lock(m_mutex);
+
+	// Get the fields of the registory table.
 	varlist_maker callback;
-	if (iterate_fields(callback, GetLua(), rootType) != 0) {
+	if (iterate_fields(callback, GetLua(), LUA_REGISTRYINDEX) != 0) {
 		return LuaVarList();
 	}
 

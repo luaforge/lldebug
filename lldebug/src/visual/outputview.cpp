@@ -27,6 +27,7 @@
 #include "precomp.h"
 #include "visual/mediator.h"
 #include "visual/outputview.h"
+#include "visual/strutils.h"
 #include "wx/wxscintilla.h"
 
 namespace lldebug {
@@ -40,6 +41,9 @@ private:
 	};
 
 	struct ViewData {
+		explicit ViewData(const std::string &key_=std::string(""), int line_=-1)
+			: key(key_), line(line_) {
+		}
 		std::string key;
 		int line;
 	};
@@ -89,27 +93,30 @@ public:
 	}
 
 	/// Output log.
-	void OutputLog(LogType type, const wxString &str, const std::string &key, int line) {
-		if (!key.empty()) {
-			ViewData data;
-			data.key = key;
-			data.line = line;
-			m_dataMap[GetLineCount() - 1] = data;
-		}
-
-		if (type == LOGTYPE_ERROR && !key.empty()) {
-			MarkerAdd(GetLineCount() - 1, MARKNUM_ERROR);
-		}
-
+	void OutputLog(const LogData &logData) {
 		SetReadOnly(false);
-		const Source *source = Mediator::Get()->GetSource(key);
+
+		if (!logData.IsRemote()) {
+			AddTextRaw("Frame: ");
+		}
+
+		const Source *source = Mediator::Get()->GetSource(logData.GetKey());
 		if (source != NULL) {
-			AddTextRawStd(source->GetTitle());
+			ViewData viewData(logData.GetKey(), logData.GetLine());
+			m_dataMap[GetLineCount() - 1] = viewData;
+
+			if (logData.GetType() == LOGTYPE_ERROR) {
+				MarkerAdd(GetLineCount() - 1, MARKNUM_ERROR);
+			}
+
+			const std::string &path = source->GetPath();
+			AddTextRawStd(!path.empty() ? path : source->GetTitle());
 			AddTextRaw("(");
-			AddTextRawStd(boost::lexical_cast<std::string>(line));
+			AddTextRawStd(boost::lexical_cast<std::string>(logData.GetLine()));
 			AddTextRaw("): ");
 		}
-		AddText(str);
+
+		AddTextRawStd(logData.GetLog());
 		AddTextRaw("\n");
 		SetReadOnly(true);
 	}
@@ -121,7 +128,7 @@ private:
 		SetReadOnly(false);
 		m_dataMap.clear();
 		MarkerDeleteAll(MARKNUM_ERROR);
-		SetTextRaw("");
+		//SetTextRaw("");
 		SetReadOnly(true);
 	}
 
@@ -177,11 +184,11 @@ void OutputView::OnSize(wxSizeEvent &event) {
 }
 
 void OutputView::OutputLog(LogType logType, const wxString &str, const std::string &key, int line) {
-	m_text->OutputLog(logType, str, key, line);
+	m_text->OutputLog(LogData(logType, wxConvToUTF8(str), key, line));
 }
 
 void OutputView::OnOutputLog(wxDebugEvent &event) {
-	m_text->OutputLog(event.GetLogType(), event.GetStr(), event.GetKey(), event.GetLine());
+	m_text->OutputLog(event.GetLogData());
 }
 
 } // end of namespace visual

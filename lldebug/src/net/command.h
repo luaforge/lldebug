@@ -157,8 +157,8 @@ public:
 	void Get_ChangedBreakpointList(BreakpointList &bps) const;
 	void Set_ChangedBreakpointList(const BreakpointList &bps);
 
-	void Get_OutputLog(LogType &type, std::string &str, std::string &key, int &line) const;
-	void Set_OutputLog(LogType type, const std::string &str, const std::string &key, int line);
+	void Get_OutputLog(LogData &logData) const;
+	void Set_OutputLog(const LogData &logData);
 
 	void Get_EvalsToVarList(string_array &evals, LuaStackFrame &stackFrame) const;
 	void Set_EvalsToVarList(const string_array &evals, const LuaStackFrame &stackFrame);

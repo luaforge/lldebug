@@ -51,6 +51,7 @@ local function co_func()
 	coroutine.resume(co)
 end
 
+
 -- Dump 'obj' to string.
 local function dump_func(obj)
 	return string.dump(obj)

@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Execute !
-	if (lua_pcall(L, 0, 0, 0) != 0) {
+	if (lldebug_pcall(L, 0, 0, 0) != 0) {
 		printf("%s\n", lua_tostring(L, -1));
 		lldebug_close(L);
 		return -1;

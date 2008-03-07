@@ -483,7 +483,7 @@ public:
 			array.pop_back();
 		}
 
-		Mediator::Get()->GetEngine()->SaveSource(m_key, array);
+		Mediator::Get()->GetEngine()->SendSaveSource(m_key, array);
 		ChangeModified(false);
 	}
 
@@ -645,7 +645,7 @@ void SourceView::OnUpdateSource(wxDebugEvent &event) {
 
 	// If there is no appropriate source, request it.
 	if (!found) {
-		Mediator::Get()->GetEngine()->RequestSource(
+		Mediator::Get()->GetEngine()->SendRequestSource(
 			event.GetKey(),
 			RequestSourceHandler(this, event));
 	}

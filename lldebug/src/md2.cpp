@@ -127,15 +127,11 @@ std::string MD2Generator::ToDigestString(const unsigned char *input,
 	unsigned char digest[16];
 	ToDigest(digest, input, inputLen);
 	
-	const static char X16TABLE[] = {
-		'0', '1', '2', '3', '4', '5', '6', '7',
-		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
-	};
+	const static char TO_HEX16[] = "0123456789abcdef";
 	std::string result;
-	
 	for (int i = 0; i < 16; ++i) {
-		result += X16TABLE[digest[i] >> 4];
-		result += X16TABLE[digest[i] & 0x0f];
+		result += TO_HEX16[digest[i] >> 4];
+		result += TO_HEX16[digest[i] & 0x0f];
 	}
 	
 	return result;

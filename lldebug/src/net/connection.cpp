@@ -40,6 +40,9 @@ namespace net {
 
 using namespace boost::asio::ip;
 
+#define CONNECTION_TRACE(msg) \
+	m_engine.OutputLog(LOGTYPE_TRACE, (msg));
+
 ServerConnector::ServerConnector(RemoteEngine &engine)
 	: m_engine(engine), m_acceptor(m_engine.GetService())
 	, m_handleCommandCount(0) {
@@ -65,11 +68,16 @@ void ServerConnector::Start(unsigned short port) {
 		boost::bind(
 			&ServerConnector::HandleAccept, shared_from_this(),
 			boost::asio::placeholders::error));
+
+	CONNECTION_TRACE("Trying to accept...");
 }
 
 /// Called after the accept.
 void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 	if (!error) {
+		CONNECTION_TRACE("Successed in acceptance.");
+		CONNECTION_TRACE("Trying to comfirm whether the connection is correct...");
+
 		// Try to write command.
 		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
 		writeHeader->type = REMOTECOMMANDTYPE_START_CONNECTION;
@@ -90,6 +98,9 @@ void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 				&ServerConnector::HandleCommand, shared_from_this(),
 				readHeader, boost::asio::placeholders::error));
 	}
+	else {
+		CONNECTION_TRACE("Failed to accept.");
+	}
 }
 
 /// Called after the reading or writing command.
@@ -100,9 +111,14 @@ void ServerConnector::HandleCommand(shared_ptr<CommandHeader> header,
 
 		// If the reading and writing commands were done.
 		if (m_handleCommandCount >= 2) {
+			CONNECTION_TRACE("Successed in comfirming.");
+
 			// The connection was done successfully.
 			m_connection->Connected();
 		}
+	}
+	else {
+		CONNECTION_TRACE("Failed to comfirm.");
 	}
 }
 
@@ -130,11 +146,15 @@ void ClientConnector::Start(const std::string &hostName,
 			&ClientConnector::HandleResolve, shared_from_this(),
 			boost::asio::placeholders::iterator,
 			boost::asio::placeholders::error));
+	CONNECTION_TRACE("Trying to resolve the ip address...");
 }
 
 void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 									const boost::system::error_code &error) {
 	if (!error) {
+		CONNECTION_TRACE("Successed in resolving the ip address.");
+		CONNECTION_TRACE("Trying to connect with the server...");
+
 		boost::xtime xt;
 		boost::xtime_get(&xt, boost::TIME_UTC);
 		xt.sec += 1;
@@ -152,6 +172,9 @@ void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 									const boost::system::error_code &error) {
 	if (!error) {
+		CONNECTION_TRACE("Successed in connecting with the server.");
+		CONNECTION_TRACE("Trying to comfirm whether the connection is correct...");
+
 		// Try to write command.
 		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
 		writeHeader->type = REMOTECOMMANDTYPE_START_CONNECTION;
@@ -171,14 +194,20 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 				&ClientConnector::HandleCommand, shared_from_this(),
 				readHeader, boost::asio::placeholders::error));
 	}
-	else if (nextEndpoint != tcp::resolver::iterator()) {
-		tcp::endpoint endpoint = *nextEndpoint;
-		// Try the next endpoint in the list.
-		m_connection->GetSocket().close();
-		m_connection->GetSocket().async_connect(endpoint,
-			boost::bind(
-				&ClientConnector::HandleConnect, shared_from_this(),
-				++nextEndpoint, boost::asio::placeholders::error));
+	else {
+		CONNECTION_TRACE("Failed to connect with the server.");
+
+		if (nextEndpoint != tcp::resolver::iterator()) {
+			CONNECTION_TRACE("Trying to connect to the other ip address...");
+
+			tcp::endpoint endpoint = *nextEndpoint;
+			// Try the next endpoint in the list.
+			m_connection->GetSocket().close();
+			m_connection->GetSocket().async_connect(endpoint,
+				boost::bind(
+					&ClientConnector::HandleConnect, shared_from_this(),
+					++nextEndpoint, boost::asio::placeholders::error));
+		}
 	}
 }
 
@@ -190,9 +219,14 @@ void ClientConnector::HandleCommand(shared_ptr<CommandHeader> header,
 
 		// If the reading and writing commands were done.
 		if (m_handleCommandCount >= 2) {
+			CONNECTION_TRACE("Successed in comfirming.");
+
 			// The connection was done successfully.
 			m_connection->Connected();
 		}
+	}
+	else {
+		CONNECTION_TRACE("Failed to comfirm.");
 	}
 }
 

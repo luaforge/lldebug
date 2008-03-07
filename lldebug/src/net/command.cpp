@@ -214,13 +214,11 @@ void CommandData::Set_ChangedBreakpointList(const BreakpointList &bps) {
 	m_data = Serializer::ToData(bps);
 }
 
-void CommandData::Get_OutputLog(LogType &type, std::string &str,
-									  std::string &key, int &line) const {
-	Serializer::ToValue(m_data, type, str, key, line);
+void CommandData::Get_OutputLog(LogData &logData) const {
+	Serializer::ToValue(m_data, logData);
 }
-void CommandData::Set_OutputLog(LogType type, const std::string &str,
-									  const std::string &key, int line) {
-	m_data = Serializer::ToData(type, str, key, line);
+void CommandData::Set_OutputLog(const LogData &logData) {
+	m_data = Serializer::ToData(logData);
 }
 
 void CommandData::Get_EvalsToVarList(string_array &evals,

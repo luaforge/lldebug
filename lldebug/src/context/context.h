@@ -37,11 +37,9 @@ namespace context {
 
 class MainFrame;
 
-enum TableType {
-	TABLETYPE_GLOBAL,
-	TABLETYPE_REGISTRY,
-};
-
+/**
+ * @brief 
+ */
 class Context
 	: public boost::enable_shared_from_this<Context> {
 public:
@@ -55,6 +53,10 @@ public:
 		STATE_QUIT,
 	};
 
+	typedef
+		boost::function2<void, shared_ptr<Context>, const LogData &>
+		LoggerType;
+
 public:
 	explicit Context();
 	virtual ~Context();
@@ -65,17 +67,22 @@ public:
 	virtual void Quit();
 
 	void OutputLuaError(const char *str);
-	void OutputError(const std::string &str);
-	void OutputLog(const std::string &str);
-	void OutputLog(LogType type, const std::string &str);
+	void OutputLog(LogType type, const std::string &str,
+				   const std::string &key=std::string(""), int line=-1);
 
-	int LoadFile(const char *filename);
-	int LoadString(const char *str);
+	int LoadFile(lua_State *L, const char *filename);
+	int LoadString(lua_State *L, const char *str);
 
 	int LuaOpenBase(lua_State *L);
 	void LuaOpenLibs(lua_State *L);
 
-	LuaVarList LuaGetFields(TableType type);
+	void Call(lua_State *L, int nargs, int nresults);
+	int PCall(lua_State *L, int nargs, int nresults, int errfunc);
+
+	int WaitLoop();
+
+	LuaVarList LuaGetGlobals();
+	LuaVarList LuaGetRegistories();
 	LuaVarList LuaGetFields(const LuaVar &var);
 	LuaVarList LuaGetLocals(const LuaStackFrame &stackFrame, bool checkLocal,
 							bool checkUpvalue, bool checkEnviron);
@@ -105,6 +112,24 @@ public:
 		return m_lua;
 	}
 
+	/// Get the logging object.
+	LoggerType GetLogger() {
+		scoped_lock lock(m_mutex);
+		return m_logger;
+	}
+
+	/// Set the loggint object.
+	void SetLogger(const LoggerType &logger) {
+		scoped_lock lock(m_mutex);
+		m_logger = logger;
+	}
+
+	/// Get the source object.
+	const Source *GetSource(const std::string &key) {
+		scoped_lock lock(m_mutex);
+		return m_sourceManager.Get(key);
+	}
+
 	/// Is debug enable ?
 	bool IsDebugEnabled() {
 		scoped_lock lock(m_mutex);
@@ -124,6 +149,7 @@ private:
 	virtual void SetState(State state);
 	void OnRemoteCommand(const Command &command);
 	int HandleCommand();
+	void OutputLogInternal(const LogData &logData, bool sendRemote);
 
 	static void SetHook(lua_State *L);
 	virtual void HookCallback(lua_State *L, lua_Debug *ar);
@@ -156,10 +182,12 @@ private:
 	int m_id;
 	lua_State *m_lua;
 	State m_state;
+	bool m_isCallSuccess;
 	bool m_isEnabled;
 	int m_updateCount;
 	int m_waitUpdateCount;
 	bool m_isMustUpdate;
+	LoggerType m_logger;
 
 	/**
 	 * @brief Saving the call count of each lua_State object.

@@ -116,7 +116,7 @@ struct BacktraceView::UpdateHandler {
 	};
 
 void BacktraceView::BeginUpdating() {
-	Mediator::Get()->GetEngine()->RequestBacktraceList(
+	Mediator::Get()->GetEngine()->SendRequestBacktraceList(
 		UpdateHandler(this));
 }
 

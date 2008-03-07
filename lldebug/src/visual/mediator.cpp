@@ -90,7 +90,7 @@ void Mediator::SetMainFrame(MainFrame *frame) {
 
 void Mediator::IncUpdateCount() {
 	++m_updateCount;
-	m_engine->SetUpdateCount(m_updateCount);
+	m_engine->SendSetUpdateCount(m_updateCount);
 }
 
 void Mediator::FocusErrorLine(const std::string &key, int line) {
@@ -108,6 +108,24 @@ void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 
 	wxDebugEvent event(wxEVT_DEBUG_FOCUS_BACKTRACELINE, wxID_ANY, bt);
 	frame->ProcessDebugEvent(event, frame, true);
+}
+
+void Mediator::OutputLog(LogType type, const wxString &msg) {
+	LogData logData(type, wxConvToUTF8(msg));
+	
+	OutputLogInternal(logData, true);
+}
+
+void Mediator::OutputLogInternal(const LogData &logData, bool sendRemote) {
+	if (sendRemote) {
+		m_engine->SendOutputLog(logData);
+	}
+
+	MainFrame *frame = GetFrame();
+	if (frame != NULL) {
+		wxDebugEvent event(wxEVT_DEBUG_OUTPUT_LOG, wxID_ANY, logData);
+		frame->ProcessDebugEvent(event, frame, true);
+	}
 }
 
 void Mediator::OnRemoteCommand(const Command &command) {
@@ -189,7 +207,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 			}
 			else {
 				++m_updateCount;
-				m_engine->SetUpdateCount(m_updateCount);
+				m_engine->SendSetUpdateCount(m_updateCount);
 			}
 
 			// If isRefreshOnly is true, don't change the stack frame.
@@ -234,15 +252,10 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 		break;
 
 	case REMOTECOMMANDTYPE_OUTPUT_LOG:
-		if (frame != NULL) {
-			LogType logType;
-			std::string str, key;
-			int line;
-			command.GetData().Get_OutputLog(logType, str, key, line);
-
-			wxDebugEvent event(wxEVT_DEBUG_OUTPUT_LOG, wxID_ANY,
-				logType, wxConvFromUTF8(str), key, line);
-			frame->ProcessDebugEvent(event, frame, true);
+		{
+			LogData logData;
+			command.GetData().Get_OutputLog(logData);
+			OutputLogInternal(logData, false);
 		}
 		break;
 

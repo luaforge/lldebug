@@ -53,25 +53,50 @@ void lldebug_close(lua_State *L) {
 	}
 }
 
-int lldebug_loadfile(lua_State *L, const char *filename) {
+enum lldebug_Start {
+	LLDEBUG_START,
+	LLDEBUG_START_STEPIN,
+	LLDEBUG_START_EDIT,
+	LLDEBUG_START_WITHOUT_DEBUG,
+};
+
+int lldebug_startfile(lua_State *L, const char *filename, lldebug_Start start) {
 	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {
 		return -1;
 	}
 
-	return ctx->LoadFile(filename);
+	// return ctx->DebugFile(L, filename);
+	// loadfile(L, filename);
+	// main: pcall(L, 0, 0, 0);
+	// return 0;
+	// 
+	// on_error:;
+	//   while (isIdling) {}
+	return 0;
+}
+
+int lldebug_loadfile(lua_State *L, const char *filename) {
+	shared_ptr<Context> ctx = Context::Find(L);
+	if (ctx == NULL) {
+		lua_pushliteral(L, "Couldn't find the Context object.");
+		return -1;
+	}
+
+	return ctx->LoadFile(L, filename);
 }
 
 int lldebug_loadstring(lua_State *L, const char *str) {
 	shared_ptr<Context> ctx = Context::Find(L);
-	if (ctx == NULL || ctx->GetMainLua() != L) {
+	if (ctx == NULL) {
+		lua_pushliteral(L, "Couldn't find the Context object.");
 		return -1;
 	}
 
-	return ctx->LoadString(str);
+	return ctx->LoadString(L, str);
 }
 
-void lldebug_call(lua_State *L, int narg, int nresult) {
+void lldebug_call(lua_State *L, int nargs, int nresults) {
 	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL) {
 		lua_pushliteral(L, "Couldn't find the Context object.");
@@ -81,18 +106,17 @@ void lldebug_call(lua_State *L, int narg, int nresult) {
 //	ctx->Call();
 }
 
-int lldebug_pcall(lua_State *L, int narg, int nresult, int errfunc) {
+int lldebug_pcall(lua_State *L, int nargs, int nresults, int errfunc) {
 	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL) {
 		lua_pushliteral(L, "Conldn't find the Context object.");
 		return -1;
 	}
 
-//	return ctx->PCall();
-	return 0;
+	return ctx->PCall(L, nargs, nresults, errfunc);
 }
 
-int lldebug_resume(lua_State *L, int narg) {
+int lldebug_resume(lua_State *L, int nargs) {
 	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL) {
 		lua_pushliteral(L, "Conldn't find the Context object.");
