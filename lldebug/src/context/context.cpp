@@ -131,13 +131,14 @@ private:
 
 /*-----------------------------------------------------------------*/
 shared_ptr<Context::ContextManager> Context::ms_manager;
-int Context::ms_idCounter = 0;
 
 struct StdOutLogger {
 	void operator()(shared_ptr<Context> ctx, const LogData &data) {
 		const Source *source = ctx->GetSource(data.GetKey());
 
-		std::cout << (data.IsRemote() ? "Frame: ": "Context: ");
+		if (data.GetType() == LOGTYPE_TRACE) {
+			std::cout << (data.IsRemote() ? "Frame: ": "Context: ");
+		}
 
 		if (source != NULL) {
 			std::string name =
@@ -152,24 +153,20 @@ struct StdOutLogger {
 };
 
 Context::Context()
-	: m_id(0), m_lua(NULL), m_state(STATE_INITIAL)
-	, m_isEnabled(true), m_updateCount(0)
-	, m_waitUpdateCount(0), m_isMustUpdate(false)
+	: m_lua(NULL)/*, m_state(STATE_INITIAL)*/
+	, m_debugState(DEBUGSTATE_INITIAL), m_isEnabled(true)
+	, m_updateCount(0), m_waitUpdateCount(0), m_isMustUpdate(false)
 	, m_engine(new RemoteEngine)
 	, m_sourceManager(m_engine), m_breakpoints(m_engine) {
 
 	m_engine->SetOnRemoteCommand(
-		boost::bind1st(
-			boost::mem_fn(&Context::OnRemoteCommand),
-			this));
-	m_id = ms_idCounter++;
+		boost::bind1st(boost::mem_fn(&Context::OnRemoteCommand), this));
 	m_logger = StdOutLogger();
 }
 
 int Context::Initialize() {
 	scoped_lock lock(m_mutex);
 
-	// It may call the dll function, so the error check is necessary.
 	lua_State *L = lua_open();
 	if (L == NULL) {
 		return -1;
@@ -182,7 +179,8 @@ int Context::Initialize() {
 
 	SetHook(L);
 	m_lua = L;
-	m_state = STATE_STEPINTO; //NORMAL;
+//	m_state = STATE_DEBUG;
+	m_debugState = DEBUGSTATE_STEPINTO; //NORMAL;
 	m_coroutines.push_back(CoroutineInfo(L));
 
 	// Add this to manager.
@@ -204,44 +202,60 @@ int Context::Initialize() {
 int Context::CreateDebuggerFrame() {
 	scoped_lock lock(m_mutex);
 
-	/*HINSTANCE inst = ::ShellExecuteA(
-		NULL, NULL,
-		"..\\debug\\lldebug_frame.exe",
-		"localhost 51123",
-		"",
-		SW_SHOWNORMAL);
-	if ((unsigned long int)inst <= 32) {
-		return -1;
-	}*/
-
+	// Get the IP address and service name of the frame.
 	const char *hostName_, *serviceName_;
 	lldebug_getremoteaddress(&hostName_, &serviceName_);
 	std::string hostName = hostName_;
 	std::string serviceName = serviceName_;
 
-	// Try to connect the debug frame (At least, wait for 5 seconds).
-	if (m_engine->StartContext(hostName, serviceName, 10) != 0) {
-		std::stringstream stream;
-		stream 
-			<< "lldebug doesn't work correctly, "
-			   "because the frame was not found."
-			<< std::endl
-			<< "Now this program starts without debugging."
-			<< std::endl
-			<< "(If you want to debug visually, "
-			<< "please excute 'lldebug_frame.exe' first.)"
-			<< std::endl;
-		OutputLog(LOGTYPE_ERROR, stream.str());
-		SetDebugEnable(false);
+	// Try to connect the debug frame.
+	if (m_engine->StartContext(hostName, serviceName) != 0) {
+		goto on_error;
+	}
+
+	// Wait for connection if need.
+	boost::xtime current, end;
+	boost::xtime_get(&end, boost::TIME_UTC);
+	end.sec += 10;
+
+	// IsOpen become true in handleConnect.
+	while (!m_engine->IsConnecting()) {
+		if (m_engine->IsFailed()) {
+			goto on_error;
+		}
+
+		if (HandleCommand() != 0) {
+			goto on_error;
+		}
+
+		boost::xtime_get(&current, boost::TIME_UTC);
+		if (boost::xtime_cmp(current, end) >= 0) {
+			goto on_error;
+		}
+
+		current.nsec += 100 * 1000 * 1000;
+		m_commandCond.timed_wait(lock, current);
 	}
 
 	return 0;
+
+on_error:;
+	OutputLog(LOGTYPE_ERROR, std::string(
+		"lldebug doesn't work correctly, because the frame was not found.\n"
+		"Now this program starts without debugging.\n"
+		"(If you want to debug visually, please excute 'lldebug_frame.exe' first.)"
+		));
+	SetDebugEnable(false);
+	return -1;
 }
 
 Context::~Context() {
 	scoped_lock lock(m_mutex);
 
 	SaveConfig();
+
+	// Set the callback function null, because
+	// it may be called after this destructor.
 	m_engine->SetOnRemoteCommand(RemoteEngine::OnRemoteCommandType());
 
 	if (m_lua != NULL) {
@@ -251,6 +265,8 @@ Context::~Context() {
 }
 
 void Context::Delete() {
+	scoped_lock lock(m_mutex);
+
 	if (ms_manager == NULL) {
 		return;
 	}
@@ -290,8 +306,10 @@ int Context::LoadConfig() {
 		m_breakpoints = bps;
 		m_engine->SendChangedBreakpointList(m_breakpoints);
 	}
-	catch (std::exception &) {
-		OutputLog(LOGTYPE_ERROR, "Couldn't open the config file.");
+	catch (std::exception &ex) {
+		OutputLog(
+			LOGTYPE_ERROR,
+			std::string("Couldn't open the config file (") + ex.what() + ").");
 	}
 
 	return 0;
@@ -318,13 +336,12 @@ int Context::SaveConfig() {
 		
 		boost::archive::xml_oarchive ar(sfs.stream());
 		ar << LLDEBUG_MEMBER_NVP(breakpoints);
-		sfs.close();
+		sfs.commit();
 	}
 	catch (std::exception &ex) {
 		OutputLog(
 			LOGTYPE_ERROR,
 			std::string("Couldn't save the config file (") + ex.what() + ").");
-		throw;
 	}
 
 	return 0;
@@ -336,12 +353,6 @@ shared_ptr<Context> Context::Find(lua_State *L) {
 	}
 
 	return ms_manager->Find(L);
-}
-
-void Context::Quit() {
-	scoped_lock lock(m_mutex);
-
-	SetState(STATE_QUIT);
 }
 
 /// Parse the lua error that forat is like 'FILENAME:LINE:str...'.
@@ -437,149 +448,16 @@ void Context::OutputLogInternal(const LogData &logData, bool sendRemote) {
 
 void Context::OutputLog(LogType type, const std::string &str,
 						const std::string &key, int line) {
-	scoped_lock lock(m_mutex);
-
 	OutputLogInternal(LogData(type, str, key, line), true);
 }
 
 void Context::OutputLuaError(const char *str) {
-	scoped_lock lock(m_mutex);
-
 	if (str == NULL) {
 		return;
 	}
 
 	LuaErrorData data = ParseLuaError(str);
 	OutputLog(LOGTYPE_ERROR, data.message, data.filekey, data.line);
-}
-
-void Context::BeginCoroutine(lua_State *L) {
-	scoped_lock lock(m_mutex);
-
-	CoroutineInfo info(L);
-	m_coroutines.push_back(info);
-}
-
-void Context::EndCoroutine(lua_State *L) {
-	scoped_lock lock(m_mutex);
-
-	if (m_coroutines.empty() || m_coroutines.back().L != L) {
-		assert(0 && "Couldn't end coroutine.");
-		return;
-	}
-
-	// When it goes through the coroutine set break mark,
-	// we force to break.
-	if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-		if (m_stepinfo.L == L) {
-			SetState(STATE_BREAK);
-		}
-	}
-
-	m_coroutines.pop_back();
-}
-
-void Context::SetHook(lua_State *L) {
-	int mask = LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET;
-	lua_sethook(L, Context::s_HookCallback, mask, 0);
-}
-
-void Context::s_HookCallback(lua_State *L, lua_Debug *ar) {
-	shared_ptr<Context> ctx = Context::Find(L);
-
-	if (ctx != NULL) {
-		ctx->HookCallback(L, ar);
-	}
-}
-
-void Context::SetState(State state) {
-	assert(state != STATE_INITIAL);
-	scoped_lock lock(m_mutex);
-
-	if (state == m_state) {
-		return;
-	}
-
-	if (state == STATE_QUIT) {
-		m_state = state;
-		return;
-	}
-
-	switch (m_state) {
-	case STATE_INITIAL:
-		m_state = state;
-		break;
-	case STATE_NORMAL: // running or stable
-		switch (state) {
-		case STATE_BREAK:
-			m_state = state;
-			m_engine->SendChangedState(true);
-			break;
-		case STATE_STEPOVER:
-		case STATE_STEPINTO:
-		case STATE_STEPRETURN:
-			/* ignore */
-			break;
-		default:
-			/* error */
-			assert(false && "Value of 'state' is illegal.");
-			return;
-		}
-		break;
-	case STATE_BREAK:
-		if (m_waitUpdateCount > 0) {
-			return; // ignore
-		}
-		switch (state) {
-		case STATE_NORMAL:
-			m_state = state;
-			m_engine->SendChangedState(false);
-			break;
-		case STATE_STEPOVER:
-		case STATE_STEPINTO:
-		case STATE_STEPRETURN:
-			m_state = state;
-			m_engine->SendChangedState(false);
-			break;
-		default:
-			/* error */
-			assert(false && "Value of 'state' is illegal.");
-			return;
-		}
-		break;
-	case STATE_STEPOVER:
-	case STATE_STEPINTO:
-	case STATE_STEPRETURN:
-		switch (state) {
-		case STATE_NORMAL:
-		case STATE_STEPOVER:
-		case STATE_STEPINTO:
-		case STATE_STEPRETURN:
-			/* ignore */
-			break;
-		case STATE_BREAK:
-			m_engine->SendChangedState(true);
-			m_state = state;
-			break;
-		default:
-			/* error */
-			assert(false && "Value of 'state' is illegal.");
-			return;
-		}
-		break;
-	case STATE_QUIT:
-		/* ignore */
-		break;
-	default:
-		/* error */
-		assert(false && "Value of 'm_state' is illegal.");
-		return;
-	}
-
-	// Set stepinfo that has lua_State* and call count.
-	if (m_state == STATE_STEPOVER || m_state == STATE_STEPRETURN) {
-		m_stepinfo = m_coroutines.back();
-	}
 }
 
 void Context::OnRemoteCommand(const Command &command) {
@@ -601,23 +479,29 @@ int Context::HandleCommand() {
 		}
 
 		switch (command.GetType()) {
-		case REMOTECOMMANDTYPE_END_CONNECTION:
-			Quit();
-			return -1;
-		case REMOTECOMMANDTYPE_BREAK:
-			SetState(STATE_BREAK);
+		case REMOTECOMMANDTYPE_START_CONNECTION:
 			break;
-		case REMOTECOMMANDTYPE_RESUME:
-			SetState(STATE_NORMAL);
+		case REMOTECOMMANDTYPE_END_CONNECTION:
+			return -1;
+		case REMOTECOMMANDTYPE_START:
+		case REMOTECOMMANDTYPE_END:
+			// Restart the debuggee.
+			assert(false);
 			break;
 		case REMOTECOMMANDTYPE_STEPINTO:
-			SetState(STATE_STEPINTO);
+			SetDebugState(DEBUGSTATE_STEPINTO);
 			break;
 		case REMOTECOMMANDTYPE_STEPOVER:
-			SetState(STATE_STEPOVER);
+			SetDebugState(DEBUGSTATE_STEPOVER);
 			break;
 		case REMOTECOMMANDTYPE_STEPRETURN:
-			SetState(STATE_STEPRETURN);
+			SetDebugState(DEBUGSTATE_STEPRETURN);
+			break;
+		case REMOTECOMMANDTYPE_BREAK:
+			SetDebugState(DEBUGSTATE_BREAK);
+			break;
+		case REMOTECOMMANDTYPE_RESUME:
+			SetDebugState(DEBUGSTATE_RUNNING);
 			break;
 
 		case REMOTECOMMANDTYPE_FORCE_UPDATESOURCE:
@@ -729,23 +613,110 @@ int Context::HandleCommand() {
 
 		case REMOTECOMMANDTYPE_SUCCESSED:
 		case REMOTECOMMANDTYPE_FAILED:
-		case REMOTECOMMANDTYPE_START_CONNECTION:
 		case REMOTECOMMANDTYPE_CHANGED_STATE:
 		case REMOTECOMMANDTYPE_UPDATE_SOURCE:
 		case REMOTECOMMANDTYPE_ADDED_SOURCE:
 		case REMOTECOMMANDTYPE_CHANGED_BREAKPOINTLIST:
-		
 		case REMOTECOMMANDTYPE_VALUE_STRING:
 		case REMOTECOMMANDTYPE_VALUE_SOURCE:
 		case REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST:
 		case REMOTECOMMANDTYPE_VALUE_VAR:
 		case REMOTECOMMANDTYPE_VALUE_VARLIST:
 		case REMOTECOMMANDTYPE_VALUE_BACKTRACELIST:
+			assert(false && "Command type is invalid.");
 			break;
 		}
 	}
 
 	return 0;
+}
+
+void Context::SetHook(lua_State *L) {
+	int mask = LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET;
+	lua_sethook(L, Context::s_HookCallback, mask, 0);
+}
+
+void Context::s_HookCallback(lua_State *L, lua_Debug *ar) {
+	shared_ptr<Context> ctx = Context::Find(L);
+
+	if (ctx != NULL) {
+		ctx->HookCallback(L, ar);
+	}
+}
+
+void Context::SetDebugState(DebugState state) {
+	scoped_lock lock(m_mutex);
+
+	if (state == m_debugState) {
+		return;
+	}
+
+	switch (m_debugState) {
+	case DEBUGSTATE_RUNNING:
+		switch (state) {
+		case DEBUGSTATE_BREAK:
+			m_debugState = state;
+			m_engine->SendChangedState(true);
+			break;
+		case DEBUGSTATE_STEPOVER:
+		case DEBUGSTATE_STEPINTO:
+		case DEBUGSTATE_STEPRETURN:
+			/* ignore */
+			break;
+		default:
+			/* error */
+			assert(false && "Value of 'state' is illegal.");
+			return;
+		}
+		break;
+	case DEBUGSTATE_BREAK:
+		if (m_waitUpdateCount > 0) {
+			return; // ignore
+		}
+		switch (state) {
+		case DEBUGSTATE_RUNNING:
+			m_debugState = state;
+			m_engine->SendChangedState(false);
+			break;
+		case DEBUGSTATE_STEPOVER:
+		case DEBUGSTATE_STEPINTO:
+		case DEBUGSTATE_STEPRETURN:
+			m_debugState = state;
+			m_engine->SendChangedState(false);
+			break;
+		default:
+			/* error */
+			assert(false && "Value of 'state' is illegal.");
+			return;
+		}
+		break;
+	case DEBUGSTATE_STEPOVER:
+	case DEBUGSTATE_STEPINTO:
+	case DEBUGSTATE_STEPRETURN:
+		switch (state) {
+		case DEBUGSTATE_RUNNING:
+		case DEBUGSTATE_STEPOVER:
+		case DEBUGSTATE_STEPINTO:
+		case DEBUGSTATE_STEPRETURN:
+			/* ignore */
+			break;
+		case DEBUGSTATE_BREAK:
+			m_engine->SendChangedState(true);
+			m_debugState = state;
+			break;
+		default:
+			/* error */
+			assert(false && "Value of 'state' is illegal.");
+			return;
+		}
+		break;
+	}
+
+	// Set stepinfo that has lua_State* and call count.
+	if (m_debugState == DEBUGSTATE_STEPOVER
+		|| m_debugState == DEBUGSTATE_STEPRETURN) {
+		m_stepinfo = m_coroutines.back();
+	}
 }
 
 /**
@@ -756,12 +727,10 @@ struct UpdateResponseWaiter {
 		: m_count(count) {
 		++*count;
 	}
-
 	int operator()(const Command &command) {
 		--*m_count;
 		return 0;
 	}
-
 	private:
 	int *m_count;
 	};
@@ -772,9 +741,10 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	}
 
 	scoped_lock lock(m_mutex);
-	assert(m_state != STATE_INITIAL && "Not initialized !!!");
+	assert(m_debugState != DEBUGSTATE_INITIAL && "Not initialized !!!");
 
-	if (false) {
+#if 0
+	{
 		lua_getinfo(L, "nSl", ar);
 		switch (ar->event) {
 		case LUA_HOOKCALL:
@@ -788,6 +758,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 			break;
 		}
 	}
+#endif
 
 	switch (ar->event) {
 	case LUA_HOOKCALL:
@@ -795,10 +766,10 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		return;
 	case LUA_HOOKRET:
 	case LUA_HOOKTAILRET:
-		if (m_state == STATE_STEPRETURN) {
+		if (m_debugState == DEBUGSTATE_STEPRETURN) {
 			const CoroutineInfo &info = m_coroutines.back();
 			if (m_stepinfo.L == info.L  && info.call <= m_stepinfo.call) {
-				SetState(STATE_BREAK);
+				SetDebugState(DEBUGSTATE_BREAK);
 			}
 		}
 		--m_coroutines.back().call;
@@ -808,28 +779,20 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	}
 
 	// Stop running if need.
-	switch (m_state) {
-	case STATE_QUIT:
-		m_isCallSuccess = true;
-		luaL_error(L, "");
-		return;
-	case STATE_STEPOVER: {
+	switch (m_debugState) {
+	case DEBUGSTATE_STEPOVER: {
 		const CoroutineInfo &info = m_coroutines.back();
 		if (m_stepinfo.L == info.L  && info.call <= m_stepinfo.call) {
-			SetState(STATE_BREAK);
+			SetDebugState(DEBUGSTATE_BREAK);
 		}
 		}
 		break;
-	case STATE_STEPINTO:
-		SetState(STATE_BREAK);
+	case DEBUGSTATE_STEPINTO:
+		SetDebugState(DEBUGSTATE_BREAK);
 		break;
-	case STATE_NORMAL:
-	case STATE_STEPRETURN:
-	case STATE_BREAK:
-		break;
-	case STATE_INITIAL:
-		/* error */
-		assert(false && "Value of 'state' is illegal.");
+	case DEBUGSTATE_RUNNING:
+	case DEBUGSTATE_STEPRETURN:
+	case DEBUGSTATE_BREAK:
 		break;
 	} 
 
@@ -839,11 +802,11 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	// Break and stop program, if any.
 	Breakpoint bp = m_breakpoints.Find(ar->source, ar->currentline - 1);
 	if (bp.IsOk()) {
-		SetState(STATE_BREAK);
+		SetDebugState(DEBUGSTATE_BREAK);
 	}
 
 	// Update the frame.
-	State prevState = STATE_NORMAL;
+	DebugState prevState = DEBUGSTATE_RUNNING;
 	for (;;) {
 		// handle event and message queue
 		if (HandleCommand() != 0 || !m_engine->IsConnecting()) {
@@ -853,11 +816,11 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		}
 
 		// Break this loop if the state isn't STATE_BREAK.
-		if (m_state != STATE_BREAK) {
+		if (m_debugState != DEBUGSTATE_BREAK) {
 			break;
 		}
 
-		if (m_isMustUpdate || prevState != STATE_BREAK) {
+		if (m_isMustUpdate || prevState != DEBUGSTATE_BREAK) {
 			if (m_sourceManager.Get(ar->source) == NULL) {
 				if (m_sourceManager.Add(ar->source, ar->short_src) != 0) {
 					OutputLog(LOGTYPE_ERROR,
@@ -866,12 +829,13 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 			}
 			m_isMustUpdate = false;
 
+			// If the state has been 'break', this update is only for refresh.
 			m_engine->SendUpdateSource(
 				ar->source, ar->currentline,
-				++m_updateCount, (prevState == STATE_BREAK),
+				++m_updateCount, (prevState == DEBUGSTATE_BREAK),
 				UpdateResponseWaiter(&m_waitUpdateCount));
 		}
-		prevState = m_state;
+		prevState = m_debugState;
 
 		// Wait...
 		if (m_readCommands.empty()) {
@@ -883,25 +847,31 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	}
 }
 
-int Context::WaitLoop() {
+void Context::BeginCoroutine(lua_State *L) {
 	scoped_lock lock(m_mutex);
 
-	for (;;) {
-		// handle event and message queue
-		if (HandleCommand() != 0 || !m_engine->IsConnecting()) {
-			return 0;
-		}
+	CoroutineInfo info(L);
+	m_coroutines.push_back(info);
+}
 
-		// Wait...
-		if (m_readCommands.empty()) {
-			boost::xtime xt;
-			boost::xtime_get(&xt, boost::TIME_UTC);
-			xt.sec += 1;
-			m_commandCond.timed_wait(lock, xt);
+void Context::EndCoroutine(lua_State *L) {
+	scoped_lock lock(m_mutex);
+
+	if (m_coroutines.empty() || m_coroutines.back().L != L) {
+		assert(0 && "Couldn't end coroutine.");
+		return;
+	}
+
+	// When it goes through the coroutine set break mark,
+	// we force to break.
+	if (m_debugState == DEBUGSTATE_STEPOVER
+		|| m_debugState == DEBUGSTATE_STEPRETURN) {
+		if (m_stepinfo.L == L) {
+			SetDebugState(DEBUGSTATE_BREAK);
 		}
 	}
 
-	return 0;
+	m_coroutines.pop_back();
 }
 
 /**
@@ -911,7 +881,7 @@ class Context::LuaImpl {
 public:
 	static int atpanic(lua_State *L) {
 		printf("on atpanic: %s\n", lua_tostring(L, -1));
-		return -1;
+		return 0;
 	}
 
 	static int cocreate(lua_State *L) {
@@ -938,7 +908,7 @@ public:
 		int status = lua_resume(co, narg);
 		ctx->EndCoroutine(co);
 
-		if (status == 0 /*|| status == LUA_YIELD*/) {
+		if (status == 0 || status == LUA_YIELD) {
 			int nres = lua_gettop(co);
 			if (!lua_checkstack(L, nres))
 				luaL_error(L, "too many results to resume");
@@ -986,6 +956,12 @@ int Context::LuaInitialize(lua_State *L) {
 	return 0;
 }
 
+int Context::DebugFile(const char *filename) {
+	scoped_lock lock(m_mutex);
+
+	return 0;
+}
+
 int Context::LoadFile(lua_State *L, const char *filename) {
 	scoped_lock lock(m_mutex);
 	boost::filesystem::path path(filename);
@@ -996,7 +972,6 @@ int Context::LoadFile(lua_State *L, const char *filename) {
 	if (ret != 0) {
 		m_sourceManager.Add(std::string("@") + name, name);
 		OutputLuaError(lua_tostring(L, -1));
-		WaitLoop();
 		return ret;
 	}
 
@@ -1051,7 +1026,7 @@ void Context::LuaOpenLibs(lua_State *L) {
 		{LUA_IOLIBNAME, luaopen_io},
 #endif
 #ifdef LUA_OSLIBNAME
-		//{LUA_OSLIBNAME, luaopen_os},
+		{LUA_OSLIBNAME, luaopen_os},
 #endif
 #ifdef LUA_STRLIBNAME
 		{LUA_STRLIBNAME, luaopen_string},
@@ -1084,8 +1059,9 @@ void Context::Call(lua_State *L, int nargs, int nresults) {
 
 int Context::PCall(lua_State *L, int nargs, int nresults, int errfunc) {
 	scoped_lock lock(m_mutex);
-	m_isCallSuccess = false;
+	scoped_lua scoped(L);
 
+	m_isCallSuccess = false;
 	int ret = lua_pcall(L, nargs, nresults, errfunc);
 	if (ret == 0) {
 		m_isCallSuccess = true;

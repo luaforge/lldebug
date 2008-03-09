@@ -60,6 +60,12 @@ LLDEBUG_API int lldebug_openbase(lua_State *L);
 /// The substitute function for luaL_openlibs overriding 'luaopen_base'.
 LLDEBUG_API void lldebug_openlibs(lua_State *L);
 
+/// Log function type.
+typedef void (*lldebug_Logger)(lua_State *L, void *data, const char *msg,
+							   const char *key, int line, bool remote);
+/// Set the logging function.
+LLDEBUG_API void lldebug_setlogger(lua_State *L, lldebug_Logger logger, void *data);
+
 
 /// Set the host address and service name if you want to debug remotely.
 /**
@@ -82,6 +88,18 @@ enum lldebug_Encoding {
 	LLDEBUG_ENCODING_SJIS,
 	LLDEBUG_ENCODING_EUC,
 	LLDEBUG_ENCODING_ISO2022JP,
+
+	// North America
+	// South America
+	// Chinese
+	// Korean
+	// Thai, Betnam, Singaporl
+	// Italia
+	// France
+	// Deuche
+	// England
+	// Australia
+	// France, Deuche, England
 };
 
 /// Set the encoding type for displaying on debugger.

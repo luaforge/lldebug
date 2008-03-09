@@ -128,7 +128,7 @@ private:
 		SetReadOnly(false);
 		m_dataMap.clear();
 		MarkerDeleteAll(MARKNUM_ERROR);
-		//SetTextRaw("");
+		SetTextRaw("");
 		SetReadOnly(true);
 	}
 

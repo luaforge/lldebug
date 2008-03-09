@@ -106,7 +106,7 @@ private:
 		// Set pointer.
 		Ch *ptr = &*m_buffer.begin();
 		this->setp(ptr, ptr + m_buffer.size());
-		this->pbump(prevpos);
+		this->pbump((int)prevpos);
 	}
 
 private:

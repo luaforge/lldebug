@@ -69,14 +69,14 @@ void ServerConnector::Start(unsigned short port) {
 			&ServerConnector::HandleAccept, shared_from_this(),
 			boost::asio::placeholders::error));
 
-	CONNECTION_TRACE("Trying to accept...");
+	CONNECTION_TRACE("Waiting to accept...");
 }
 
 /// Called after the accept.
 void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 	if (!error) {
-		CONNECTION_TRACE("Successed in acceptance.");
-		CONNECTION_TRACE("Trying to comfirm whether the connection is correct...");
+		CONNECTION_TRACE("Succeeded in acceptance.");
+		CONNECTION_TRACE("Confirming whether the connection is correct...");
 
 		// Try to write command.
 		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
@@ -100,6 +100,7 @@ void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 	}
 	else {
 		CONNECTION_TRACE("Failed to accept.");
+		m_connection->Failed();
 	}
 }
 
@@ -111,14 +112,15 @@ void ServerConnector::HandleCommand(shared_ptr<CommandHeader> header,
 
 		// If the reading and writing commands were done.
 		if (m_handleCommandCount >= 2) {
-			CONNECTION_TRACE("Successed in comfirming.");
+			CONNECTION_TRACE("Succeeded in confirming.");
 
 			// The connection was done successfully.
 			m_connection->Connected();
 		}
 	}
 	else {
-		CONNECTION_TRACE("Failed to comfirm.");
+		CONNECTION_TRACE("Failed to confirm.");
+		m_connection->Failed();
 	}
 }
 
@@ -152,7 +154,7 @@ void ClientConnector::Start(const std::string &hostName,
 void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 									const boost::system::error_code &error) {
 	if (!error) {
-		CONNECTION_TRACE("Successed in resolving the ip address.");
+		CONNECTION_TRACE("Succeeded in resolving.");
 		CONNECTION_TRACE("Trying to connect with the server...");
 
 		boost::xtime xt;
@@ -166,14 +168,18 @@ void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 				&ClientConnector::HandleConnect, shared_from_this(),
 				++nextEndpoint, boost::asio::placeholders::error));
 	}
+	else {
+		CONNECTION_TRACE("Failed to resolve.");
+		m_connection->Failed();
+	}
 }
 
 /// Called after the connect.
 void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 									const boost::system::error_code &error) {
 	if (!error) {
-		CONNECTION_TRACE("Successed in connecting with the server.");
-		CONNECTION_TRACE("Trying to comfirm whether the connection is correct...");
+		CONNECTION_TRACE("Succeeded in connecting.");
+		CONNECTION_TRACE("Confirming whether the connection is correct...");
 
 		// Try to write command.
 		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
@@ -195,10 +201,10 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 				readHeader, boost::asio::placeholders::error));
 	}
 	else {
-		CONNECTION_TRACE("Failed to connect with the server.");
+		CONNECTION_TRACE("Failed to connect.");
 
 		if (nextEndpoint != tcp::resolver::iterator()) {
-			CONNECTION_TRACE("Trying to connect to the other ip address...");
+			CONNECTION_TRACE("Trying to connect to the other address...");
 
 			tcp::endpoint endpoint = *nextEndpoint;
 			// Try the next endpoint in the list.
@@ -207,6 +213,9 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 				boost::bind(
 					&ClientConnector::HandleConnect, shared_from_this(),
 					++nextEndpoint, boost::asio::placeholders::error));
+		}
+		else {
+			m_connection->Failed();
 		}
 	}
 }
@@ -219,14 +228,15 @@ void ClientConnector::HandleCommand(shared_ptr<CommandHeader> header,
 
 		// If the reading and writing commands were done.
 		if (m_handleCommandCount >= 2) {
-			CONNECTION_TRACE("Successed in comfirming.");
+			CONNECTION_TRACE("Succeeded in confirming.");
 
 			// The connection was done successfully.
 			m_connection->Connected();
 		}
 	}
 	else {
-		CONNECTION_TRACE("Failed to comfirm.");
+		CONNECTION_TRACE("Failed to confirm.");
+		m_connection->Failed();
 	}
 }
 
@@ -267,6 +277,11 @@ void Connection::Connected() {
 		m_isConnected = true;
 		BeginReadCommand();
 	}
+}
+
+/// Called when the connection was failed.
+void Connection::Failed() {
+	m_engine.OnConnectionFailed();
 }
 
 /// Close the socket.

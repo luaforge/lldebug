@@ -56,7 +56,7 @@ private:
 
 
 RemoteEngine::RemoteEngine()
-	: m_commandIdCounter(0), m_isExitThread(false) {
+	: m_commandIdCounter(0), m_isFailed(false), m_isExitThread(false) {
 
 	// To avoid duplicating the Id.
 #ifdef LLDEBUG_CONTEXT
@@ -93,8 +93,6 @@ int RemoteEngine::StartFrame(unsigned short port) {
 		return 0;
 	}
 
-	OutputLog(LOGTYPE_TRACE, "Start the frame.");
-
 	// Start connection.
 	shared_ptr<ServerConnector> connector(new ServerConnector(*this));
 	connector->Start(port);
@@ -102,37 +100,15 @@ int RemoteEngine::StartFrame(unsigned short port) {
 }
 
 int RemoteEngine::StartContext(const std::string &hostName,
-							   const std::string &serviceName,
-							   int waitSeconds) {
+							   const std::string &serviceName) {
 	// Already connected.
 	if (m_connection != NULL) {
 		return 0;
 	}
 
-	OutputLog(LOGTYPE_TRACE, "Start the context.");
-
 	// Start connection.
 	shared_ptr<ClientConnector> connector(new ClientConnector(*this));
 	connector->Start(hostName, serviceName);
-
-	// Wait for connection if need.
-	boost::xtime current, end;
-	boost::xtime_get(&end, boost::TIME_UTC);
-	end.sec += waitSeconds;
-
-	// IsOpen become true in handleConnect.
-	while (!IsConnecting()) {
-		boost::xtime_get(&current, boost::TIME_UTC);
-		if (boost::xtime_cmp(current, end) >= 0) {
-			OutputLog(LOGTYPE_TRACE, "Failed the context.");
-			return -1;
-		}
-
-		current.nsec += 100 * 1000 * 1000;
-		boost::thread::sleep(current);
-	}
-
-	OutputLog(LOGTYPE_TRACE, "Succeeded in the context.");
 	return 0;
 }
 
@@ -169,6 +145,12 @@ void RemoteEngine::ConnectionThread() {
 	}
 }
 
+void RemoteEngine::OnConnectionFailed() {
+	scoped_lock lock(m_mutex);
+
+	m_isFailed = true;
+}
+
 bool RemoteEngine::OnConnectionConnected(shared_ptr<Connection> connection) {
 	scoped_lock lock(m_mutex);
 
@@ -177,9 +159,9 @@ bool RemoteEngine::OnConnectionConnected(shared_ptr<Connection> connection) {
 	}
 
 	m_connection = connection;
-	SendCommand(
-		REMOTECOMMANDTYPE_START_CONNECTION,
-		CommandData());
+	OnRemoteCommand(Command(
+		InitCommandHeader(REMOTECOMMANDTYPE_START_CONNECTION, 0),
+		CommandData()));
 	return true;
 }
 
@@ -188,11 +170,9 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 	scoped_lock lock(m_mutex);
 
 	if (m_connection == connection) {
-		Command command(
+		OnRemoteCommand(Command(
 			InitCommandHeader(REMOTECOMMANDTYPE_END_CONNECTION, 0),
-			CommandData());
-		OnRemoteCommand(command);
-
+			CommandData()));
 		m_connection.reset();
 
 #ifdef LLDEBUG_VISUAL

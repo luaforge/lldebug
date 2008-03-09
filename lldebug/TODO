@@ -13,11 +13,11 @@
 - made the frame reusable
 - save and load input history (interactive view)
 - log system
+- error support
 
 / GC view
 / auto complete (interactive view)
 / status bar
 / popup menu
-* lldebug_startfile, lldebug_startstring
-* break, restart, and exit
-* error support
+/ lldebug_startfile, lldebug_startstring
+/ break, restart, and exit

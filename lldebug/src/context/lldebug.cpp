@@ -32,6 +32,33 @@
 using namespace lldebug;
 using context::Context;
 
+struct LogWrapper {
+	lldebug_Logger m_logger;
+	void *m_data;
+	explicit LogWrapper(lldebug_Logger logger, void *data)
+		: m_logger(logger), m_data(data) {
+	}
+	void operator()(shared_ptr<Context> ctx, const LogData &logData) {
+		if (m_logger == NULL) {
+			return;
+		}
+
+		m_logger(
+			ctx->GetLua(), m_data, logData.GetLog().c_str(),
+			logData.GetKey().c_str(), logData.GetLine(),
+			logData.IsRemote());
+	}
+	};
+
+void lldebug_setlogger(lua_State *L, lldebug_Logger logger, void *data) {
+	shared_ptr<Context> ctx = Context::Find(L);
+	if (ctx == NULL) {
+		return;
+	}
+
+	ctx->SetLogger(LogWrapper(logger, data));
+}
+
 lua_State *lldebug_open() {
 	shared_ptr<Context> ctx(new Context);
 	if (ctx == NULL) {
@@ -41,7 +68,7 @@ lua_State *lldebug_open() {
 	if (ctx->Initialize() != 0) {
 		return NULL;
 	}
-	
+
 	return ctx->GetLua();
 }
 
@@ -72,7 +99,8 @@ int lldebug_startfile(lua_State *L, const char *filename, lldebug_Start start) {
 	// return 0;
 	// 
 	// on_error:;
-	//   while (isIdling) {}
+	//   while (isIdling) {
+	//   }
 	return 0;
 }
 

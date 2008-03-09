@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
+	// Open standard libs.
 	lldebug_openlibs(L);
 
 	// Load the lua script.
@@ -48,6 +49,9 @@ int main(int argc, char **argv) {
 		lldebug_close(L);
 		return -1;
 	}
+
+	// Call the lua program without protection.
+	//lua_call(L, 0, 0);
 
 	lldebug_close(L);
 	return 0;

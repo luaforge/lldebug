@@ -35,22 +35,26 @@
 namespace lldebug {
 namespace context {
 
-class MainFrame;
-
 /**
  * @brief 
  */
 class Context
 	: public boost::enable_shared_from_this<Context> {
 public:
-	enum State {
+	/*enum State {
 		STATE_INITIAL,
-		STATE_NORMAL,
-		STATE_STEPOVER,
-		STATE_STEPINTO,
-		STATE_STEPRETURN,
-		STATE_BREAK,
-		STATE_QUIT,
+		STATE_EDIT,
+		STATE_DEBUG,
+		STATE_ON_ERROR,
+	};*/
+
+	enum DebugState {
+		DEBUGSTATE_INITIAL,
+		DEBUGSTATE_RUNNING,
+		DEBUGSTATE_STEPINTO,
+		DEBUGSTATE_STEPOVER,
+		DEBUGSTATE_STEPRETURN,
+		DEBUGSTATE_BREAK,
 	};
 
 	typedef
@@ -63,12 +67,14 @@ public:
 	virtual int Initialize();
 	virtual void Delete();
 
+	/// Find the Context object from 'L'.
 	static shared_ptr<Context> Find(lua_State *L);
-	virtual void Quit();
-
+	
 	void OutputLuaError(const char *str);
 	void OutputLog(LogType type, const std::string &str,
 				   const std::string &key=std::string(""), int line=-1);
+
+	int DebugFile(const char *filename);
 
 	int LoadFile(lua_State *L, const char *filename);
 	int LoadString(lua_State *L, const char *str);
@@ -78,8 +84,6 @@ public:
 
 	void Call(lua_State *L, int nargs, int nresults);
 	int PCall(lua_State *L, int nargs, int nresults, int errfunc);
-
-	int WaitLoop();
 
 	LuaVarList LuaGetGlobals();
 	LuaVarList LuaGetRegistories();
@@ -93,12 +97,6 @@ public:
 	LuaVarList LuaEvalsToVarList(const string_array &array, const LuaStackFrame &stackFrame, bool withDebug);
 	LuaVarList LuaEvalToMultiVar(const std::string &str, const LuaStackFrame &stackFrame, bool withDebug);
 	LuaVar LuaEvalToVar(const std::string &str, const LuaStackFrame &stackFrame, bool withDebug);
-
-	/// Get the context ID.
-	int GetId() {
-		scoped_lock lock(m_mutex);
-		return m_id;
-	}
 
 	/// Get the current lua_State object.
 	lua_State *GetLua() {
@@ -143,24 +141,13 @@ public:
 	}
 
 private:
-	virtual int CreateDebuggerFrame();
-	virtual int LoadConfig();
-	virtual int SaveConfig();
-	virtual void SetState(State state);
+	int CreateDebuggerFrame();
+	int LoadConfig();
+	int SaveConfig();
 	void OnRemoteCommand(const Command &command);
 	int HandleCommand();
-	void OutputLogInternal(const LogData &logData, bool sendRemote);
 
-	static void SetHook(lua_State *L);
-	virtual void HookCallback(lua_State *L, lua_Debug *ar);
-	static void s_HookCallback(lua_State *L, lua_Debug *ar);
-
-	class LuaImpl;
-	friend class LuaImpl;
-	int LuaInitialize(lua_State *L);
-	void BeginCoroutine(lua_State *L);
-	void EndCoroutine(lua_State *L);
-
+private:
 	/// Data parsed the lua error.
 	struct LuaErrorData {
 		LuaErrorData(const std::string &msg_, const std::string &filekey_,
@@ -172,16 +159,27 @@ private:
 		int line;
 	};
 	LuaErrorData ParseLuaError(const std::string &str);
+	void OutputLogInternal(const LogData &logData, bool sendRemote);
+
+	static void SetHook(lua_State *L);
+	void HookCallback(lua_State *L, lua_Debug *ar);
+	static void s_HookCallback(lua_State *L, lua_Debug *ar);
+	void SetDebugState(DebugState state);
+
+	class LuaImpl;
+	friend class LuaImpl;
+	int LuaInitialize(lua_State *L);
+	void BeginCoroutine(lua_State *L);
+	void EndCoroutine(lua_State *L);
 
 private:
 	class ContextManager;
 	static shared_ptr<ContextManager> ms_manager;
-	static int ms_idCounter;
 
 	mutex m_mutex;
-	int m_id;
 	lua_State *m_lua;
-	State m_state;
+	//State m_state;
+	DebugState m_debugState;
 	bool m_isCallSuccess;
 	bool m_isEnabled;
 	int m_updateCount;

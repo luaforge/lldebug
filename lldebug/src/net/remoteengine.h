@@ -75,6 +75,12 @@ public:
 		return m_service;
 	}
 
+	/// Did this object connect fail ?
+	bool IsFailed() {
+		scoped_lock lock(m_mutex);
+		return m_isFailed;
+	}
+
 	/// Is this connecting ?
 	bool IsConnecting() {
 		scoped_lock lock(m_mutex);
@@ -91,8 +97,8 @@ public:
 	int StartFrame(unsigned short port);
 
 	/// Start the debuggee program (context).
-	int StartContext(const std::string &hostName,
-					 const std::string &serviceName, int waitSeconds);
+	int StartContext(const std::string &hostName, 
+					 const std::string &serviceName);
 
 	/// Send log to local and remote.
 	void OutputLog(LogType type, const std::string &msg);
@@ -146,6 +152,7 @@ private:
 
 private:
 	friend class Connection;
+	void OnConnectionFailed();
 	bool OnConnectionConnected(shared_ptr<Connection> connection);
 	void OnConnectionClosed(shared_ptr<Connection> connection,
 							const boost::system::error_code &error);
@@ -168,6 +175,7 @@ private:
 	boost::asio::io_service m_service;
 	boost::shared_ptr<Connection> m_connection;
 	boost::uint32_t m_commandIdCounter;
+	bool m_isFailed;
 
 	shared_ptr<thread> m_thread;
 	bool m_isExitThread;

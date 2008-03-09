@@ -163,7 +163,7 @@ bool safe_ofstream::is_open() const {
 	return m_stream.is_open();
 }
 
-void safe_ofstream::close() {
+void safe_ofstream::commit() {
 	m_stream.close();
 
 	if (m_filePath.empty() || m_tmpPath.empty()) {
@@ -174,9 +174,16 @@ void safe_ofstream::close() {
 	if (!boost::filesystem::exists(m_tmpPath)) {
 		return;
 	}
-	
+
+	// Rename the temporary file to the target file.
 	boost::filesystem::remove(m_filePath);
 	boost::filesystem::rename(m_tmpPath, m_filePath);
+}
+
+void safe_ofstream::discard() {
+	m_stream.close();
+
+	boost::filesystem::remove(m_tmpPath);
 }
 
 } // end of namespace lldebug

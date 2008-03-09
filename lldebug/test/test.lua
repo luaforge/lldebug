@@ -11,7 +11,7 @@ local function self_recursive(count, through)
 	through = through or {}
 	
 	if count <= 0 then
-		print("self_recursive was done: " .. tostring(through))
+		print("self_recursive was done: " .. tostring(table.getn(through)))
 		return
 	end
 	

@@ -58,6 +58,8 @@ extern const int llutil_address_for_internal_table;
 /// Get the original name of the lua function.
 std::string llutil_makefuncname(lua_Debug *ar);
 
+int llutil_listlocalfuncs(lua_State *L);
+
 /// Clone the table(idx).
 int llutil_clonetable(lua_State *L, int idx);
 

@@ -57,8 +57,11 @@ public:
 	/// Is this stream open ?
 	bool is_open() const;
 
-	/// If successed, close and rename from temporary file to target.
-	void close();
+	/// The temporary file is closed and renamed to the target name.
+	void commit();
+
+	/// The tmpoyrary file is deleted.
+	void discard();
 
 	/// Get the ofstream object.
 	std::ofstream &stream() {

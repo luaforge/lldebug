@@ -39,6 +39,59 @@ class Connection;
 /**
  * @brief TCP connection maker used by server size.
  */
+/*class Connector {
+	: public boost::enable_shared_from_this<Connector> {
+public:
+	enum State {
+		STATE_TRYING,
+		STATE_SUCCESS,
+		STATE_FAIL,
+	};
+
+public:
+	explicit Connector(RemoteEngine &engine);
+	virtual ~Connector();
+
+	/// Get the remote engine.
+	RemoteEngine &GetEngine() {
+		return m_engine;
+	}
+
+	/// Get the connection object.
+	shared_ptr<Connection> GetConnection() {
+		return m_connection;
+	}
+
+	bool IsTrying() const {
+		return (m_state == STATE_TRYING);
+	}
+
+	bool IsSuccess() const {
+		return (m_state == STATE_SUCCESS);
+	}
+
+	bool IsFail() const {
+		return (m_state == STATE_FAIL);
+	}
+
+protected:
+	void BeginConfirmCommand();
+	void HandleConfirmCommand(shared_ptr<CommandHeader> header,
+							  const boost::system::error_code &error);
+	void Succeeded();
+	void Failed();
+
+private:
+	RemoteEngine &m_engine;
+	shared_ptr<Connection> m_connection;
+	State m_state;
+	int m_handleCommandCount;
+};*/
+
+
+/**
+ * @brief TCP connection maker used by server size.
+ */
 class ServerConnector
 	: public boost::enable_shared_from_this<ServerConnector> {
 public:
@@ -112,6 +165,7 @@ private:
 	friend class ServerConnector;
 	explicit Connection(RemoteEngine &engine);
 	void Connected();
+	void Failed();
 
 private:
 	void DoClose(const boost::system::error_code &error);
