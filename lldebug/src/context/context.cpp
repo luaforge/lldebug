@@ -938,7 +938,7 @@ public:
 		int status = lua_resume(co, narg);
 		ctx->EndCoroutine(co);
 
-		if (status == 0 || status == LUA_YIELD) {
+		if (status == 0 /*|| status == LUA_YIELD*/) {
 			int nres = lua_gettop(co);
 			if (!lua_checkstack(L, nres))
 				luaL_error(L, "too many results to resume");
@@ -1040,7 +1040,7 @@ void Context::LuaOpenLibs(lua_State *L) {
 	scoped_lock lock(m_mutex);
 	scoped_lua scoped(this, L, false);
 
-	static const luaL_reg libs[] = {
+	static const luaL_reg lib_regs[] = {
 #ifdef LUA_COLIBNAME
 		{LUA_COLIBNAME, luaopen_base},
 #endif
@@ -1051,7 +1051,7 @@ void Context::LuaOpenLibs(lua_State *L) {
 		{LUA_IOLIBNAME, luaopen_io},
 #endif
 #ifdef LUA_OSLIBNAME
-		{LUA_OSLIBNAME, luaopen_os},
+		//{LUA_OSLIBNAME, luaopen_os},
 #endif
 #ifdef LUA_STRLIBNAME
 		{LUA_STRLIBNAME, luaopen_string},
@@ -1069,7 +1069,7 @@ void Context::LuaOpenLibs(lua_State *L) {
 	};
 
 	// Open the libs.
-	for (const luaL_reg *reg = libs; reg->func != NULL; ++reg) {
+	for (const luaL_reg *reg = lib_regs; reg->func != NULL; ++reg) {
 		lua_pushcfunction(L, reg->func);
 		lua_pushstring(L, reg->name);
 		lua_call(L, 1, 0);
@@ -1232,7 +1232,7 @@ static int index_for_eval(lua_State *L) {
 
 static int newindex_for_eval(lua_State *L) {
 	scoped_lua scoped(L);
-	std::string target(luaL_checkstring(L, 2));
+	std::string target(lua_tostring(L, 2));
 	int level = (int)lua_tonumber(L, lua_upvalueindex(1));
 	
 	// level 0: this C function
@@ -1258,7 +1258,7 @@ static int setmetatable_for_eval(lua_State *L) {
 	// level 1: __lldebug_dummy__ function
 	// level 2: loaded string in LuaEval (includes __lldebug_dummy__)
 	// level 3: current running function
-	int level = (int)luaL_checkinteger(L, lua_upvalueindex(1));
+	int level = (int)luaL_checknumber(L, lua_upvalueindex(1));
 
 	// table = {}, meta = {}
 	lua_newtable(L);
@@ -1284,7 +1284,7 @@ static int setmetatable_for_eval(lua_State *L) {
 
 static int getlocals_for_eval(lua_State *L) {
 	scoped_lua scoped(L);
-	int level = (int)luaL_checkinteger(L, lua_upvalueindex(1));
+	int level = (int)luaL_checknumber(L, lua_upvalueindex(1));
 	int n = lua_gettop(L);
 	bool checkLocal =
 		(n >= 1 && lua_isboolean(L, 1) ? (lua_toboolean(L, 1) != 0) : true);

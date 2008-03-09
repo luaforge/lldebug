@@ -52,7 +52,7 @@ public:
 	~safe_ofstream();
 
 	/// Open the file.
-	bool open(const std::string &filename, int mode);
+	bool open(const std::string &filename, std::ios_base::openmode mode);
 
 	/// Is this stream open ?
 	bool is_open() const;

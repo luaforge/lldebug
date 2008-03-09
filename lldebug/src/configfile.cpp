@@ -140,7 +140,8 @@ safe_ofstream::safe_ofstream() {
 safe_ofstream::~safe_ofstream() {
 }
 
-bool safe_ofstream::open(const std::string &filename, int mode) {
+bool safe_ofstream::open(const std::string &filename,
+						 std::ios_base::openmode mode) {
 	boost::filesystem::path filePath = filename;
 	boost::filesystem::path tmpPath = filename + ".tmp";
 

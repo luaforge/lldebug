@@ -49,14 +49,14 @@ public:
 		: m_buffer(data) {
 		if (!m_buffer.empty()) {
 			Ch *ptr = &*m_buffer.begin();
-			setg(ptr, ptr, ptr + m_buffer.size());
+			this->setg(ptr, ptr, ptr + m_buffer.size());
 		}
 	}
 
 	explicit basic_vector_streambuf()
 		: m_buffer(256) {
 		Ch *ptr = &*m_buffer.begin();
-		setp(ptr, ptr, ptr + m_buffer.size());
+		this->setp(ptr, ptr + m_buffer.size());
 	}
 
 	virtual ~basic_vector_streambuf() {
@@ -64,18 +64,18 @@ public:
 
 	/// Get the container object.
 	container_type container() {
-		return container_type(pbase(), pptr());
+		return container_type(this->pbase(), this->pptr());
 	}
 
 protected:
 	virtual int_type overflow(int c = Tr::eof()) {
 		if (c != Tr::eof()) {
-			if (pptr() >= epptr()) {
+			if (this->pptr() >= this->epptr()) {
 				extend_buffer();
 			}
 
-			*pptr() = Tr::to_char_type(c);
-			pbump(1);
+			*this->pptr() = Tr::to_char_type(c);
+			this->pbump(1);
 			return Tr::not_eof(c);
 		}
 		else {
@@ -84,28 +84,29 @@ protected:
 	}
 
 	virtual int_type underflow() {
-		if (gptr() >= egptr()){
+		if (this->gptr() >= this->egptr()){
 			return Tr::eof();
 		}
 
-		return Tr::to_int_type(*gptr());
+		return Tr::to_int_type(*this->gptr());
 	}
 
 private:
 	/// Extend the buffer size.
 	void extend_buffer() {
-		if (pbase() == pptr()) {
+		if (this->pbase() == this->pptr()) {
 			return;
 		}
 
 		// Resize the buffer.
-		size_t prevpos = (pptr() - pbase());
-		size_t newsize = (epptr() - pbase()) * 2;
+		size_t prevpos = (this->pptr() - this->pbase());
+		size_t newsize = (this->epptr() - this->pbase()) * 2;
 		m_buffer.resize(newsize);
 
 		// Set pointer.
 		Ch *ptr = &*m_buffer.begin();
-		setp(ptr, ptr + prevpos, ptr + m_buffer.size());
+		this->setp(ptr, ptr + m_buffer.size());
+		this->pbump(prevpos);
 	}
 
 private:

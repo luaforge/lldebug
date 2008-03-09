@@ -47,7 +47,7 @@ liblldebug_a_AR = $(AR) $(ARFLAGS)
 liblldebug_a_LIBADD =
 am_liblldebug_a_OBJECTS = liblldebug_a-configfile.$(OBJEXT) \
 	liblldebug_a-sysinfo.$(OBJEXT) liblldebug_a-luainfo.$(OBJEXT) \
-	liblldebug_a-command.$(OBJEXT) \
+	liblldebug_a-md2.$(OBJEXT) liblldebug_a-command.$(OBJEXT) \
 	liblldebug_a-connection.$(OBJEXT) \
 	liblldebug_a-echostream.$(OBJEXT) \
 	liblldebug_a-netutils.$(OBJEXT) \
@@ -205,6 +205,7 @@ liblldebug_a_SOURCES = \
 	../../src/configfile.cpp \
 	../../src/sysinfo.cpp \
 	../../src/luainfo.cpp \
+	../../src/md2.cpp \
 	../../src/net/command.cpp \
 	../../src/net/connection.cpp \
 	../../src/net/echostream.cpp \
@@ -273,6 +274,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-luainfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-luaiterate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-luautils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-md2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-netutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-remoteengine.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-sysinfo.Po@am__quote@
@@ -339,6 +341,20 @@ liblldebug_a-luainfo.obj: ../../src/luainfo.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/luainfo.cpp' object='liblldebug_a-luainfo.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-luainfo.obj `if test -f '../../src/luainfo.cpp'; then $(CYGPATH_W) '../../src/luainfo.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/luainfo.cpp'; fi`
+
+liblldebug_a-md2.o: ../../src/md2.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-md2.o -MD -MP -MF $(DEPDIR)/liblldebug_a-md2.Tpo -c -o liblldebug_a-md2.o `test -f '../../src/md2.cpp' || echo '$(srcdir)/'`../../src/md2.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-md2.Tpo $(DEPDIR)/liblldebug_a-md2.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/md2.cpp' object='liblldebug_a-md2.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-md2.o `test -f '../../src/md2.cpp' || echo '$(srcdir)/'`../../src/md2.cpp
+
+liblldebug_a-md2.obj: ../../src/md2.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-md2.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-md2.Tpo -c -o liblldebug_a-md2.obj `if test -f '../../src/md2.cpp'; then $(CYGPATH_W) '../../src/md2.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/md2.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-md2.Tpo $(DEPDIR)/liblldebug_a-md2.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/md2.cpp' object='liblldebug_a-md2.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-md2.obj `if test -f '../../src/md2.cpp'; then $(CYGPATH_W) '../../src/md2.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/md2.cpp'; fi`
 
 liblldebug_a-command.o: ../../src/net/command.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-command.o -MD -MP -MF $(DEPDIR)/liblldebug_a-command.Tpo -c -o liblldebug_a-command.o `test -f '../../src/net/command.cpp' || echo '$(srcdir)/'`../../src/net/command.cpp

@@ -2,11 +2,9 @@
 -- テストプログラム (デソ 日本語表示)
 --
 
-debug = require "debug"
+--debug = require "debug"
 table = require "table"
 string = require "string"
-
---require "strict"
 
 -- recursive
 local function self_recursive(count, through)

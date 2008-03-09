@@ -44,8 +44,8 @@ struct echo_thread::request {
 };
 
 echo_thread::echo_thread()
-	: m_is_exit_thread(false)
-	, m_socket(m_service, udp::endpoint(udp::v4(), 0)) {
+	: m_socket(m_service, udp::endpoint(udp::v4(), 0))
+	, m_is_exit_thread(false) {
 }
 
 echo_thread::~echo_thread() {

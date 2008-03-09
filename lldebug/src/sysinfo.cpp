@@ -150,7 +150,7 @@ void BreakpointList::Toggle(const std::string &key, int line) {
 /*-----------------------------------------------------------------*/
 Source::Source(const std::string &key, const std::string &title,
 			   const string_array &sources, const std::string &path)
-	: m_key(key), m_title(title), m_sources(sources), m_path(path) {
+	: m_key(key), m_title(title), m_path(path), m_sources(sources) {
 }
 
 Source::Source() {

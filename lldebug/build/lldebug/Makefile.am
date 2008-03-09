@@ -20,6 +20,7 @@ liblldebug_a_SOURCES = \
 	../../src/configfile.cpp \
 	../../src/sysinfo.cpp \
 	../../src/luainfo.cpp \
+	../../src/md2.cpp \
 	../../src/net/command.cpp \
 	../../src/net/connection.cpp \
 	../../src/net/echostream.cpp \

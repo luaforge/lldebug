@@ -98,6 +98,9 @@ std::string llutil_tostring_for_varvalue(lua_State *L, int idx);
 int llutil_lua_tostring_detail(lua_State *L);
 
 
+/// The name of lua library for lldebug.
+#define LUA_LLDEBUGLIBNAME "lldebug"
+
 /// Open the lldebug library.
 int luaopen_lldebug(lua_State *L);
 
@@ -105,3 +108,4 @@ int luaopen_lldebug(lua_State *L);
 } // end of namespace lldebug
 
 #endif
+

@@ -133,7 +133,8 @@ void Mediator::OnRemoteCommand(const Command &command) {
 
 	MainFrame *frame = GetFrame();
 	if (frame != NULL) {
-		frame->AddPendingEvent(wxIdleEvent());
+		wxIdleEvent event;
+		frame->AddPendingEvent(event);
 	}
 }
 

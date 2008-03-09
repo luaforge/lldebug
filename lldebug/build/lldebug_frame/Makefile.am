@@ -23,6 +23,7 @@ lldebug_frame_SOURCES = \
 	../../src/configfile.cpp \
 	../../src/sysinfo.cpp \
 	../../src/luainfo.cpp \
+	../../src/md2.cpp \
 	../../src/net/command.cpp \
 	../../src/net/connection.cpp \
 	../../src/net/echostream.cpp \
@@ -33,7 +34,7 @@ lldebug_frame_SOURCES = \
 	../../src/visual/event.cpp \
 	../../src/visual/interactiveview.cpp \
 	../../src/visual/langsettings.cpp \
-	../../src/visual/mainframe.cpp \	
+	../../src/visual/mainframe.cpp \
 	../../src/visual/mediator.cpp \
 	../../src/visual/outputview.cpp \
 	../../src/visual/sourceview.cpp \
