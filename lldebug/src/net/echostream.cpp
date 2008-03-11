@@ -28,7 +28,6 @@
 #include "net/echostream.h"
 
 #include <boost/bind.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/placeholders.hpp>
 
 namespace lldebug {

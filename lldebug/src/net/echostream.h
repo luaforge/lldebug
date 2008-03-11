@@ -83,23 +83,22 @@ private:
  * @brief Echo client.
  */
 template <class Ch, class Tr=std::char_traits<Ch> >
-class basic_echo_ostreambuf : public std::basic_streambuf<Ch,Tr> {
+class basic_echobuf : public std::basic_streambuf<Ch,Tr> {
 public:
 	typedef typename std::basic_streambuf<Ch,Tr> base_type;
 	typedef typename base_type::int_type int_type;
 
 public:
-	explicit basic_echo_ostreambuf()
+	explicit basic_echobuf()
 		: m_prev_cr(false) {
-		setbuf(0, 0); // suppress buffering
 	}
 
-	virtual ~basic_echo_ostreambuf() {
+	virtual ~basic_echobuf() {
 		flush_internal(false);
 	}
 
 	/// Open the tcp connection.
-	bool open(const std::string &hostname, const std::string &port) {
+	bool open(const std::string &hostname, const std::string &servicename) {
 		try {
 			using namespace boost::asio::ip;
 			echo_thread *instance = echo_thread::get_instance();
@@ -108,7 +107,7 @@ public:
 			}
 
 			udp::resolver resolver(instance->get_service());
-			udp::resolver_query query(udp::v4(), hostname, port);
+			udp::resolver_query query(udp::v4(), hostname, servicename);
 			udp::resolver_iterator it;
 			for (it = resolver.resolve(query); 
 				it != udp::resolver_iterator();
@@ -207,7 +206,6 @@ private:
 	bool m_prev_cr;
 };
 
-
 /**
  * @brief Echo client.
  */
@@ -215,10 +213,10 @@ template <class Ch,class Tr=std::char_traits<Ch> >
 class basic_echo_ostream : public std::basic_ostream<Ch,Tr> {
 public:
 	explicit basic_echo_ostream(const std::string &hostname="localhost",
-								const std::string &port="42598")
+								const std::string &servicename="42598")
 		: std::basic_ostream<Ch,Tr>(NULL) {
 		this->init(&m_buf);
-		open(hostname, port);
+		open(hostname, servicename);
 	}
 
 	~basic_echo_ostream() {
@@ -226,8 +224,8 @@ public:
 
 	/// Open the tcp connection.
 	bool open(const std::string &hostname="localhost",
-			  const std::string &port="42598") {
-		return m_buf.open(hostname, port);
+			  const std::string &servicename="42598") {
+		return m_buf.open(hostname, servicename);
 	}
 
 	/// Is the tcp connection opened.
@@ -236,7 +234,7 @@ public:
 	}
 
 private:
-	basic_echo_ostreambuf<Ch> m_buf;
+	basic_echobuf<Ch,Tr> m_buf;
 };
 
 
@@ -247,3 +245,4 @@ typedef basic_echo_ostream<wchar_t> echo_wostream;
 } // end of namespace lldebug
 
 #endif
+

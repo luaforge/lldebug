@@ -219,7 +219,7 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 		lua_pushvalue(L, valueIdx);
 		lua_rawseti(L, table, n);
 	}
-	
+
 	lua_pop(L, 1);
 	assert(top == lua_gettop(L));
 	return n;

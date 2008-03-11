@@ -195,26 +195,34 @@ std::string ConvFromUTF8(const std::string &input) {
 static std::string convert(const std::string &input,
 						   const char *fromEncoding,
 						   const char *toEncoding) {
+	if (input.empty()) {
+		return input;
+	}
+
 	iconv_t cd = iconv_open(toEncoding, fromEncoding);
 	if (cd == (iconv_t)-1) {
 		return input; // Return the input.
 	}
 
-	char *inputPtr = const_cast<char *>(input.c_str());
-	size_t inputLen = input.length();
 	std::vector<char> output(input.length());
+	size_t resultLen = 0;
+	int result;
 
-	size_t resultLen;
 	do {
 		// Set the size twice.
 		output.resize(output.size() * 2);
-		size_t outputLen = output.size();
 
 		// Do convert.
-		resultLen = iconv(cd, &inputPtr, &inputLen, &output[0], &outputLen);
-	} while (resultLen == -1 && errno == E2BIG);
+		char *inputPtr = const_cast<char *>(input.c_str());
+		size_t inputLen = input.length();
+		char *outputPtr = &output[0];
+		size_t outputLen = output.size();
 
-	if (resultLen == -1) {
+		result = iconv(cd, &inputPtr, &inputLen, &outputPtr, &outputLen);
+		resultLen = output.size() - outputLen;
+	} while (result == -1 && errno == E2BIG);
+
+	if (result == -1) {
 		return input; // Return the input.
 	}
 
@@ -223,10 +231,18 @@ static std::string convert(const std::string &input,
 }
 
 std::string ConvToUTF8(const std::string &input) {
+	if (s_encodingName.empty()) {
+		return input;
+	}
+
 	return convert(input, s_encodingName.c_str(), "utf-8");
 }
 
 std::string ConvFromUTF8(const std::string &input) {
+	if (s_encodingName.empty()) {
+		return input;
+	}
+
 	return convert(input, "utf-8", s_encodingName.c_str());
 }
 

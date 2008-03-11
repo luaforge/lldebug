@@ -62,6 +62,7 @@ void ServerConnector::Start(unsigned short port) {
 
 	// Try to accept.
 	m_acceptor.open(endpoint.protocol());
+	m_acceptor.set_option(tcp::acceptor::reuse_address(true));
 	m_acceptor.bind(endpoint);
 	m_acceptor.listen();
 	m_acceptor.async_accept(m_connection->GetSocket(),

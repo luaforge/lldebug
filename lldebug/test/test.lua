@@ -2,29 +2,25 @@
 -- テストプログラム (デソ 日本語表示)
 --
 
---debug = require "debug"
-table = require "table"
-string = require "string"
-
--- recursive
+-- Self recursive function.
 local function self_recursive(count, through)
 	through = through or {}
 	
 	if count <= 0 then
-		print("self_recursive was done: " .. tostring(table.getn(through)))
+		print("self_recursive was done: " .. tostring(table.getn(through)));
 		return
 	end
-	
+
 	through[count] = "recorded"
 	return self_recursive(count - 1, through)
 end
 
 -- Environment table
 local function env_func()
-	local function f(t, i)
-		return os.getenv(i)
+	local function my_index(table, name)
+		return _G.os.getenv(name)
 	end
-	setmetatable(getfenv(), {__index=f})
+	setmetatable(getfenv(), {__index=my_index})
 
 	-- an example
 	print(a, USER, PATH)
@@ -40,7 +36,7 @@ local function co_func_creator(count)
 			coroutine.yield()
 		end
 	end
-	
+
 	return coroutine.create(co_func_)
 end
 
@@ -52,12 +48,12 @@ end
 
 -- Dump 'obj' to string.
 local function dump_func(obj)
-	return string.dump(obj)
+	print(string.dump(obj))
 end
 
 local tab = {
 	[0] = "テスト",
-	deep = {x = nil}
+	deep = {x = 0.00256}
 }
 tab.self = tab
 
@@ -68,5 +64,6 @@ for i = 0, 100 do
 	self_recursive(100)
 	dump_func(function() return 100 end)
 	env_func()
-	co_func()
+	coroutine.resume(co)
 end
+

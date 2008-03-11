@@ -4,7 +4,7 @@ INCLUDES =	-I../../src \
 
 noinst_PROGRAMS = echo_server
 
-echo_server_CPPFLAGS = $(cppflags) -Wall -O0
+echo_server_CPPFLAGS = $(cppflags) -Wall
 echo_server_LDADD =	 $(libadd) \
 					../boost_system/libboost_system.a \
 					-lboost_thread-mt

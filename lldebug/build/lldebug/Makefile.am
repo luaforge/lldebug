@@ -7,6 +7,7 @@ INCLUDES =	-I../../include \
 noinst_LIBRARIES = liblldebug.a
 
 liblldebug_a_CPPFLAGS = -DLLDEBUG_CONTEXT \
+						-DLLDEBUG_USE_ICONV \
 						-Wall
 
 #liblldebug_a_LDFLAGS = $(LDFLAGS)

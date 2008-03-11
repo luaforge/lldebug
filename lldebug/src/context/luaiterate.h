@@ -85,7 +85,7 @@ int iterate_fields(Fn &callback, lua_State *L, int idx) {
 			return ret;
 		}
 	}
-	
+
 	if (lua_type(L, idx) != LUA_TTABLE) {
 		scoped.check(0);
 		return 0;

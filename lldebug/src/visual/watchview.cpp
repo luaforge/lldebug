@@ -603,19 +603,21 @@ OneVariableWatchView::OneVariableWatchView(wxWindow *parent,
 										   const wxSize &size)
 	: wxFrame(parent, wxID_ANY, _T(""), pos, wxSize(800, 800)
 		, wxFRAME_TOOL_WINDOW | wxRESIZE_BORDER
-		| wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT)
+		/*| wxFRAME_NO_TASKBAR*/ | wxFRAME_FLOAT_ON_PARENT)
 	, m_wasInMouse(false) {
 
-	VariableWatch *watch;
+	VariableWatch *watch = NULL;
 	watch = new VariableWatch(
 		this, wxID_ANY,
 		true, true, false, true,
 		VariableRequester(&watch, valName));
+
+	// Add the name of the variable.
 	watch->AppendItem(
 		watch->GetRootItem(), valName, -1, -1,
 		new VariableWatchItemData(LuaVar()));
 	watch->BeginUpdating();
-	SetHandler(watch);
+	SetHandler(watch); // Set handler to receive the mouse event.
 	m_watch = watch;
 
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);

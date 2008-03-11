@@ -285,11 +285,12 @@ static std::string llutil_tostring_for_varvalue_default(lua_State *L, int idx) {
 	case LUA_TSTRING:
 		result = lua_tostring(L, idx);
 		break;
-	default:
-		lua_pushfstring(L, "%p", lua_topointer(L, idx));
-		result = lua_tostring(L, -1);
-		lua_pop(L, 1);
-		break;
+	default: {
+		// Use snprintf to avoid lua_pushfstring's bug.
+		char buffer[512];
+		snprintf(buffer, sizeof(buffer), "%p", lua_topointer(L, idx));
+		result = buffer;
+		} break;
 	}
 
 	scoped.check(0);

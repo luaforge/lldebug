@@ -192,7 +192,7 @@ int Context::Initialize() {
 	// After the all initialization was done,
 	// we create a new frame for this context.
 	if (CreateDebuggerFrame() != 0) {
-		return -1;
+		//return -1;
 	}
 
 	return 0;
@@ -219,6 +219,7 @@ int Context::CreateDebuggerFrame() {
 	end.sec += 10;
 
 	// IsOpen become true in handleConnect.
+	OutputLog(LOGTYPE_TRACE, "Begin connection...");
 	while (!m_engine->IsConnecting()) {
 		if (m_engine->IsFailed()) {
 			goto on_error;
@@ -237,6 +238,7 @@ int Context::CreateDebuggerFrame() {
 		m_commandCond.timed_wait(lock, current);
 	}
 
+	OutputLog(LOGTYPE_TRACE, "Succeeded in CreateDebuggerFrame.");
 	return 0;
 
 on_error:;
@@ -652,6 +654,8 @@ void Context::SetDebugState(DebugState state) {
 	}
 
 	switch (m_debugState) {
+	case DEBUGSTATE_INITIAL:
+		break;
 	case DEBUGSTATE_RUNNING:
 		switch (state) {
 		case DEBUGSTATE_BREAK:
@@ -756,6 +760,9 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		case LUA_HOOKTAILRET:
 			printf("OnTailReturn: %s\n", llutil_makefuncname(ar).c_str());
 			break;
+		case LUA_HOOKLINE:
+			printf("OnLine: %s\n", llutil_makefuncname(ar).c_str());
+			break;
 		}
 	}
 #endif
@@ -790,6 +797,7 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 	case DEBUGSTATE_STEPINTO:
 		SetDebugState(DEBUGSTATE_BREAK);
 		break;
+	case DEBUGSTATE_INITIAL:
 	case DEBUGSTATE_RUNNING:
 	case DEBUGSTATE_STEPRETURN:
 	case DEBUGSTATE_BREAK:
@@ -819,7 +827,6 @@ void Context::HookCallback(lua_State *L, lua_Debug *ar) {
 		if (m_debugState != DEBUGSTATE_BREAK) {
 			break;
 		}
-
 		if (m_isMustUpdate || prevState != DEBUGSTATE_BREAK) {
 			if (m_sourceManager.Get(ar->source) == NULL) {
 				if (m_sourceManager.Add(ar->source, ar->short_src) != 0) {
@@ -908,7 +915,7 @@ public:
 		int status = lua_resume(co, narg);
 		ctx->EndCoroutine(co);
 
-		if (status == 0 || status == LUA_YIELD) {
+		if (status == 0 /*|| status == LUA_YIELD*/) {
 			int nres = lua_gettop(co);
 			if (!lua_checkstack(L, nres))
 				luaL_error(L, "too many results to resume");
@@ -1026,7 +1033,7 @@ void Context::LuaOpenLibs(lua_State *L) {
 		{LUA_IOLIBNAME, luaopen_io},
 #endif
 #ifdef LUA_OSLIBNAME
-		{LUA_OSLIBNAME, luaopen_os},
+		//{LUA_OSLIBNAME, luaopen_os},
 #endif
 #ifdef LUA_STRLIBNAME
 		{LUA_STRLIBNAME, luaopen_string},

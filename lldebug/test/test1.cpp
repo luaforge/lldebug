@@ -21,12 +21,13 @@ int main(int argc, char **argv) {
 	}
 
 	// Set encoding type. (default is utf8)
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+#if 1 //defined(WIN32) || defined(_WIN32) || defined(__WIN32)
 	lldebug_setencoding(LLDEBUG_ENCODING_SJIS);
 #else
 	lldebug_setencoding(LLDEBUG_ENCODING_EUC);
 #endif
 
+	printf("TRACE: begin lllldebug_open...\n");
 	lua_State *L = lldebug_open();
 	if (L == NULL) {
 		printf("Couldn't open the lua_State.\n");
@@ -34,9 +35,11 @@ int main(int argc, char **argv) {
 	}
 
 	// Open standard libs.
+	printf("TRACE: begin lldebug_openlibs...\n");
 	lldebug_openlibs(L);
-
+	
 	// Load the lua script.
+	printf("TRACE: begin lldebug_loadfile...\n");
 	if (lldebug_loadfile(L, argv[1]) != 0) {
 		printf("%s\n", lua_tostring(L, -1));
 		lldebug_close(L);
@@ -44,6 +47,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Execute !
+	printf("TRACE: begin lldebug_pcall...\n");
 	if (lldebug_pcall(L, 0, 0, 0) != 0) {
 		printf("%s\n", lua_tostring(L, -1));
 		lldebug_close(L);

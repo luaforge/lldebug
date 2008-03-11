@@ -24,30 +24,22 @@
  * SUCH DAMAGE.
  */
 
-#include <boost/config.hpp>
+#include "precomp.h"
+#include "net/echostream.h"
 
-#define BOOST_SYSTEM_NO_LIB
-#ifdef BOOST_WINDOWS
-	#define NOMINMAX
-	#define _WIN32_WINDOWS 0x400
-#endif
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/ip/udp.hpp>
-#include <string>
-#include <vector>
-#include <iostream>
-
-using namespace boost::asio::ip;
+namespace lldebug {
+namespace echo {
 
 /// Echo client main.
 static int ClientMain(const std::string &hostName,
 					  const std::string &serviceName) {
 	try {
-		boost::asio::io_service service;
-		udp::resolver resolver(service);
-		udp::resolver_query query(udp::v4(), hostName, serviceName);
-		udp::endpoint endpoint = *resolver.resolve(query);
-		udp::socket sock(service, udp::endpoint());
+		echo_ostream echo(hostName, serviceName);
+
+		if (!echo.is_open()) {
+			std::cerr << "Couldn't open the echo stream." << std::endl;
+			return -1;
+		}
 
 		std::cout << "echo client that sends \'localhost:" << serviceName << "' address" << std::endl;
 		std::cout << "waiting for your input ..." << std::endl;
@@ -56,21 +48,12 @@ static int ClientMain(const std::string &hostName,
 			std::string buffer;
 			std::getline(std::cin, buffer);
 
+			// End if input is empty.
 			if (buffer.empty()) {
-				buffer += '\0';
+				break;
 			}
 
-			udp::endpoint senderPoint = endpoint;
-			sock.send_to(
-				boost::asio::buffer(buffer),
-				senderPoint);
-
-			std::vector<char> recvbuf(buffer.size() + 1);
-			size_t size = sock.receive_from(
-				boost::asio::buffer(recvbuf),
-				senderPoint);
-
-			std::cout.write(&recvbuf[0], (std::streamsize)size) << std::endl;
+			echo << buffer << std::endl;
 		}
 	}
 	catch (std::exception &ex) {
@@ -80,6 +63,9 @@ static int ClientMain(const std::string &hostName,
 
 	return 0;
 }
+
+} // end of namespace echo
+} // end of namespace lldebug
 
 int main(int argc, char *argv[]) {
 	std::string hostName = "localhost";
@@ -93,5 +79,6 @@ int main(int argc, char *argv[]) {
 		serviceName = argv[2];
 	}
 
-	return ClientMain(hostName, serviceName);
+	return lldebug::echo::ClientMain(hostName, serviceName);
 }
+
