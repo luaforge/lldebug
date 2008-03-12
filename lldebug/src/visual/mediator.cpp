@@ -126,6 +126,10 @@ void Mediator::OutputLogInternal(const LogData &logData, bool sendRemote) {
 		wxDebugEvent event(wxEVT_DEBUG_OUTPUT_LOG, wxID_ANY, logData);
 		frame->ProcessDebugEvent(event, frame, true);
 	}
+
+	if (logData.GetType() == LOGTYPE_ERROR) {
+		wxMessageBox(wxConvFromUTF8(logData.GetLog()), _T("Error"), wxOK | wxICON_ERROR, GetFrame());
+	}
 }
 
 void Mediator::OnRemoteCommand(const Command &command) {
@@ -233,7 +237,7 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 		{
 			Source source;
 			command.GetData().Get_AddedSource(source);
-			m_sourceManager.AddSource(source);
+			m_sourceManager.AddSource(source, false);
 
 			if (frame != NULL) {
 				wxDebugEvent event(wxEVT_DEBUG_ADDED_SOURCE, wxID_ANY, source);

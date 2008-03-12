@@ -292,6 +292,6 @@ public:
 typedef std::vector<LuaVar> LuaVarList;
 typedef std::vector<LuaBacktrace> LuaBacktraceList;
 
-}
+} // end of namespace lldebug
 
 #endif

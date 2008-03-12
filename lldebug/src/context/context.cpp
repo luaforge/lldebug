@@ -891,6 +891,22 @@ public:
 		return 0;
 	}
 
+	static int lldebug_assert(lua_State *L) {
+		bool iserror = (
+			(lua_isnil(L, 1)) ||
+			(lua_isboolean(L, 1) && lua_toboolean(L, 1)));
+
+		if (iserror) {
+			std::string str =
+				( lua_isstring(L, 2)
+				? lua_tostring(L, 2)
+				: "assertion failed!");
+			luaL_error(L, "%s", str.c_str());
+		}
+
+		return 0;
+	}
+
 	static int cocreate(lua_State *L) {
 		lua_State *NL = lua_newthread(L);
 		luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1), 1,
@@ -915,7 +931,11 @@ public:
 		int status = lua_resume(co, narg);
 		ctx->EndCoroutine(co);
 
-		if (status == 0 /*|| status == LUA_YIELD*/) {
+		if (status == 0
+#ifdef LUA_YIELD
+			|| status == LUA_YIELD
+#endif
+			) {
 			int nres = lua_gettop(co);
 			if (!lua_checkstack(L, nres))
 				luaL_error(L, "too many results to resume");
@@ -947,11 +967,12 @@ public:
 
 	static void override_baselib(lua_State *L) {
 		const luaL_reg s_coregs[] = {
-			{"create", cocreate},
-			{"resume", coresume},
+			{"create", LuaImpl::cocreate},
+			{"resume", LuaImpl::coresume},
 			{NULL, NULL}
 		};
 
+		lua_register(L, "assert", lldebug_assert);
 		luaL_openlib(L, LUA_COLIBNAME, s_coregs, 0);
 	}
 };
@@ -1032,8 +1053,8 @@ void Context::LuaOpenLibs(lua_State *L) {
 #ifdef LUA_IOLIBNAME
 		{LUA_IOLIBNAME, luaopen_io},
 #endif
-#ifdef LUA_OSLIBNAME
-		//{LUA_OSLIBNAME, luaopen_os},
+#if defined(LUA_OSLIBNAME) && defined(LUA_VERSION_NUM)
+		{LUA_OSLIBNAME, luaopen_os},
 #endif
 #ifdef LUA_STRLIBNAME
 		{LUA_STRLIBNAME, luaopen_string},

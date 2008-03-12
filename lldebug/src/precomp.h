@@ -35,6 +35,7 @@
 #include <queue>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/weak_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/thread.hpp>
 #include <boost/functional.hpp>
@@ -78,7 +79,7 @@ namespace lldebug {
 	using boost::shared_dynamic_cast;
 	using boost::shared_polymorphic_cast;
 	using boost::shared_polymorphic_downcast;
-	using boost::static_pointer_cast;
+	using boost::weak_ptr;
 
 	using boost::thread;
 	using boost::condition;

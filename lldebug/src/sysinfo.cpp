@@ -105,18 +105,21 @@ void BreakpointList::Set(const Breakpoint &bp) {
 		return;
 	}
 
-#ifdef LLDEBUG_VISUAL
-	m_engine->SendSetBreakpoint(bp);
-#else
 	// Insert certainly.
 	ImplSet::iterator it = m_set.find(bp);
 	if (it != m_set.end()) {
 		m_set.erase(it);
 	}
-
 	m_set.insert(bp);
-	m_engine->SendChangedBreakpointList(*this);
+
+	shared_ptr<RemoteEngine> pengine = m_engine.lock();
+	if (pengine != NULL) {
+#ifdef LLDEBUG_VISUAL
+		pengine->SendSetBreakpoint(bp);
+#else
+		pengine->SendChangedBreakpointList(*this);
 #endif
+	}
 }
 
 void BreakpointList::Remove(const Breakpoint &bp) {
@@ -125,12 +128,16 @@ void BreakpointList::Remove(const Breakpoint &bp) {
 		return;
 	}
 
-#ifdef LLDEBUG_VISUAL
-	m_engine->SendRemoveBreakpoint(bp);
-#else
 	m_set.erase(it);
-	m_engine->SendChangedBreakpointList(*this);
+
+	shared_ptr<RemoteEngine> pengine = m_engine.lock();
+	if (pengine != NULL) {
+#ifdef LLDEBUG_VISUAL
+		pengine->SendRemoveBreakpoint(bp);
+#else
+		pengine->SendChangedBreakpointList(*this);
 #endif
+	}
 }
 
 void BreakpointList::Toggle(const std::string &key, int line) {
@@ -201,8 +208,17 @@ const Source *SourceManager::GetString(const std::string &key) {
 	return NULL;
 }
 
-int SourceManager::AddSource(const Source &source) {
+int SourceManager::AddSource(const Source &source, bool sendRemote) {
 	m_sourceMap.insert(std::make_pair(source.GetKey(), source));
+
+#ifdef LLDEBUG_CONTEXT
+	if (sendRemote) {
+		shared_ptr<RemoteEngine> p = m_engine.lock();
+		if (p != NULL) {
+			p->SendAddedSource(source);
+		}
+	}
+#endif
 	return 0;
 }
 
@@ -242,9 +258,7 @@ int SourceManager::Add(const std::string &key, const std::string &src) {
 			return -1;
 		}
 
-		Source source(key, path.leaf(), split(ifs), pathstr);
-		m_sourceMap.insert(std::make_pair(key, source));
-		m_engine->SendAddedSource(source);
+		AddSource(Source(key, path.leaf(), split(ifs), pathstr), true);
 	}
 	else {
 		// We make the original source title and don't use the key,
@@ -254,9 +268,7 @@ int SourceManager::Add(const std::string &key, const std::string &src) {
 		title.flush();
 
 		std::stringstream sstream(src);
-		Source source(key, title.str(), split(sstream));
-		m_sourceMap.insert(std::make_pair(key, source));
-		m_engine->SendAddedSource(source);
+		AddSource(Source(key, title.str(), split(sstream)), true);
 	}
 	
 	return 0;

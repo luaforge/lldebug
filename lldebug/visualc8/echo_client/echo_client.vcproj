@@ -184,6 +184,10 @@
 				RelativePath="..\..\src\echo\echoclient.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\src\net\echostream.cpp"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

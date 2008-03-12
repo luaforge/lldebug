@@ -48,6 +48,85 @@ private:
 
 
 /**
+ * @brief The type of the log message.
+ */
+enum LogType {
+	LOGTYPE_MESSAGE, ///< Normal message.
+	LOGTYPE_ERROR, ///< Error message.
+	LOGTYPE_WARNING, ///< Warning message.
+	LOGTYPE_TRACE, ///< Trace message.
+};
+
+/**
+ * @brief Log info that contains message and file infomation.
+ */
+class LogData {
+public:
+	explicit LogData(LogType type, const std::string &msg,
+					 const std::string &key=std::string(""), int line=-1)
+		: m_type(type), m_message(msg), m_key(key), m_line(line)
+		, m_isRemote(false) {
+	}
+
+	explicit LogData()
+		: m_type(LOGTYPE_MESSAGE), m_line(-1)
+		, m_isRemote(false) {
+	}
+
+	~LogData() {
+	}
+
+	/// Get the log type.
+	LogType GetType() const {
+		return m_type;
+	}
+
+	/// Get the log message.
+	const std::string &GetLog() const {
+		return m_message;
+	}
+
+	/// Get the source key that is associated with 'Source' class. It may be invalid.
+	const std::string &GetKey() const {
+		return m_key;
+	}
+
+	/// Get the source number. If it's invalid, it returns minus value.
+	int GetLine() const {
+		return m_line;
+	}
+
+	/// Was this log sent through the network ?
+	bool IsRemote() const {
+		return m_isRemote;
+	}
+
+	/// Set this the remote log.
+	void SetRemote() {
+		m_isRemote = true;
+	}
+
+private:
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive& ar, const unsigned int) {
+		ar & LLDEBUG_MEMBER_NVP(type);
+		ar & LLDEBUG_MEMBER_NVP(message);
+		ar & LLDEBUG_MEMBER_NVP(key);
+		ar & LLDEBUG_MEMBER_NVP(line);
+		ar & LLDEBUG_MEMBER_NVP(isRemote);
+	}
+
+private:
+	LogType m_type;
+	std::string m_message;
+	std::string m_key;
+	int m_line;
+	bool m_isRemote;
+};
+
+
+/**
  * @brief Break point object for the debugger.
  */
 class Breakpoint {
@@ -136,7 +215,7 @@ private:
 	}
 
 private:
-	shared_ptr<RemoteEngine> m_engine;
+	weak_ptr<RemoteEngine> m_engine;
 
 	typedef std::set<Breakpoint> ImplSet;
 	ImplSet m_set;
@@ -219,7 +298,7 @@ public:
 	std::list<Source> GetList();
 
 	/// Add a source.
-	int AddSource(const Source &source);
+	int AddSource(const Source &source, bool sendRemote);
 
 #ifdef LLDEBUG_CONTEXT
 	/// Add a source.
@@ -230,90 +309,11 @@ public:
 #endif
 
 private:
-	shared_ptr<RemoteEngine> m_engine;
+	weak_ptr<RemoteEngine> m_engine;
 
 	typedef std::map<std::string, Source> ImplMap;
 	ImplMap m_sourceMap;
 	int m_textCounter;
-};
-
-
-/**
- * @brief The type of the log message.
- */
-enum LogType {
-	LOGTYPE_MESSAGE, ///< Normal message.
-	LOGTYPE_ERROR, ///< Error message.
-	LOGTYPE_WARNING, ///< Warning message.
-	LOGTYPE_TRACE, ///< Trace message.
-};
-
-/**
- * @brief Log info that contains message and file infomation.
- */
-class LogData {
-public:
-	explicit LogData(LogType type, const std::string &msg,
-					 const std::string &key=std::string(""), int line=-1)
-		: m_type(type), m_message(msg), m_key(key), m_line(line)
-		, m_isRemote(false) {
-	}
-
-	explicit LogData()
-		: m_type(LOGTYPE_MESSAGE), m_line(-1)
-		, m_isRemote(false) {
-	}
-
-	~LogData() {
-	}
-
-	/// Get the log type.
-	LogType GetType() const {
-		return m_type;
-	}
-
-	/// Get the log message.
-	const std::string &GetLog() const {
-		return m_message;
-	}
-
-	/// Get the source key that is associated with 'Source' class. It may be invalid.
-	const std::string &GetKey() const {
-		return m_key;
-	}
-
-	/// Get the source number. If it's invalid, it returns minus value.
-	int GetLine() const {
-		return m_line;
-	}
-
-	/// Was this log sent through the network ?
-	bool IsRemote() const {
-		return m_isRemote;
-	}
-
-	/// Set this the remote log.
-	void SetRemote() {
-		m_isRemote = true;
-	}
-
-private:
-	friend class boost::serialization::access;
-	template<class Archive>
-	void serialize(Archive& ar, const unsigned int) {
-		ar & LLDEBUG_MEMBER_NVP(type);
-		ar & LLDEBUG_MEMBER_NVP(message);
-		ar & LLDEBUG_MEMBER_NVP(key);
-		ar & LLDEBUG_MEMBER_NVP(line);
-		ar & LLDEBUG_MEMBER_NVP(isRemote);
-	}
-
-private:
-	LogType m_type;
-	std::string m_message;
-	std::string m_key;
-	int m_line;
-	bool m_isRemote;
 };
 
 } // end of namespace lldebug

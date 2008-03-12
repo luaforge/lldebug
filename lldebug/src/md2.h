@@ -27,6 +27,10 @@
 #include "precomp.h"
 #include <memory.h>
 
+#include <boost/range/begin.hpp>
+#include <boost/range/end.hpp>
+#include <boost/range/empty.hpp>
+
 namespace lldebug {
 
 /**
@@ -43,11 +47,10 @@ public:
 	~MD2Generator();
 
 	/// Get the MD2 digest.
-	void ToDigest(unsigned char digest[16],
-				  const unsigned char *input, size_t inputLen);
+	void GetDigest(unsigned char digest[16]);
 
 	/// Get the string of MD2 digest.
-	std::string ToDigestString(const unsigned char *input, size_t inputLen);
+	std::string GetDigestString();
 
 	/// MD2 block update operation.
 	/** Continues an MD2 message-digest operation, processing another
@@ -63,15 +66,38 @@ private:
 
 private:
 	unsigned char m_state[16]; ///< state
-	unsigned char m_checksum[16]; /// checksum
-	unsigned int m_count; /// number of bytes, modulo 16
-	unsigned char m_buffer[16]; /// input buffer
+	unsigned char m_checksum[16]; ///< checksum
+	unsigned int m_count; ///< number of bytes, modulo 16
+	unsigned char m_buffer[16]; ///< input buffer
 };
 
-/// Generate MD2 message-digest from a container object.
-static std::string GenerateMD2(const char *str) {
+/// Generate MD2 message-digest from a iterator.
+template<class It>
+std::string GenerateMD2(It begin, It end) {
 	MD2Generator md2;
-	return md2.ToDigestString((const unsigned char *)str, strlen(str));
+	
+	for (; begin != end; ++begin) {
+		const unsigned char *data =
+			reinterpret_cast<const unsigned char *>(&*begin);
+
+		md2.Update(data, sizeof(*begin));
+	}
+	
+	md2.Final();
+	return md2.GetDigestString();
+}
+
+/// Generate MD2 message-digest from a container object.
+template<class Ty>
+std::string GenerateMD2(const Ty &obj) {
+	if (boost::empty(obj)) {
+		MD2Generator md2;
+		md2.Final();
+		return md2.GetDigestString();
+	}
+	else {
+		return GenerateMD2(boost::begin(obj), boost::end(obj));
+	}
 }
 
 } // end of namespace lldebug

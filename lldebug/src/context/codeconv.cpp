@@ -73,122 +73,105 @@ int SetEncoding(lldebug_Encoding encoding) {
 #endif
 
 #if defined(LLDEBUG_USE_ICU)
+typedef std::basic_string<char> char_string;
+typedef std::basic_string<UChar> uni_string;
+
+static uni_string toUnicode(const char_string &input,
+							const char *fromEncoding) {
+	UErrorCode error = U_ZERO_ERROR;
+
+	// Make input string converter.
+	UConverter *converter = ucnv_open(fromEncoding, &error);
+	if (U_FAIL(error)) {
+		return uni_string(L"");
+	}
+
+	// Allocate the intermediate buffer.
+	size_t outputLength = input.size() / ucnv_getMinCharSize(converter);
+	std::vector<UChar> output(outputLength + 1);
+	
+	// Convert 'input' to unicode(UTF16) character.
+	const char *inputPtr = &input[0];
+	UChar *outputPtr = &output[0];
+	ucnv_toUnicode(
+		converter,
+		&outputPtr, &outputPtr[outputLength],
+		&inputPtr, &inputPtr[input.size()],
+		// &input[input.size()] can't do
+		NULL, true, &error);
+	if (U_FAIL(error)) {
+		return uni_string(L"");
+	}
+
+	ucnv_close(converter);
+	return uni_string(&output[0], outputPtr);
+}
+
+static char_string fromUnicode(const uni_string &input,
+							   const char *toEncoding) {
+	UErrorCode error = U_ZERO_ERROR;
+	
+	// Make utf8 string converter.
+	UConverter *converter = ucnv_open(toEncoding, &error);
+	if (U_FAIL(error)) {
+		return char_string("");
+	}
+
+	// Allocate the output buffer.
+	size_t outputLength = input.size() * ucnv_getMaxCharSize(converter);
+	std::vector<char> output(outputLength + 1);
+
+	// Convert input string to 'output'.
+	const UChar *inputPtr = &input[0];
+	char *outputPtr = &output[0];
+	ucnv_fromUnicode(
+		converter,
+		&outputPtr, &outputPtr[outputLength],
+		&inputPtr, &inputPtr[input.size()],
+		// &input[input.size()] can't do
+		NULL, true, &error);
+	if (U_FAIL(error)) {
+		return char_string("");
+	}
+	
+	ucnv_close(converter);
+	return char_string(&output[0], outputPtr);
+}
+
 std::string ConvToUTF8(const std::string &input) {
 	if (s_encodingName.empty() || input.empty()) {
 		return input;
 	}
-	UErrorCode error = U_ZERO_ERROR;
-	std::vector<UChar> buffer;
-
-	{
-		// Make input string converter.
-		UConverter* inputConverter = ucnv_open(
-			s_encodingName.c_str(),
-			&error);
-		assert(U_SUCCESS(error));
-
-		// Allocate the intermediate buffer.
-		size_t bufferLength = input.length() / ucnv_getMinCharSize(inputConverter);
-		buffer.resize(bufferLength + 1);
-
-		// Convert 'input' to unicode(UTF16) character.
-		const char *inputPtr = input.c_str();
-		UChar *bufferPtr = &buffer[0];
-		ucnv_toUnicode(
-			inputConverter,
-			&bufferPtr, &buffer[bufferLength] + 1,
-			&inputPtr, &input[input.length() - 1] + 1,
-			// &input[input.length()] can't do
-			NULL, true, &error);
-		assert(U_SUCCESS(error));
-		ucnv_close(inputConverter);
-
-		// Create the string object from vector.
-		buffer.resize(bufferPtr - &buffer[0]);
+	
+	uni_string buffer = toUnicode(input, s_encodingName.c_str());
+	if (buffer.empty()) {
+		return input;
 	}
-
-	{
-		// Make utf8 string converter.
-		UConverter* outputConverter = ucnv_open("utf-8", &error);
-		assert(U_SUCCESS(error));
-
-		// Allocate the output buffer.
-		size_t outputLength = buffer.size() * ucnv_getMaxCharSize(outputConverter);
-		std::vector<char> output(outputLength + 1);
-
-		// Convert buffer string to 'output'.
-		const UChar *bufferPtr = &buffer[0];
-		char *outputPtr = &output[0];
-		ucnv_fromUnicode(
-			outputConverter,
-			&outputPtr, &output[outputLength],
-			&bufferPtr, &buffer[buffer.size() - 1] + 1,
-			// &buffer[buffer.size()] can't do
-			NULL, true, &error);
-		assert(U_SUCCESS(error));
-		ucnv_close(outputConverter);
-
-		return std::string(&output[0], outputPtr - &output[0]);
+	
+	std::string output = fromUnicode(buffer, "utf-8");
+	if (output.empty()) {
+		return input;
 	}
+	
+	return output;
 }
 
 std::string ConvFromUTF8(const std::string &input) {
-	if (s_icuEncoding.empty() || input.empty()) {
+	if (s_encodingName.empty() || input.empty()) {
 		return input;
 	}
-	UErrorCode error = U_ZERO_ERROR;
-	std::vector<UChar> buffer;
 
-	{
-		// Make input string converter.
-		UConverter* inputConverter = ucnv_open("utf-8", &error);
-		assert(U_SUCCESS(error));
-
-		// Allocate the intermediate buffer.
-		size_t bufferLength = input.length() / ucnv_getMinCharSize(inputConverter);
-		buffer.resize(bufferLength + 1);
-
-		// Convert 'input' to unicode(UTF16) character.
-		const char *inputPtr = input.c_str();
-		UChar *bufferPtr = &buffer[0];
-		ucnv_toUnicode(
-			inputConverter,
-			&bufferPtr, &buffer[bufferLength],
-			&inputPtr, &input[input.length() - 1] + 1,
-			// &input[input.length()] can't do
-			NULL, true, &error);
-		assert(U_SUCCESS(error));
-		ucnv_close(inputConverter);
-
-		// Create the string object from vector.
-		buffer.resize(bufferPtr - &buffer[0]);
+	uni_string buffer = toUnicode(input, "utf-8");
+	if (buffer.empty()) {
+		return input;
 	}
-
-	{
-		// Make utf8 string converter.
-		UConverter* outputConverter = ucnv_open(
-			s_encodingName.c_str(),
-			&error);
-		assert(U_SUCCESS(error));
-
-		// Allocate the output buffer.
-		size_t outputLength = buffer.size() * ucnv_getMaxCharSize(outputConverter);
-		std::vector<char> output(outputLength + 1);
-
-		// Convert buffer string to 'output'.
-		const UChar *bufferPtr = &buffer[0];
-		char *outputPtr = &output[0];
-		ucnv_fromUnicode(
-			outputConverter,
-			&outputPtr, &output[outputLength],
-			&bufferPtr, &buffer[buffer.size() - 1] + 1,
-			// &buffer[buffer.length()] can't do
-			NULL, true, &error);
-		assert(U_SUCCESS(error));
-		ucnv_close(outputConverter);
-
-		return std::string(&output[0], outputPtr - &output[0]);
+	
+	std::string output = fromUnicode(buffer, s_encodingName.c_str());
+	if (output.empty()) {
+		return input;
 	}
+	
+	return output;
 }
 
 #elif defined(LLDEBUG_USE_ICONV)

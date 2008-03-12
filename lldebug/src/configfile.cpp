@@ -127,9 +127,7 @@ std::string EncodeToFilename(const std::string &filename) {
 		return std::string("");
 	}
 
-	MD2Generator md2;
-	const unsigned char *data = (const unsigned char *)filename.c_str();
-	return md2.ToDigestString(data, filename.size());
+	return GenerateMD2(filename);
 }
 
 
