@@ -77,7 +77,7 @@ static int ServerMain(unsigned short port) {
 		std::cout << "echo server addressed \'localhost:" << port << "'" << std::endl;
 		for(;;) {
 			try {
-				static char data[1024 * 10];
+				static char data[1024 * 8];
 
 				udp::endpoint senderPoint;
 				size_t size = sock.receive_from(
@@ -92,9 +92,7 @@ static int ServerMain(unsigned short port) {
 			}
 			catch (boost::system::system_error &e) {
 				const boost::system::error_code &ec = e.code();
-				if (ec == boost::asio::error::eof
-					|| ec == boost::asio::error::connection_aborted
-					|| ec == boost::asio::error::connection_reset) {
+				if (ec == boost::asio::error::eof) {
 				}
 				else {
 					throw;
@@ -111,7 +109,7 @@ static int ServerMain(unsigned short port) {
 }
 
 int main(int argc, char *argv[]) {
-	std::string serviceName = "42598";
+	std::string serviceName = "12532";
 
 	if (argc >= 2) {
 		serviceName = argv[1];

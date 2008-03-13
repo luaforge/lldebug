@@ -95,8 +95,7 @@ int RemoteEngine::StartFrame(unsigned short port) {
 
 	// Start connection.
 	shared_ptr<ServerConnector> connector(new ServerConnector(*this));
-	connector->Start(port);
-	return 0;
+	return connector->Start(port);
 }
 
 int RemoteEngine::StartContext(const std::string &hostName,
@@ -183,29 +182,20 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 	}
 }
 
-void RemoteEngine::OnRemoteCommand(const Command &command_) {
+void RemoteEngine::OnRemoteCommand(Command &command) {
 	scoped_lock lock(m_mutex);
-	Command command = command_;
+	EchoCommand(command);
 
 	// First, find a response command.
-	WaitResponseCommandList::iterator it = m_waitResponseCommandList.begin();
-	while (it != m_waitResponseCommandList.end()) {
-		const CommandHeader &header_ = (*it).header;
-
-		if (command.GetCommandId() == header_.commandId) {
-			CommandCallback response = (*it).response;
-			it = m_waitResponseCommandList.erase(it);
-			command.SetResponse(response);
-			break;
-		}
-		else {
-			++it;
-		}
+	WaitResponseMap::iterator it =
+		m_waitResponses.find(command.GetCommandId());
+	if (it != m_waitResponses.end()) {
+		command.SetResponse((*it).second);
+		m_waitResponses.erase(it);
 	}
 
 	if (!m_onRemoteCommand.empty()) {
 		OnRemoteCommandType callback = m_onRemoteCommand;
-
 		lock.unlock();
 		callback(command);
 		lock.lock();
@@ -232,7 +222,7 @@ CommandHeader RemoteEngine::InitCommandHeader(RemoteCommandType type,
 											  int commandId) {
 	scoped_lock lock(m_mutex);
 	CommandHeader header;
-	header.type = type;
+	header.u.type = type;
 	header.dataSize = (boost::uint32_t)dataSize;
 
 	// Set a new commandId. if commandId == 0
@@ -265,12 +255,10 @@ void RemoteEngine::SendCommand(RemoteCommandType type,
 	scoped_lock lock(m_mutex);
 
 	if (m_connection != NULL) {
-		WaitResponseCommand wcommand;
-		wcommand.header = InitCommandHeader(type, data.GetSize());
-		wcommand.response = response;
+		CommandHeader header = InitCommandHeader(type, data.GetSize());
 
-		m_connection->WriteCommand(wcommand.header, data);
-		m_waitResponseCommandList.push_back(wcommand);
+		m_connection->WriteCommand(header, data);
+		m_waitResponses.insert(std::make_pair(header.commandId, response));
 	}
 }
 

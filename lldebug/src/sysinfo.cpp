@@ -52,6 +52,7 @@ Breakpoint::~Breakpoint() {
 
 BreakpointList::BreakpointList(shared_ptr<RemoteEngine> engine)
 	: m_engine(engine) {
+	assert(engine != NULL);
 }
 
 BreakpointList::~BreakpointList() {
@@ -170,6 +171,7 @@ Source::~Source() {
 /*-----------------------------------------------------------------*/
 SourceManager::SourceManager(shared_ptr<RemoteEngine> engine)
 	: m_engine(engine), m_textCounter(0) {
+	assert(engine != NULL);
 }
 
 SourceManager::~SourceManager() {

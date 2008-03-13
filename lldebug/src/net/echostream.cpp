@@ -59,12 +59,31 @@ echo_thread::~echo_thread() {
 
 void echo_thread::add_request(const udp::endpoint &endpoint,
 							  const std::vector<char> &buffer) {
+	scoped_lock lock(m_mutex);
 	shared_ptr<request> req(new request);
 	req->endpoint = endpoint;
 	req->buffer = buffer;
+	
+	// Start thread, if any.
+	if (m_thread == NULL) {
+		shared_ptr<boost::thread> th(new boost::thread(
+			boost::bind(&echo_thread::thread_main, this)));
+		m_thread = th;
+	}
+
+	// Make size under the maximum.
+	if (req->buffer.size() > 1023) {
+		req->buffer.resize(1023);
+	}
 	req->buffer.push_back(0);
 
-	add_request(req);
+	// Erase the old request, if any.
+	while (m_request_queue.size() > 100) {
+		m_request_queue.pop();
+	}
+
+	m_request_queue.push(req);
+	m_cond.notify_all();
 }
 
 /// Stop the thread.
@@ -73,26 +92,6 @@ void echo_thread::exit_thread() {
 	
 	m_is_exit_thread = true;
 	m_socket.close();
-	m_cond.notify_all();
-}
-
-/// Add a request to the queue.
-void echo_thread::add_request(shared_ptr<request> req) {
-	scoped_lock lock(m_mutex);
-
-	// Start thread, if any.
-	if (m_thread == NULL) {
-		shared_ptr<boost::thread> th(new boost::thread(
-			boost::bind(&echo_thread::thread_main, this)));
-		m_thread = th;
-	}
-
-	// Erase the old request, if any.
-	while (m_request_queue.size() > 100) {
-		m_request_queue.pop();
-	}
-
-	m_request_queue.push(req);
 	m_cond.notify_all();
 }
 

@@ -39,15 +39,8 @@ class Connection;
 /**
  * @brief TCP connection maker used by server size.
  */
-/*class Connector {
+/*class Connector
 	: public boost::enable_shared_from_this<Connector> {
-public:
-	enum State {
-		STATE_TRYING,
-		STATE_SUCCESS,
-		STATE_FAIL,
-	};
-
 public:
 	explicit Connector(RemoteEngine &engine);
 	virtual ~Connector();
@@ -62,24 +55,10 @@ public:
 		return m_connection;
 	}
 
-	bool IsTrying() const {
-		return (m_state == STATE_TRYING);
-	}
-
-	bool IsSuccess() const {
-		return (m_state == STATE_SUCCESS);
-	}
-
-	bool IsFail() const {
-		return (m_state == STATE_FAIL);
-	}
-
 protected:
 	void BeginConfirmCommand();
 	void HandleConfirmCommand(shared_ptr<CommandHeader> header,
 							  const boost::system::error_code &error);
-	void Succeeded();
-	void Failed();
 
 private:
 	RemoteEngine &m_engine;
@@ -99,7 +78,7 @@ public:
 	virtual ~ServerConnector();
 
 	/// Start the server connection.
-	void Start(unsigned short port);
+	int Start(unsigned short port);
 
 private:
 	void HandleAccept(const boost::system::error_code &error);
@@ -176,7 +155,7 @@ private:
 	void HandleReadCommandData(shared_ptr<Command> command,
 							   const boost::system::error_code &error);
 
-	void DoWriteCommand(const Command &command);						
+	void DoWriteCommand(Command &command);						
 	void BeginWriteCommand(const Command &command);
 	void HandleWriteCommand(bool deleteCommand,
 							const boost::system::error_code& error);

@@ -94,10 +94,16 @@ enum RemoteCommandType {
  * @brief The header of the command using TCP connection.
  */
 struct CommandHeader {
-	RemoteCommandType type;
+	union {
+		RemoteCommandType type;
+		boost::uint32_t dummy;
+	} u;
 	boost::uint32_t commandId;
 	boost::uint32_t dataSize;
 };
+
+/// Check the CommandHeader size.
+BOOST_STATIC_ASSERT(sizeof(CommandHeader) == 4 * 3);
 
 /**
  * @brief Data type for command contents.
@@ -225,7 +231,7 @@ public:
 
 	/// Get the type of this command.
 	RemoteCommandType GetType() const {
-		return m_header.type;
+		return m_header.u.type;
 	}
 
 	/// Get the command id.
@@ -296,6 +302,20 @@ private:
 	/// Set the response callback.
 	void SetResponse(const CommandCallback &response) {
 		m_response = response;
+	}
+
+	/// Convert to network endian.
+	void HeaderToNetworkEndian() {
+		m_header.u.type = (RemoteCommandType)htonl((u_long)m_header.u.type);
+		m_header.commandId = htonl(m_header.commandId);
+		m_header.dataSize = htonl(m_header.dataSize);
+	}
+
+	/// Convert to host endian.
+	void HeaderToHostEndian() {
+		m_header.u.type = (RemoteCommandType)ntohl((u_long)m_header.u.type);
+		m_header.commandId = ntohl(m_header.commandId);
+		m_header.dataSize = ntohl(m_header.dataSize);
 	}
 
 private:

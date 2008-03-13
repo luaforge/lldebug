@@ -213,7 +213,7 @@ template <class Ch,class Tr=std::char_traits<Ch> >
 class basic_echo_ostream : public std::basic_ostream<Ch,Tr> {
 public:
 	explicit basic_echo_ostream(const std::string &hostname="localhost",
-								const std::string &servicename="42598")
+								const std::string &servicename="12532")
 		: std::basic_ostream<Ch,Tr>(NULL) {
 		this->init(&m_buf);
 		open(hostname, servicename);
@@ -224,7 +224,7 @@ public:
 
 	/// Open the tcp connection.
 	bool open(const std::string &hostname="localhost",
-			  const std::string &servicename="42598") {
+			  const std::string &servicename="12532") {
 		return m_buf.open(hostname, servicename);
 	}
 

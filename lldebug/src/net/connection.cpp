@@ -51,26 +51,33 @@ ServerConnector::ServerConnector(RemoteEngine &engine)
 ServerConnector::~ServerConnector() {
 }
 
-void ServerConnector::Start(unsigned short port) {
+int ServerConnector::Start(unsigned short port) {
 	if (m_connection != NULL) {
-		return;
+		return -1;
 	}
 	m_connection.reset(new Connection(m_engine));
 
-	// Bind server address.
-	tcp::endpoint endpoint(tcp::v4(), port);
+	try {
+		// Bind server address.
+		tcp::endpoint endpoint(tcp::v4(), port);
 
-	// Try to accept.
-	m_acceptor.open(endpoint.protocol());
-	m_acceptor.set_option(tcp::acceptor::reuse_address(true));
-	m_acceptor.bind(endpoint);
-	m_acceptor.listen();
-	m_acceptor.async_accept(m_connection->GetSocket(),
-		boost::bind(
-			&ServerConnector::HandleAccept, shared_from_this(),
-			boost::asio::placeholders::error));
+		// Try to accept.
+		m_acceptor.open(endpoint.protocol());
+		//m_acceptor.set_option(tcp::acceptor::reuse_address(true));
+		m_acceptor.bind(endpoint);
+		m_acceptor.listen();
+		m_acceptor.async_accept(m_connection->GetSocket(),
+			boost::bind(
+				&ServerConnector::HandleAccept, shared_from_this(),
+				boost::asio::placeholders::error));
 
-	CONNECTION_TRACE("Waiting to accept...");
+		CONNECTION_TRACE("Waiting to accept...");
+	}
+	catch (...) {
+		return -1;
+	}
+
+	return 0;
 }
 
 /// Called after the accept.
@@ -81,7 +88,7 @@ void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 
 		// Try to write command.
 		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
-		writeHeader->type = REMOTECOMMANDTYPE_START_CONNECTION;
+		writeHeader->u.type = REMOTECOMMANDTYPE_START_CONNECTION;
 		writeHeader->commandId = 0;
 		writeHeader->dataSize = 0;
 		m_connection->GetSocket().async_write_some(
@@ -108,7 +115,7 @@ void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 /// Called after the reading or writing command.
 void ServerConnector::HandleCommand(shared_ptr<CommandHeader> header,
 									const boost::system::error_code &error) {
-	if (!error && header->type == REMOTECOMMANDTYPE_START_CONNECTION) {
+	if (!error && header->u.type == REMOTECOMMANDTYPE_START_CONNECTION) {
 		++m_handleCommandCount;
 
 		// If the reading and writing commands were done.
@@ -158,11 +165,6 @@ void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 		CONNECTION_TRACE("Succeeded in resolving.");
 		CONNECTION_TRACE("Trying to connect with the server...");
 
-		boost::xtime xt;
-		boost::xtime_get(&xt, boost::TIME_UTC);
-		xt.sec += 1;
-		boost::thread::sleep(xt);
-
 		tcp::endpoint endpoint = *nextEndpoint;
 		m_connection->GetSocket().async_connect(endpoint,
 			boost::bind(
@@ -184,7 +186,7 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 
 		// Try to write command.
 		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
-		writeHeader->type = REMOTECOMMANDTYPE_START_CONNECTION;
+		writeHeader->u.type = REMOTECOMMANDTYPE_START_CONNECTION;
 		writeHeader->commandId = 0;
 		writeHeader->dataSize = 0;
 		m_connection->GetSocket().async_write_some(
@@ -224,7 +226,7 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 /// Called after the reading or writing command.
 void ClientConnector::HandleCommand(shared_ptr<CommandHeader> header,
 									const boost::system::error_code &error) {
-	if (!error && header->type == REMOTECOMMANDTYPE_START_CONNECTION) {
+	if (!error && header->u.type == REMOTECOMMANDTYPE_START_CONNECTION) {
 		++m_handleCommandCount;
 
 		// If the reading and writing commands were done.
@@ -290,6 +292,7 @@ void Connection::DoClose(const boost::system::error_code &error) {
 	if (m_isConnected) {
 		m_engine.OnConnectionClosed(shared_from_this(), error);
 		m_isConnected = false;
+//		m_socket.shutdown(boost::asio::socket_base::shutdown_send);
 		m_socket.close();
 	}
 }
@@ -310,6 +313,8 @@ void Connection::BeginReadCommand() {
 void Connection::HandleReadCommandHeader(shared_ptr<Command> command,
 										 const boost::system::error_code &error) {
 	if (!error) {
+		command->HeaderToHostEndian();
+
 		// Read the command data, if exists.
 		if (command->GetDataSize() > 0) {
 			command->ResizeData();
@@ -345,8 +350,9 @@ void Connection::HandleReadCommandData(shared_ptr<Command> command,
 }
 
 /// Do the asynchronous command write.
-void Connection::DoWriteCommand(const Command &command) {
+void Connection::DoWriteCommand(Command &command) {
 	bool isProgress = !m_writeCommandQueue.empty();
+	command.HeaderToNetworkEndian();
 	m_writeCommandQueue.push(command);
 
 	if (!isProgress) {
@@ -356,10 +362,8 @@ void Connection::DoWriteCommand(const Command &command) {
 
 /// Send the asynchronous command write order.
 void Connection::BeginWriteCommand(const Command &command) {
-	EchoCommand(command);
-
 	if (command.GetDataSize() == 0) {
-		// Write command header with the deleting command memory.
+		// Write command header with deleting command memory.
 		boost::asio::async_write(m_socket,
 			boost::asio::buffer(&command.GetHeader(), sizeof(CommandHeader)),
 			boost::asio::transfer_all(),
@@ -368,7 +372,7 @@ void Connection::BeginWriteCommand(const Command &command) {
 				true, boost::asio::placeholders::error));
 	}
 	else {
-		// Write command header without the deleting command memory.
+		// Write command header without deleting command memory.
 		boost::asio::async_write(m_socket,
 			boost::asio::buffer(&command.GetHeader(), sizeof(CommandHeader)),
 			boost::asio::transfer_all(),
@@ -386,7 +390,7 @@ void Connection::BeginWriteCommand(const Command &command) {
 }
 
 /// It's called after the end of writing command.
-/// The command memory is deleted if possible.
+/// The command memory will be deleted if need.
 void Connection::HandleWriteCommand(bool deleteCommand,
 									const boost::system::error_code& error) {
 	if (!error) {

@@ -69,7 +69,7 @@ static int ClientMain(const std::string &hostName,
 
 int main(int argc, char *argv[]) {
 	std::string hostName = "localhost";
-	std::string serviceName = "42598";
+	std::string serviceName = "12532";
 
 	if (argc > 1) {
 		hostName = argv[1];

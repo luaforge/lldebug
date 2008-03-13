@@ -156,7 +156,7 @@ private:
 	bool OnConnectionConnected(shared_ptr<Connection> connection);
 	void OnConnectionClosed(shared_ptr<Connection> connection,
 							const boost::system::error_code &error);
-	void OnRemoteCommand(const Command &command);
+	void OnRemoteCommand(Command &command);
 
 private:
 	CommandHeader InitCommandHeader(RemoteCommandType type,
@@ -181,17 +181,10 @@ private:
 	bool m_isExitThread;
 	mutex m_mutex;
 
-	struct WaitResponseCommand {
-		CommandHeader header;
-		CommandCallback response;
-	};
-	typedef std::list<WaitResponseCommand> WaitResponseCommandList;
-	WaitResponseCommandList m_waitResponseCommandList;
+	typedef std::map<boost::uint32_t, CommandCallback> WaitResponseMap;
+	WaitResponseMap m_waitResponses;
 
 	OnRemoteCommandType m_onRemoteCommand;
-
-	//typedef std::queue<Command> ReadCommandQueue;
-	//ReadCommandQueue m_readCommandQueue; // commands that were read.
 };
 
 } // end of namespace net
