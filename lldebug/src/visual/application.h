@@ -43,10 +43,11 @@ public:
 	virtual int OnExit();
 
 private:
-	Mediator *m_mediator;
+	shared_ptr<Mediator> m_mediator;
+	wxLocale m_locale;
 };
 
-}
-}
+} // end of namespace visual
+} // end of namespace lldebug
 
 #endif

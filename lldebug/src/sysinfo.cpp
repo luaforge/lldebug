@@ -124,11 +124,14 @@ void BreakpointList::Set(const Breakpoint &bp) {
 }
 
 void BreakpointList::Remove(const Breakpoint &bp) {
+	if (!bp.IsOk()) {
+		return;
+	}
+
 	ImplSet::iterator it = m_set.find(bp);
 	if (it == m_set.end()) {
 		return;
 	}
-
 	m_set.erase(it);
 
 	shared_ptr<RemoteEngine> pengine = m_engine.lock();
@@ -150,7 +153,7 @@ void BreakpointList::Toggle(const std::string &key, int line) {
 		Set(bp);
 	}
 	else {
-		Remove(*it);
+		Remove(bp);
 	}
 }
 

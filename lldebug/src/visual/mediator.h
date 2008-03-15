@@ -44,6 +44,8 @@ class MainFrame;
  */
 class Mediator {
 public:
+	virtual ~Mediator();
+
 	/// Get the class instance.
 	/// It is valid after the calling of 'Initialize' function.
 	static Mediator *Get() {
@@ -135,10 +137,9 @@ private:
 private:
 	friend class Application;
 	explicit Mediator();
-	virtual ~Mediator();
 
-	/// This function can be called from only 'lldebug::MainFrame' class.
-	int Initialize(const std::string &hostName, const std::string &portName);
+	/// This function can be called from only 'Application' class.
+	int Initialize(unsigned short port);
 
 private:
 	friend class MainFrame;
@@ -147,12 +148,12 @@ private:
 private:
 	static Mediator *ms_instance;
 
-	queue_mt<Command> m_readCommands;
-
 	shared_ptr<RemoteEngine> m_engine;
 	MainFrame *m_frame;
 	BreakpointList m_breakpoints;
 	SourceManager m_sourceManager;
+	queue_mt<Command> m_readCommands;
+	unsigned short m_port;
 
 	LuaStackFrame m_stackFrame;
 	int m_updateCount;

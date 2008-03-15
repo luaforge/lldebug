@@ -38,7 +38,7 @@ Mediator *Mediator::ms_instance = NULL;
 Mediator::Mediator()
 	: m_engine(new RemoteEngine), m_frame(NULL)
 	, m_breakpoints(m_engine), m_sourceManager(m_engine)
-	, m_updateCount(0) {
+	, m_port(0), m_updateCount(0) {
 
 	m_engine->SetOnRemoteCommand(
 		boost::bind1st(
@@ -51,36 +51,13 @@ Mediator::~Mediator() {
 	ms_instance = NULL;
 }
 
-static int toPortNum(const std::string &str) {
-	int result = 0;
-
-	for (std::string::size_type i = 0; i < str.length(); ++i) {
-		char c = str[i];
-
-		if (c < '0' || '9' < c) {
-			return -1;
-		}
-		result = result * 10 + (c - '0');
-	}
-
-	if (result > 0xffff) {
-		return -1;
-	}
-
-	return result;
-}
-
-int Mediator::Initialize(const std::string &hostName, const std::string &portName) {
-	int port = toPortNum(portName);
-	if (port < 0) {
-		return -1;
-	}
-
-	if (m_engine->StartFrame((unsigned short)port) != 0) {
+int Mediator::Initialize(unsigned short port) {
+	if (m_engine->StartFrame(port) != 0) {
 		return -1;
 	}
 
 	ms_instance = this;
+	m_port = port;
 	return 0;
 }
 
@@ -177,6 +154,18 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 		if (frame != NULL) {
 			wxDebugEvent event(wxEVT_DEBUG_END_DEBUG, wxID_ANY);
 			frame->ProcessDebugEvent(event, frame, true);
+		}
+
+		// Try to start accepting, if possible.
+		// Otherwise we shut down this program.
+		if (m_port == 0 || m_engine->StartFrame(m_port) != 0) {
+			if (frame != NULL) {
+				frame->Close();
+				wxWakeUpIdle();
+			}
+			else {
+				wxExit();
+			}
 		}
 		break;
 

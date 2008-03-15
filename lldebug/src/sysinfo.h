@@ -316,6 +316,33 @@ private:
 	int m_textCounter;
 };
 
+
+/// Utility function to convert a port string into number.
+template<class Ch>
+int ToPortNumber(const Ch *portStr) {
+	int result = 0;
+
+	if (portStr == NULL) {
+		return -1;
+	}
+
+	// Convert a string to integer value.
+	for (const Ch *p = portStr; *p != (Ch)'\0'; ++p) {
+		char c = (char)*p;
+		if (c < '0' || '9' < c) {
+			return -1;
+		}
+
+		result = result * 10 + (c - '0');
+	}
+
+	if (result > 0xffff) {
+		return -1;
+	}
+
+	return result;
+}
+
 } // end of namespace lldebug
 
 #endif

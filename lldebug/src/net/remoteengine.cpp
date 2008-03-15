@@ -99,7 +99,7 @@ int RemoteEngine::StartFrame(unsigned short port) {
 }
 
 int RemoteEngine::StartContext(const std::string &hostName,
-							  unsigned short port) {
+							   unsigned short port) {
 	// Already connected.
 	if (m_connection != NULL) {
 		return 0;
@@ -173,18 +173,12 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 	scoped_lock lock(m_mutex);
 
 	if (m_connection == connection) {
-		Command command(
-			InitCommandHeader(REMOTECOMMANDTYPE_START_CONNECTION, 0),
-			CommandData());
-		OnRemoteCommand(command);
-
 		m_connection.reset();
 
-#ifdef LLDEBUG_VISUAL
-		// Start connection.
-		shared_ptr<ServerConnector> connector(new ServerConnector(*this));
-		connector->Start(51123);
-#endif
+		Command command(
+			InitCommandHeader(REMOTECOMMANDTYPE_END_CONNECTION, 0),
+			CommandData());
+		OnRemoteCommand(command);
 	}
 }
 
@@ -225,8 +219,8 @@ void RemoteEngine::OutputLog(LogType type, const std::string &msg) {
 }
 
 CommandHeader RemoteEngine::InitCommandHeader(RemoteCommandType type,
-											 size_t dataSize,
-											 int commandId) {
+											  size_t dataSize,
+											  int commandId) {
 	scoped_lock lock(m_mutex);
 	CommandHeader header;
 	header.u.type = type;
@@ -249,8 +243,9 @@ void RemoteEngine::SendCommand(RemoteCommandType type,
 	scoped_lock lock(m_mutex);
 
 	if (m_connection != NULL) {
-		CommandHeader header;
-		header = InitCommandHeader(type, data.GetSize());
+		CommandHeader header = InitCommandHeader(
+			type,
+			data.GetSize());
 
 		m_connection->WriteCommand(header, data);
 	}
@@ -262,7 +257,9 @@ void RemoteEngine::SendCommand(RemoteCommandType type,
 	scoped_lock lock(m_mutex);
 
 	if (m_connection != NULL) {
-		CommandHeader header = InitCommandHeader(type, data.GetSize());
+		CommandHeader header = InitCommandHeader(
+			type,
+			data.GetSize());
 
 		m_connection->WriteCommand(header, data);
 		m_waitResponses.insert(std::make_pair(header.commandId, response));
@@ -495,8 +492,8 @@ void RemoteEngine::SendRequestLocalVarList(const LuaStackFrame &stackFrame,
 										   const LuaVarListCallback &callback) {
 	CommandData data;
 
-	data.Set_RequestLocalVarList(stackFrame, checkLocal, checkUpvalue,
-								 checkEnviron);
+	data.Set_RequestLocalVarList(
+		stackFrame, checkLocal,checkUpvalue, checkEnviron);
 	SendCommand(
 		REMOTECOMMANDTYPE_REQUEST_LOCALVARLIST,
 		data,

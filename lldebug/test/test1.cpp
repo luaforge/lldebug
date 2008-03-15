@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
 	lldebug_setencoding(LLDEBUG_ENCODING_EUC);
 #endif
 
-	printf("TRACE: begin lllldebug_open...\n");
+	printf("TRACE: begin lldebug_open...\n");
 	lua_State *L = lldebug_open();
 	if (L == NULL) {
 		printf("Couldn't open the lua_State.\n");

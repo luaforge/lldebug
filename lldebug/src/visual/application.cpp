@@ -30,44 +30,70 @@
 #include "visual/application.h"
 #include "visual/strutils.h"
 
-IMPLEMENT_APP(lldebug::visual::Application)
+#include <wx/stdpaths.h>
+#include <wx/filename.h>
 
-/*int main(int argc, char *argv[]) {
-	return wxEntry(argc, argv);
-}*/
+IMPLEMENT_APP(lldebug::visual::Application)
 
 namespace lldebug {
 namespace visual {
 
 Application::Application()
-	: m_mediator(new Mediator) {
+	: m_mediator(new Mediator), m_locale(wxLANGUAGE_DEFAULT) {
 	SetAppName(wxT("lldebug frame"));
 }
 
 Application::~Application() {
-	if (m_mediator != NULL) {
-		delete m_mediator;
-		m_mediator = NULL;
-	}
 }
 
 bool Application::OnInit() {
-	std::string portName = (this->argc > 1
-		? wxConvToUTF8(this->argv[1])
-		: "51123");
+#ifdef __WXMSW__
+	wxString path = wxFileName(argv[0]).GetPath(wxPATH_GET_VOLUME);
+	path += _T("\\..\\..\\po");
+	wxLocale::AddCatalogLookupPathPrefix(path);
+#endif
 
-	// Start connecting.
-	if (m_mediator->Initialize("localhost", portName) != 0) {
+	// Initialize the catalogs we'll be using
+	//m_locale.AddCatalog(wxT("lldebug"));
+
+	// This catalog is installed in standard location on Linux systems and
+	// shows that you may make use of the standard message catalogs as well
+	// 
+	// if it's not installed on your system, it is just silently ignored
+#ifdef __LINUX__
+	{
+		wxLogNull noLog;
+		m_locale.AddCatalog(_T("fileutils"));
+	}
+#endif
+
+	// Get port number, default value was decided randomly.
+	unsigned short port = 24752;
+	if (this->argc > 1) {
+		int tmpNum = ToPortNumber(this->argv[1]);
+		if (tmpNum == -1) {
+			return false;
+		}
+
+		port = (unsigned short)tmpNum;
+	}
+
+	// Start to accept as a debug server.
+	if (m_mediator->Initialize(port) != 0) {
 		return false;
 	}
 
-	MainFrame* frame = new MainFrame();
+	MainFrame *frame = new MainFrame();
 	SetTopWindow(frame);
 	frame->Show();
 	m_mediator->SetMainFrame(frame);
 
 	wxLogWindow *log = new wxLogWindow(frame, _("lldebug logger"), true);
 	wxLog::SetActiveTarget(log);
+
+	/*wxString dir = wxStandardPaths().GetLocalizedResourcesDir(wxT("ja"), wxStandardPaths::ResourceCat_Messages);
+	wxLogMessage(_T("%s"), dir.c_str());
+	wxLogMessage(_T("%s"), path.c_str());*/
     return true;
 }
 

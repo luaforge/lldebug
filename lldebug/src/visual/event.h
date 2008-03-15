@@ -177,16 +177,22 @@ private:
 typedef void (wxEvtHandler::*wxDebugEventFunction)(wxDebugEvent &);
 
 #if !wxCHECK_VERSION(2, 5, 0)
-#define EVT_DEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_STATE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxChangedStateEventFunction)&fn, (wxObject *)NULL),
-#define EVT_DEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_UPDATE_SOURCE, id, wxCONCAT(id, _END), (wxObjectEventFunction)(wxEventFunction)(wxSourceLineEventFunction)&fn, (wxObject *)NULL),
+#define EVT_DEBUG_END_DEBUG(id, fn)           DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_END_DEBUG,           id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
+#define EVT_DEBUG_CHANGED_STATE(id, fn)       DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_STATE,       id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
+#define EVT_DEBUG_UPDATE_SOURCE(id, fn)       DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_UPDATE_SOURCE,       id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
+#define EVT_DEBUG_ADDED_SOURCE(id, fn)        DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_ADDED_SOURCE,        id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
+#define EVT_DEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
+#define EVT_DEBUG_OUTPUT_LOG(id, fn)          DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_OUTPUT_LOG,          id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
+#define EVT_DEBUG_FOCUS_ERRORLINE(id, fn)     DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_FOCUS_ERRORLINE,     id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
+#define EVT_DEBUG_FOCUS_BACKTRACELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_FOCUS_BACKTRACELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)(wxDebugEventFunction)(&fn), (wxObject *)NULL),
 #else
-#define EVT_DEBUG_END_DEBUG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_END_DEBUG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_DEBUG_CHANGED_STATE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_STATE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_DEBUG_UPDATE_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_UPDATE_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_DEBUG_ADDED_SOURCE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_ADDED_SOURCE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_END_DEBUG(id, fn)           DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_END_DEBUG,           id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_CHANGED_STATE(id, fn)       DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_STATE,       id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_UPDATE_SOURCE(id, fn)       DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_UPDATE_SOURCE,       id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_ADDED_SOURCE(id, fn)        DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_ADDED_SOURCE,        id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_DEBUG_CHANGED_BREAKPOINTS(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_CHANGED_BREAKPOINTS, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_DEBUG_OUTPUT_LOG(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_OUTPUT_LOG, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
-#define EVT_DEBUG_FOCUS_ERRORLINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_FOCUS_ERRORLINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_OUTPUT_LOG(id, fn)          DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_OUTPUT_LOG,          id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
+#define EVT_DEBUG_FOCUS_ERRORLINE(id, fn)     DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_FOCUS_ERRORLINE,     id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #define EVT_DEBUG_FOCUS_BACKTRACELINE(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_DEBUG_FOCUS_BACKTRACELINE, id, wxID_ANY, (wxObjectEventFunction)(wxEventFunction)wxStaticCastEvent(wxDebugEventFunction, &fn), (wxObject *)NULL),
 #endif
 

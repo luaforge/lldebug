@@ -39,12 +39,7 @@ local function co_func_creator(count)
 
 	return coroutine.create(co_func_)
 end
-
 local co = co_func_creator(100)
-local function co_func()
-	coroutine.resume(co)
-end
-
 
 -- Dump 'obj' to string.
 local function dump_func(obj)

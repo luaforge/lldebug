@@ -174,7 +174,7 @@ void lldebug_openlibs(lua_State *L) {
 
 
 static std::string s_hostname = "localhost";
-static unsigned short s_port = 51123;
+static unsigned short s_port = 24752;
 
 void lldebug_setremoteaddress(const char *hostname,
 							  unsigned short port) {
