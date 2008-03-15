@@ -203,13 +203,13 @@ int Context::CreateDebuggerFrame() {
 	scoped_lock lock(m_mutex);
 
 	// Get the IP address and service name of the frame.
-	const char *hostName_, *serviceName_;
-	lldebug_getremoteaddress(&hostName_, &serviceName_);
+	const char *hostName_;
+	unsigned short portNum;
+	lldebug_getremoteaddress(&hostName_, &portNum);
 	std::string hostName = hostName_;
-	std::string serviceName = serviceName_;
 
 	// Try to connect the debug frame.
-	if (m_engine->StartContext(hostName, serviceName) != 0) {
+	if (m_engine->StartContext(hostName, portNum) != 0) {
 		goto on_error;
 	}
 

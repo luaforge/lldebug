@@ -69,14 +69,14 @@ LLDEBUG_API void lldebug_setlogger(lua_State *L, lldebug_Logger logger, void *da
 
 /// Set the host address and service name if you want to debug remotely.
 /**
- * @param hostname    Host name default value is 'localhost'.
- * @param servicename Service name default value is '51123' (decided randomly).
+ * @param hostname  Host name and the default value is 'localhost'.
+ * @param port      Port number and the default value is '51123' (decided randomly).
  */
 LLDEBUG_API void lldebug_setremoteaddress(const char *hostname,
-										  const char *servicename);
+										  unsigned short port);
 /// Get the host address and service name. (Set the static value)
 LLDEBUG_API void lldebug_getremoteaddress(const char **hostname,
-										  const char **servicename);
+										  unsigned short *port);
 
 /**
  * @brief The identifier of the encoding types.

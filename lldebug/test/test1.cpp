@@ -12,12 +12,12 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	// Set the frame address, if any.
-	if (argc > 3) {
-		lldebug_setremoteaddress(argv[2], argv[3]);
+	// Set the ip address and service name, if need.
+	if (argc > 2) {
+		lldebug_setremoteaddress(argv[2], 0);
 	}
-	else if (argc > 2) {
-		lldebug_setremoteaddress(argv[2], NULL);
+	if (argc > 3) {
+		lldebug_setremoteaddress(NULL, atoi(argv[3]));
 	}
 
 	// Set encoding type. (default is utf8)

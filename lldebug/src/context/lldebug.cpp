@@ -174,25 +174,25 @@ void lldebug_openlibs(lua_State *L) {
 
 
 static std::string s_hostname = "localhost";
-static std::string s_servicename = "51123";
+static unsigned short s_port = 51123;
 
 void lldebug_setremoteaddress(const char *hostname,
-							  const char *servicename) {
+							  unsigned short port) {
 	if (hostname != NULL) {
 		s_hostname = hostname;
 	}
-	if (servicename != NULL) {
-		s_servicename = servicename;
+	if (port != 0) {
+		s_port = port;
 	}
 }
 
 void lldebug_getremoteaddress(const char **hostname,
-							  const char **servicename) {
+							  unsigned short *port) {
 	if (hostname != NULL) {
 		*hostname = s_hostname.c_str();
 	}
-	if (servicename != NULL) {
-		*servicename = s_servicename.c_str();
+	if (port != NULL) {
+		*port = s_port;
 	}
 }
 

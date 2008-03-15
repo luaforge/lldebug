@@ -99,15 +99,19 @@ int RemoteEngine::StartFrame(unsigned short port) {
 }
 
 int RemoteEngine::StartContext(const std::string &hostName,
-							  const std::string &serviceName) {
+							  unsigned short port) {
 	// Already connected.
 	if (m_connection != NULL) {
 		return 0;
 	}
 
+	// Get a string of the port number.
+	char portStr[128];
+	snprintf(portStr, sizeof(portStr), "%d", port);
+
 	// Start connection.
 	shared_ptr<ClientConnector> connector(new ClientConnector(*this));
-	return connector->Start(hostName, serviceName);
+	return connector->Start(hostName, portStr);
 }
 
 /// Connection thread.

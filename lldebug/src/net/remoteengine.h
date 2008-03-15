@@ -98,7 +98,7 @@ public:
 
 	/// Start the debuggee program (context).
 	int StartContext(const std::string &hostName, 
-					 const std::string &serviceName);
+					 unsigned short port);
 
 	/// Send log to local and remote.
 	void OutputLog(LogType type, const std::string &msg);
