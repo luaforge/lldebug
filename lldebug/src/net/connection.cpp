@@ -142,10 +142,10 @@ ClientConnector::ClientConnector(RemoteEngine &engine)
 ClientConnector::~ClientConnector() {
 }
 
-void ClientConnector::Start(const std::string &hostName,
-							const std::string &serviceName) {
+int ClientConnector::Start(const std::string &hostName,
+						  const std::string &serviceName) {
 	if (m_connection != NULL) {
-		return;
+		return -1;
 	}
 	m_connection.reset(new Connection(m_engine));
 
@@ -157,10 +157,11 @@ void ClientConnector::Start(const std::string &hostName,
 			boost::asio::placeholders::iterator,
 			boost::asio::placeholders::error));
 	CONNECTION_TRACE("Trying to resolve the ip address...");
+	return 0;
 }
 
 void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
-									const boost::system::error_code &error) {
+								   const boost::system::error_code &error) {
 	if (!error) {
 		CONNECTION_TRACE("Succeeded in resolving.");
 		CONNECTION_TRACE("Trying to connect with the server...");

@@ -102,7 +102,7 @@ public:
 	virtual ~ClientConnector();
 
 	/// Start the client connection.
-	void Start(const std::string &hostName, const std::string &serviceName);
+	int Start(const std::string &hostName, const std::string &serviceName);
 
 private:
 	void HandleResolve(boost::asio::ip::tcp::resolver_iterator nextEndpoint,

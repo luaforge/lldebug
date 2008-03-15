@@ -99,7 +99,7 @@ int RemoteEngine::StartFrame(unsigned short port) {
 }
 
 int RemoteEngine::StartContext(const std::string &hostName,
-							   const std::string &serviceName) {
+							  const std::string &serviceName) {
 	// Already connected.
 	if (m_connection != NULL) {
 		return 0;
@@ -107,8 +107,7 @@ int RemoteEngine::StartContext(const std::string &hostName,
 
 	// Start connection.
 	shared_ptr<ClientConnector> connector(new ClientConnector(*this));
-	connector->Start(hostName, serviceName);
-	return 0;
+	return connector->Start(hostName, serviceName);
 }
 
 /// Connection thread.
@@ -156,22 +155,25 @@ bool RemoteEngine::OnConnectionConnected(shared_ptr<Connection> connection) {
 	if (m_connection != NULL) {
 		return false;
 	}
-
 	m_connection = connection;
-	OnRemoteCommand(Command(
+
+	Command command(
 		InitCommandHeader(REMOTECOMMANDTYPE_START_CONNECTION, 0),
-		CommandData()));
+		CommandData());
+	OnRemoteCommand(command);
 	return true;
 }
 
 void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
-									  const boost::system::error_code &error) {
+									 const boost::system::error_code &error) {
 	scoped_lock lock(m_mutex);
 
 	if (m_connection == connection) {
-		OnRemoteCommand(Command(
-			InitCommandHeader(REMOTECOMMANDTYPE_END_CONNECTION, 0),
-			CommandData()));
+		Command command(
+			InitCommandHeader(REMOTECOMMANDTYPE_START_CONNECTION, 0),
+			CommandData());
+		OnRemoteCommand(command);
+
 		m_connection.reset();
 
 #ifdef LLDEBUG_VISUAL
@@ -209,17 +211,18 @@ void RemoteEngine::OutputLog(LogType type, const std::string &msg) {
 
 	// Output log to the local.
 	data.Set_OutputLog(logData);
-	OnRemoteCommand(Command(
+	Command command(
 		InitCommandHeader(REMOTECOMMANDTYPE_OUTPUT_LOG, data.GetSize()),
-		data));
+		data);
+	OnRemoteCommand(command);
 
 	// Output log through the network.
 	SendOutputLog(logData);
 }
 
 CommandHeader RemoteEngine::InitCommandHeader(RemoteCommandType type,
-											  size_t dataSize,
-											  int commandId) {
+											 size_t dataSize,
+											 int commandId) {
 	scoped_lock lock(m_mutex);
 	CommandHeader header;
 	header.u.type = type;
