@@ -39,8 +39,7 @@ class Connection;
 /**
  * @brief TCP connection maker used by server size.
  */
-/*class Connector
-	: public boost::enable_shared_from_this<Connector> {
+class Connector {
 public:
 	explicit Connector(RemoteEngine &engine);
 	virtual ~Connector();
@@ -56,23 +55,25 @@ public:
 	}
 
 protected:
-	void BeginConfirmCommand();
+	void BeginConfirmCommand(shared_ptr<Connector> shared_this);
 	void HandleConfirmCommand(shared_ptr<CommandHeader> header,
 							  const boost::system::error_code &error);
+	shared_ptr<Connection> NewConnection();
+	void Connected();
+	void Failed();
 
 private:
 	RemoteEngine &m_engine;
 	shared_ptr<Connection> m_connection;
-	State m_state;
 	int m_handleCommandCount;
-};*/
+};
 
 
 /**
  * @brief TCP connection maker used by server size.
  */
-class ServerConnector
-	: public boost::enable_shared_from_this<ServerConnector> {
+class ServerConnector : public Connector
+	, public boost::enable_shared_from_this<ServerConnector> {
 public:
 	explicit ServerConnector(RemoteEngine &engine);
 	virtual ~ServerConnector();
@@ -82,21 +83,16 @@ public:
 
 private:
 	void HandleAccept(const boost::system::error_code &error);
-	void HandleCommand(shared_ptr<CommandHeader> header,
-					   const boost::system::error_code &error);
 
 private:
-	RemoteEngine &m_engine;
 	boost::asio::ip::tcp::acceptor m_acceptor;
-	shared_ptr<Connection> m_connection;
-	int m_handleCommandCount;
 };
 
 /**
  * @brief TCP connection maker used by client size.
  */
-class ClientConnector
-	: public boost::enable_shared_from_this<ClientConnector> {
+class ClientConnector : public Connector
+	, public boost::enable_shared_from_this<ClientConnector> {
 public:
 	explicit ClientConnector(RemoteEngine &engine);
 	virtual ~ClientConnector();
@@ -109,14 +105,9 @@ private:
 					   const boost::system::error_code &error);
 	void HandleConnect(boost::asio::ip::tcp::resolver_iterator nextEndpoint,
 					   const boost::system::error_code &error);
-	void HandleCommand(shared_ptr<CommandHeader> header,
-					   const boost::system::error_code &error);
 
 private:
-	RemoteEngine &m_engine;
 	boost::asio::ip::tcp::resolver m_resolver;
-	shared_ptr<Connection> m_connection;
-	int m_handleCommandCount;
 };
 
 /**
@@ -140,8 +131,7 @@ public:
 	}
 
 private:
-	friend class ClientConnector;
-	friend class ServerConnector;
+	friend class Connector;
 	explicit Connection(RemoteEngine &engine);
 	void Connected();
 	void Failed();

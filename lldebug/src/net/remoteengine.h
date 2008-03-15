@@ -33,6 +33,7 @@ namespace lldebug {
 namespace net {
 
 class Connection;
+class Connector;
 
 typedef
 	Command::CommandCallback
@@ -173,7 +174,8 @@ private:
 
 private:
 	boost::asio::io_service m_service;
-	boost::shared_ptr<Connection> m_connection;
+	shared_ptr<Connector> m_connector;
+	shared_ptr<Connection> m_connection;
 	boost::uint32_t m_commandIdCounter;
 	bool m_isFailed;
 

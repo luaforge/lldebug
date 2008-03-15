@@ -276,6 +276,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\src\context\execute.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\context\execute.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\context\lldebug.cpp"
 					>
 				</File>

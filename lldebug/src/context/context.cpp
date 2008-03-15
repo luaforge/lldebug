@@ -30,6 +30,7 @@
 #include "net/remoteengine.h"
 #include "context/codeconv.h"
 #include "context/context.h"
+#include "context/execute.h"
 #include "context/luautils.h"
 #include "context/luaiterate.h"
 
@@ -208,30 +209,55 @@ int Context::CreateDebuggerFrame() {
 	lldebug_getremoteaddress(&hostName_, &portNum);
 	std::string hostName = hostName_;
 
-	// Try to connect the debug frame.
-	if (m_engine->StartContext(hostName, portNum) != 0) {
-		goto on_error;
+	for (int times = 1; times <= 2; ++times) {
+		if (times == 2) {
+			// Start the debugger frame with port
+			// to try to debug visually.
+			if (ExecuteFile("lldebug_frame", portNum) != 0) {
+				continue;
+			}
+		}
+
+		// Try to connect to the debug frame.
+		if (m_engine->StartContext(hostName, portNum) != 0) {
+			continue;
+		}
+
+		if (WaitForDebuggerFrame() == 0) {
+			return 0;
+		}
 	}
+
+	OutputLog(LOGTYPE_ERROR, std::string(
+		"lldebug doesn't work correctly, because the frame was not found.\n"
+		"Now this program starts without debugging.\n"
+		"(If you want to debug visually, please excute 'lldebug_frame.exe' first.)"
+		));
+	SetDebugEnable(false);
+	return -1;
+}
+
+int Context::WaitForDebuggerFrame() {
+	scoped_lock lock(m_mutex);
 
 	// Wait for connection if need.
 	boost::xtime current, end;
 	boost::xtime_get(&end, boost::TIME_UTC);
 	end.sec += 10;
 
-	// IsOpen become true in handleConnect.
-	OutputLog(LOGTYPE_TRACE, "Begin connection...");
 	while (!m_engine->IsConnecting()) {
 		if (m_engine->IsFailed()) {
-			goto on_error;
+			return -1;
 		}
 
+		// Handle logs and other commands.
 		if (HandleCommand() != 0) {
-			goto on_error;
+			return -1;
 		}
 
 		boost::xtime_get(&current, boost::TIME_UTC);
 		if (boost::xtime_cmp(current, end) >= 0) {
-			goto on_error;
+			return -1;
 		}
 
 		current.nsec += 100 * 1000 * 1000;
@@ -240,15 +266,6 @@ int Context::CreateDebuggerFrame() {
 
 	OutputLog(LOGTYPE_TRACE, "Succeeded in CreateDebuggerFrame.");
 	return 0;
-
-on_error:;
-	OutputLog(LOGTYPE_ERROR, std::string(
-		"lldebug doesn't work correctly, because the frame was not found.\n"
-		"Now this program starts without debugging.\n"
-		"(If you want to debug visually, please excute 'lldebug_frame.exe' first.)"
-		));
-	SetDebugEnable(false);
-	return -1;
 }
 
 Context::~Context() {

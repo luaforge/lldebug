@@ -142,6 +142,7 @@ public:
 
 private:
 	int CreateDebuggerFrame();
+	int WaitForDebuggerFrame();
 	int LoadConfig();
 	int SaveConfig();
 	void OnRemoteCommand(const Command &command);

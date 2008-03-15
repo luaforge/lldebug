@@ -41,21 +41,88 @@ namespace net {
 using namespace boost::asio::ip;
 
 #define CONNECTION_TRACE(msg) \
-	m_engine.OutputLog(LOGTYPE_TRACE, (msg));
+	this->GetEngine().OutputLog(LOGTYPE_TRACE, (msg));
 
+Connector::Connector(RemoteEngine &engine)
+	: m_engine(engine), m_handleCommandCount(0) {
+}
+
+Connector::~Connector() {
+}
+
+void Connector::BeginConfirmCommand(shared_ptr<Connector> shared_this) {
+	// Try to write command.
+	shared_ptr<CommandHeader> writeHeader(new CommandHeader);
+	writeHeader->u.type = REMOTECOMMANDTYPE_START_CONNECTION;
+	writeHeader->commandId = 0;
+	writeHeader->dataSize = 0;
+	m_connection->GetSocket().async_write_some(
+		boost::asio::buffer(&*writeHeader, sizeof(CommandHeader)),
+		boost::bind(
+			&Connector::HandleConfirmCommand, shared_this,
+			writeHeader, boost::asio::placeholders::error));
+
+	// Try to read command.
+	shared_ptr<CommandHeader> readHeader(new CommandHeader);
+	boost::asio::async_read(m_connection->GetSocket(),
+		boost::asio::buffer(&*readHeader, sizeof(CommandHeader)),
+		boost::asio::transfer_all(),
+		boost::bind(
+			&Connector::HandleConfirmCommand, shared_this,
+			readHeader, boost::asio::placeholders::error));
+
+	CONNECTION_TRACE("Confirming whether the connection is correct...");
+}
+
+void Connector::HandleConfirmCommand(shared_ptr<CommandHeader> header,
+									 const boost::system::error_code &error) {
+	if (!error && header->u.type == REMOTECOMMANDTYPE_START_CONNECTION) {
+		++m_handleCommandCount;
+
+		// If the reading and writing commands were done.
+		if (m_handleCommandCount >= 2) {
+			CONNECTION_TRACE("Succeeded in confirming.");
+
+			// The connection was done successfully.
+			Connected();
+		}
+	}
+	else {
+		CONNECTION_TRACE("Failed to confirm.");
+		Failed();
+	}
+}
+
+shared_ptr<Connection> Connector::NewConnection() {
+	shared_ptr<Connection> connection(new Connection(m_engine));
+	return (m_connection = connection);
+}
+
+void Connector::Connected() {
+	// The connection was done successfully.
+	m_connection->Connected();
+	m_connection.reset();
+}
+
+void Connector::Failed() {
+	// The connection was failed.
+	m_connection->Failed();
+	m_connection.reset();
+}
+
+/*-----------------------------------------------------------------*/
 ServerConnector::ServerConnector(RemoteEngine &engine)
-	: m_engine(engine), m_acceptor(m_engine.GetService())
-	, m_handleCommandCount(0) {
+	: Connector(engine), m_acceptor(engine.GetService()) {
 }
 
 ServerConnector::~ServerConnector() {
 }
 
 int ServerConnector::Start(unsigned short port) {
-	if (m_connection != NULL) {
+	if (this->GetConnection() != NULL) {
 		return -1;
 	}
-	m_connection.reset(new Connection(m_engine));
+	shared_ptr<Connection> connection = this->NewConnection();
 
 	try {
 		// Bind server address.
@@ -63,15 +130,17 @@ int ServerConnector::Start(unsigned short port) {
 
 		// Try to accept.
 		m_acceptor.open(endpoint.protocol());
-		//m_acceptor.set_option(tcp::acceptor::reuse_address(true));
+		m_acceptor.set_option(tcp::acceptor::reuse_address(true));
 		m_acceptor.bind(endpoint);
 		m_acceptor.listen();
-		m_acceptor.async_accept(m_connection->GetSocket(),
+		m_acceptor.async_accept(connection->GetSocket(),
 			boost::bind(
 				&ServerConnector::HandleAccept, shared_from_this(),
 				boost::asio::placeholders::error));
 
-		CONNECTION_TRACE("Waiting to accept...");
+		char buffer[64];
+		snprintf(buffer, sizeof(buffer), "Waiting to accept with %d port ...", port);
+		CONNECTION_TRACE(buffer);
 	}
 	catch (...) {
 		return -1;
@@ -84,70 +153,29 @@ int ServerConnector::Start(unsigned short port) {
 void ServerConnector::HandleAccept(const boost::system::error_code &error) {
 	if (!error) {
 		CONNECTION_TRACE("Succeeded in acceptance.");
-		CONNECTION_TRACE("Confirming whether the connection is correct...");
-
-		// Try to write command.
-		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
-		writeHeader->u.type = REMOTECOMMANDTYPE_START_CONNECTION;
-		writeHeader->commandId = 0;
-		writeHeader->dataSize = 0;
-		m_connection->GetSocket().async_write_some(
-			boost::asio::buffer(&*writeHeader, sizeof(CommandHeader)),
-			boost::bind(
-				&ServerConnector::HandleCommand, shared_from_this(),
-				writeHeader, boost::asio::placeholders::error));
-
-		// Try to read command.
-		shared_ptr<CommandHeader> readHeader(new CommandHeader);
-		boost::asio::async_read(m_connection->GetSocket(),
-			boost::asio::buffer(&*readHeader, sizeof(CommandHeader)),
-			boost::asio::transfer_all(),
-			boost::bind(
-				&ServerConnector::HandleCommand, shared_from_this(),
-				readHeader, boost::asio::placeholders::error));
+		this->BeginConfirmCommand(
+			shared_static_cast<Connector>(shared_from_this()));
 	}
 	else {
 		CONNECTION_TRACE("Failed to accept.");
-		m_connection->Failed();
+		Failed();
 	}
 }
-
-/// Called after the reading or writing command.
-void ServerConnector::HandleCommand(shared_ptr<CommandHeader> header,
-									const boost::system::error_code &error) {
-	if (!error && header->u.type == REMOTECOMMANDTYPE_START_CONNECTION) {
-		++m_handleCommandCount;
-
-		// If the reading and writing commands were done.
-		if (m_handleCommandCount >= 2) {
-			CONNECTION_TRACE("Succeeded in confirming.");
-
-			// The connection was done successfully.
-			m_connection->Connected();
-		}
-	}
-	else {
-		CONNECTION_TRACE("Failed to confirm.");
-		m_connection->Failed();
-	}
-}
-
 
 /*-----------------------------------------------------------------*/
 ClientConnector::ClientConnector(RemoteEngine &engine)
-	: m_engine(engine), m_resolver(m_engine.GetService())
-	, m_handleCommandCount(0) {
+	: Connector(engine), m_resolver(engine.GetService()) {
 }
 
 ClientConnector::~ClientConnector() {
 }
 
 int ClientConnector::Start(const std::string &hostName,
-						  const std::string &serviceName) {
-	if (m_connection != NULL) {
+						   const std::string &serviceName) {
+	if (this->GetConnection() != NULL) {
 		return -1;
 	}
-	m_connection.reset(new Connection(m_engine));
+	this->NewConnection();
 
 	// Resolve server address (service name).
 	tcp::resolver_query query(tcp::v4(), hostName, serviceName);
@@ -156,7 +184,7 @@ int ClientConnector::Start(const std::string &hostName,
 			&ClientConnector::HandleResolve, shared_from_this(),
 			boost::asio::placeholders::iterator,
 			boost::asio::placeholders::error));
-	CONNECTION_TRACE("Trying to resolve the ip address...");
+	CONNECTION_TRACE("Trying to resolve the address (" + hostName + ":" + serviceName + ") ...");
 	return 0;
 }
 
@@ -167,14 +195,14 @@ void ClientConnector::HandleResolve(tcp::resolver_iterator nextEndpoint,
 		CONNECTION_TRACE("Trying to connect with the server...");
 
 		tcp::endpoint endpoint = *nextEndpoint;
-		m_connection->GetSocket().async_connect(endpoint,
+		this->GetConnection()->GetSocket().async_connect(endpoint,
 			boost::bind(
 				&ClientConnector::HandleConnect, shared_from_this(),
 				++nextEndpoint, boost::asio::placeholders::error));
 	}
 	else {
 		CONNECTION_TRACE("Failed to resolve.");
-		m_connection->Failed();
+		Failed();
 	}
 }
 
@@ -183,26 +211,8 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 									const boost::system::error_code &error) {
 	if (!error) {
 		CONNECTION_TRACE("Succeeded in connecting.");
-		CONNECTION_TRACE("Confirming whether the connection is correct...");
-
-		// Try to write command.
-		shared_ptr<CommandHeader> writeHeader(new CommandHeader);
-		writeHeader->u.type = REMOTECOMMANDTYPE_START_CONNECTION;
-		writeHeader->commandId = 0;
-		writeHeader->dataSize = 0;
-		m_connection->GetSocket().async_write_some(
-			boost::asio::buffer(&*writeHeader, sizeof(CommandHeader)),
-			boost::bind(
-				&ClientConnector::HandleCommand, shared_from_this(),
-				writeHeader, boost::asio::placeholders::error));
-
-		// Try to read command.
-		shared_ptr<CommandHeader> readHeader(new CommandHeader);
-		m_connection->GetSocket().async_read_some(
-			boost::asio::buffer(&*readHeader, sizeof(CommandHeader)),
-			boost::bind(
-				&ClientConnector::HandleCommand, shared_from_this(),
-				readHeader, boost::asio::placeholders::error));
+		this->BeginConfirmCommand(
+			shared_static_cast<Connector>(shared_from_this()));
 	}
 	else {
 		CONNECTION_TRACE("Failed to connect.");
@@ -212,35 +222,15 @@ void ClientConnector::HandleConnect(tcp::resolver::iterator nextEndpoint,
 
 			tcp::endpoint endpoint = *nextEndpoint;
 			// Try the next endpoint in the list.
-			m_connection->GetSocket().close();
-			m_connection->GetSocket().async_connect(endpoint,
+			this->GetConnection()->GetSocket().close();
+			this->GetConnection()->GetSocket().async_connect(endpoint,
 				boost::bind(
 					&ClientConnector::HandleConnect, shared_from_this(),
 					++nextEndpoint, boost::asio::placeholders::error));
 		}
 		else {
-			m_connection->Failed();
+			Failed();
 		}
-	}
-}
-
-/// Called after the reading or writing command.
-void ClientConnector::HandleCommand(shared_ptr<CommandHeader> header,
-									const boost::system::error_code &error) {
-	if (!error && header->u.type == REMOTECOMMANDTYPE_START_CONNECTION) {
-		++m_handleCommandCount;
-
-		// If the reading and writing commands were done.
-		if (m_handleCommandCount >= 2) {
-			CONNECTION_TRACE("Succeeded in confirming.");
-
-			// The connection was done successfully.
-			m_connection->Connected();
-		}
-	}
-	else {
-		CONNECTION_TRACE("Failed to confirm.");
-		m_connection->Failed();
 	}
 }
 

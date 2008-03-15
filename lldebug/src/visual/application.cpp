@@ -72,6 +72,7 @@ bool Application::OnInit() {
 	if (this->argc > 1) {
 		int tmpNum = ToPortNumber(this->argv[1]);
 		if (tmpNum == -1) {
+			wxLogError(_T("Port number '%s' is invalid."), this->argv[1]);
 			return false;
 		}
 
@@ -90,6 +91,7 @@ bool Application::OnInit() {
 
 	wxLogWindow *log = new wxLogWindow(frame, _("lldebug logger"), true);
 	wxLog::SetActiveTarget(log);
+	wxLogMessage(_T("port number: %d"), port);
 
 	/*wxString dir = wxStandardPaths().GetLocalizedResourcesDir(wxT("ja"), wxStandardPaths::ResourceCat_Messages);
 	wxLogMessage(_T("%s"), dir.c_str());

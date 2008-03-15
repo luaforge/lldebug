@@ -95,7 +95,13 @@ int RemoteEngine::StartFrame(unsigned short port) {
 
 	// Start connection.
 	shared_ptr<ServerConnector> connector(new ServerConnector(*this));
-	return connector->Start(port);
+	if (connector->Start(port) != 0) {
+		return -1;
+	}
+
+	m_isFailed = false;
+	m_connector = shared_static_cast<Connector>(connector);
+	return 0;
 }
 
 int RemoteEngine::StartContext(const std::string &hostName,
@@ -111,7 +117,13 @@ int RemoteEngine::StartContext(const std::string &hostName,
 
 	// Start connection.
 	shared_ptr<ClientConnector> connector(new ClientConnector(*this));
-	return connector->Start(hostName, portStr);
+	if (connector->Start(hostName, portStr) != 0) {
+		return -1;
+	}
+
+	m_isFailed = false;
+	m_connector = shared_static_cast<Connector>(connector);
+	return 0;
 }
 
 /// Connection thread.
@@ -151,6 +163,7 @@ void RemoteEngine::OnConnectionFailed() {
 	scoped_lock lock(m_mutex);
 
 	m_isFailed = true;
+	m_connector.reset();
 }
 
 bool RemoteEngine::OnConnectionConnected(shared_ptr<Connection> connection) {
@@ -160,6 +173,7 @@ bool RemoteEngine::OnConnectionConnected(shared_ptr<Connection> connection) {
 		return false;
 	}
 	m_connection = connection;
+	m_connector.reset();
 
 	Command command(
 		InitCommandHeader(REMOTECOMMANDTYPE_START_CONNECTION, 0),
@@ -174,6 +188,7 @@ void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
 
 	if (m_connection == connection) {
 		m_connection.reset();
+		m_connector.reset();
 
 		Command command(
 			InitCommandHeader(REMOTECOMMANDTYPE_END_CONNECTION, 0),
