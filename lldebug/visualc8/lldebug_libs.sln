@@ -5,8 +5,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxscintilla", "wxscintilla\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxtreelistctrl", "wxtreelistctrl\wxtreelistctrl.vcproj", "{BB20261D-C16A-43F9-8851-05BBC310DA3C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "babel", "babel\babel.vcproj", "{177CF20E-6D15-4962-81C4-7F222369061A}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boost_system", "boost_system\boost_system.vcproj", "{FDD4111D-857A-4F44-A2F0-9266156A8043}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "echo_server", "echo_server\echo_server.vcproj", "{9E5BE717-D442-45E5-ACA5-43AF07F89AB1}"
@@ -27,10 +25,6 @@ Global
 		{BB20261D-C16A-43F9-8851-05BBC310DA3C}.Debug|Win32.Build.0 = Debug|Win32
 		{BB20261D-C16A-43F9-8851-05BBC310DA3C}.Release|Win32.ActiveCfg = Release|Win32
 		{BB20261D-C16A-43F9-8851-05BBC310DA3C}.Release|Win32.Build.0 = Release|Win32
-		{177CF20E-6D15-4962-81C4-7F222369061A}.Debug|Win32.ActiveCfg = Debug|Win32
-		{177CF20E-6D15-4962-81C4-7F222369061A}.Debug|Win32.Build.0 = Debug|Win32
-		{177CF20E-6D15-4962-81C4-7F222369061A}.Release|Win32.ActiveCfg = Release|Win32
-		{177CF20E-6D15-4962-81C4-7F222369061A}.Release|Win32.Build.0 = Release|Win32
 		{FDD4111D-857A-4F44-A2F0-9266156A8043}.Debug|Win32.ActiveCfg = Debug|Win32
 		{FDD4111D-857A-4F44-A2F0-9266156A8043}.Debug|Win32.Build.0 = Debug|Win32
 		{FDD4111D-857A-4F44-A2F0-9266156A8043}.Release|Win32.ActiveCfg = Release|Win32

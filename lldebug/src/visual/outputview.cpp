@@ -92,6 +92,15 @@ public:
 		AddTextRaw(str.c_str());
 	}
 
+	/// Add raw text that is std::string.
+	void AddTextStd(const std::string &str) {
+		if (str.empty()) {
+			return;
+		}
+
+		AddText(wxConvFromCtxEnc(str));
+	}
+
 	/// Output log.
 	void OutputLog(const LogData &logData) {
 		SetReadOnly(false);
@@ -110,13 +119,13 @@ public:
 			}
 
 			const std::string &path = source->GetPath();
-			AddTextRawStd(!path.empty() ? path : source->GetTitle());
+			AddTextStd(!path.empty() ? path : source->GetTitle());
 			AddTextRaw("(");
 			AddTextRawStd(boost::lexical_cast<std::string>(logData.GetLine()));
 			AddTextRaw("): ");
 		}
 
-		AddTextRawStd(logData.GetLog());
+		AddTextStd(logData.GetLog());
 		AddTextRaw("\n");
 		SetReadOnly(true);
 	}
@@ -184,7 +193,7 @@ void OutputView::OnSize(wxSizeEvent &event) {
 }
 
 void OutputView::OutputLog(LogType logType, const wxString &str, const std::string &key, int line) {
-	m_text->OutputLog(LogData(logType, wxConvToUTF8(str), key, line));
+	m_text->OutputLog(LogData(logType, wxConvToCtxEnc(str), key, line));
 }
 
 void OutputView::OnOutputLog(wxDebugEvent &event) {

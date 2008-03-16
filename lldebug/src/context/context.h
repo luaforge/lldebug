@@ -27,6 +27,7 @@
 #ifndef __LLDEBUG_CONTEXT_H__
 #define __LLDEBUG_CONTEXT_H__
 
+#include "llencoding.h"
 #include "sysinfo.h"
 #include "luainfo.h"
 #include "queue_mt.h"
@@ -74,6 +75,8 @@ public:
 	void OutputLog(LogType type, const std::string &str,
 				   const std::string &key=std::string(""), int line=-1);
 
+	void SetEncoding(lldebug_Encoding encoding);
+
 	int DebugFile(const char *filename);
 
 	int LoadFile(lua_State *L, const char *filename);
@@ -120,6 +123,12 @@ public:
 	void SetLogger(const LoggerType &logger) {
 		scoped_lock lock(m_mutex);
 		m_logger = logger;
+	}
+
+	/// Get the encoding type.
+	lldebug_Encoding GetEncoding() {
+		scoped_lock lock(m_mutex);
+		return m_encoding;
 	}
 
 	/// Get the source object.
@@ -187,6 +196,7 @@ private:
 	int m_waitUpdateCount;
 	bool m_isMustUpdate;
 	LoggerType m_logger;
+	lldebug_Encoding m_encoding;
 
 	/**
 	 * @brief Saving the call count of each lua_State object.

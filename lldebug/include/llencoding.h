@@ -24,27 +24,39 @@
  * SUCH DAMAGE.
  */
 
-#ifndef __LLDEBUG_CODECONV_H__
-#define __LLDEBUG_CODECONV_H__
+#ifndef __LLDEBUG_ENCODING_H__
+#define __LLDEBUG_ENCODING_H__
 
-#include "lldebug.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-namespace lldebug {
-namespace context {
+/**
+ * @brief The identifier of the encoding types.
+ */
+typedef enum lldebug_Encoding {
+	LLDEBUG_ENCODING_UTF8, /**< default encoding */
 
-/// Set the encoding type.
-int SetEncoding(lldebug_Encoding encoding);
+	// Japanese
+	LLDEBUG_ENCODING_SJIS,
+	LLDEBUG_ENCODING_EUC,
+	LLDEBUG_ENCODING_ISO2022JP,
 
-/// Get the encoding type.
-lldebug_Encoding GetEncoding();
+	// North America
+	// South America
+	// Chinese
+	// Korean
+	// Thai, Betnam, Singaporl
+	// Italia
+	// France
+	// Deuche
+	// England
+	// Australia
+	// France, Deuche, England
+} lldebug_Encoding;
 
-/// Convert string from current encoding to UTF8 one.
-std::string ConvToUTF8(const std::string &input);
-
-/// Convert string from UTF8 encoding to current one.
-std::string ConvFromUTF8(const std::string &input);
-
-} // end of namespace context
-} // end of namespace lldebug
+#ifdef __cplusplus
+}
+#endif
 
 #endif

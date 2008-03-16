@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\babel;..\..\extralib\boost_asio_0_3_9"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_LIB;LLDEBUG_CONTEXT;LLDEBUG_USE_BABEL"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_LIB;LLDEBUG_CONTEXT;LLDEBUG_USE_ICU"
 				GeneratePreprocessedFile="0"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -260,14 +260,6 @@
 				Name="context"
 				>
 				<File
-					RelativePath="..\..\src\context\codeconv.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\context\codeconv.h"
-					>
-				</File>
-				<File
 					RelativePath="..\..\src\context\context.cpp"
 					>
 				</File>
@@ -289,6 +281,10 @@
 				</File>
 				<File
 					RelativePath="..\..\include\lldebug.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\include\llencoding.h"
 					>
 				</File>
 				<File

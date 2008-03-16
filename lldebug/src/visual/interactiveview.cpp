@@ -281,7 +281,7 @@ struct EvalResponseHandler {
 
 			// Set the variable's texts.
 			for (LuaVarList::size_type i = 0; i < vars.size(); ++i) {
-				m_view->OutputLog(wxConvFromUTF8(vars[i].GetValue()));
+				m_view->OutputLog(wxConvFromCtxEnc(vars[i].GetValue()));
 			}
 		}
 
@@ -311,12 +311,12 @@ void InteractiveView::Run() {
 		stripped = stripped.Remove(0, 1).Strip(wxString::both);
 
 		evalstr = "return lldebug.tostring_detail(";
-		evalstr += wxConvToUTF8(stripped);
+		evalstr += wxConvToCtxEnc(stripped);
 		evalstr += ")";
 		isVar = true;
 	}
 	else {
-		evalstr = wxConvToUTF8(str);
+		evalstr = wxConvToCtxEnc(str);
 		isVar = false;
 	}
 

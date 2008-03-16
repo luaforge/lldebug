@@ -28,7 +28,6 @@
 #include "luainfo.h"
 
 #ifdef LLDEBUG_CONTEXT
-#include "context/codeconv.h"
 #include "context/luautils.h"
 #endif
 
@@ -86,11 +85,10 @@ LuaVar::~LuaVar() {
 
 #ifdef LLDEBUG_CONTEXT
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
-	: m_lua(lua) {
-	m_name = context::ConvToUTF8(name);
+	: m_lua(lua), m_name(name) {
 
 	lua_State *L = lua.GetState();
-	m_value = context::ConvToUTF8(context::llutil_tostring_for_varvalue(L, valueIdx));
+	m_value = context::llutil_tostring_for_varvalue(L, valueIdx);
 	m_valueType = lua_type(L, valueIdx);
 	m_tableIdx = RegisterTable(L, valueIdx);
 	m_hasFields = CheckHasFields(L, valueIdx);
@@ -98,10 +96,8 @@ LuaVar::LuaVar(const LuaHandle &lua, const std::string &name, int valueIdx)
 
 LuaVar::LuaVar(const LuaHandle &lua, const std::string &name,
 			   const std::string &error)
-	: m_lua(lua), m_valueType(LUA_TNONE), m_tableIdx(-1)
-	, m_hasFields(false) {
-	m_name = context::ConvToUTF8(name);
-	m_value = context::ConvToUTF8(error);
+	: m_lua(lua), m_name(name), m_value(error), m_valueType(LUA_TNONE)
+	, m_tableIdx(-1), m_hasFields(false) {
 }
 
 bool LuaVar::CheckHasFields(lua_State *L, int valueIdx) const {

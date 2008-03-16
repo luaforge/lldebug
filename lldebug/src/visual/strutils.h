@@ -27,14 +27,19 @@
 #ifndef __LLDEBUG_STRUTILS_H__
 #define __LLDEBUG_STRUTILS_H__
 
+#include "llencoding.h"
+
 namespace lldebug {
 namespace visual {
 
-/// Convert wxString object to UTF8 encoding.
-std::string wxConvToUTF8(const wxString &str);
+/// Set encoding type.
+int wxSetEncoding(lldebug_Encoding encoding);
 
-/// Convert std::string(UTF8) object to wxString encoding.
-wxString wxConvFromUTF8(const std::string &str);
+/// Convert wxString object to context's encoding.
+std::string wxConvToCtxEnc(const wxString &str);
+
+/// Convert a context's encoding to wxString encoding.
+wxString wxConvFromCtxEnc(const std::string &str);
 
 /// Convert wxString object to current encoding.
 std::string wxConvToCurrent(const wxString &str);

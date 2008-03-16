@@ -122,6 +122,7 @@ public:
 	void SendStepOver();
 	void SendStepReturn();
 
+	void SendSetEncoding(lldebug_Encoding encoding);
 	void SendOutputLog(const LogData &logData);
 	void SendEvalsToVarList(const string_array &eval, const LuaStackFrame &stackFrame,
 							const LuaVarListCallback &callback);

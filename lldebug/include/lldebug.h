@@ -34,6 +34,7 @@ extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+#include "llencoding.h"
 
 #ifdef LLDEBUG_BUILD_DLL
 	#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
@@ -62,15 +63,21 @@ LLDEBUG_API void lldebug_openlibs(lua_State *L);
 
 /// Log function type.
 typedef void (*lldebug_Logger)(lua_State *L, void *data, const char *msg,
-							   const char *key, int line, bool remote);
+							   const char *key, int line, int remote);
 /// Set the logging function.
-LLDEBUG_API void lldebug_setlogger(lua_State *L, lldebug_Logger logger, void *data);
+LLDEBUG_API void lldebug_setlogger(lua_State *L, lldebug_Logger logger,
+								   void *data);
+
+/// Set the encoding type for displaying on debugger.
+LLDEBUG_API int lldebug_setencoding(lua_State *L, lldebug_Encoding encoding);
+/// Get the encoding type for displaying on debugger.
+LLDEBUG_API lldebug_Encoding lldebug_getencoding(lua_State *L);
 
 
 /// Set the host address and service name if you want to debug remotely.
 /**
  * @param hostname  Host name and the default value is 'localhost'.
- * @param port      Port number and the default value is '51123' (decided randomly).
+ * @param port      Port number and the default value is '24752'.
  */
 LLDEBUG_API void lldebug_setremoteaddress(const char *hostname,
 										  unsigned short port);
@@ -78,34 +85,6 @@ LLDEBUG_API void lldebug_setremoteaddress(const char *hostname,
 LLDEBUG_API void lldebug_getremoteaddress(const char **hostname,
 										  unsigned short *port);
 
-/**
- * @brief The identifier of the encoding types.
- */
-enum lldebug_Encoding {
-	LLDEBUG_ENCODING_UTF8, /**< default encoding */
-
-	// Japanese
-	LLDEBUG_ENCODING_SJIS,
-	LLDEBUG_ENCODING_EUC,
-	LLDEBUG_ENCODING_ISO2022JP,
-
-	// North America
-	// South America
-	// Chinese
-	// Korean
-	// Thai, Betnam, Singaporl
-	// Italia
-	// France
-	// Deuche
-	// England
-	// Australia
-	// France, Deuche, England
-};
-
-/// Set the encoding type for displaying on debugger.
-LLDEBUG_API int lldebug_setencoding(lldebug_Encoding encoding);
-/// Get the encoding type for displaying on debugger.
-LLDEBUG_API lldebug_Encoding lldebug_getencoding();
 
 #if !defined(LLDEBUG_CONTEXT) && !defined(LLDEBUG_VISUAL)
 #undef lua_open

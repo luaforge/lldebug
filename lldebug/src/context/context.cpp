@@ -211,9 +211,8 @@ int Context::CreateDebuggerFrame() {
 
 	for (int times = 1; times <= 2; ++times) {
 		if (times == 2) {
-			// Start the debugger frame with port
-			// to try to debug visually.
-			if (ExecuteFile("lldebug_frame", portNum) != 0) {
+			// Start the debugger frame with port to try to debug visually.
+			if (ExecuteFrame(portNum) != 0) {
 				continue;
 			}
 		}
@@ -228,11 +227,10 @@ int Context::CreateDebuggerFrame() {
 		}
 	}
 
-	OutputLog(LOGTYPE_ERROR, std::string(
+	OutputLog(LOGTYPE_ERROR,
 		"lldebug doesn't work correctly, because the frame was not found.\n"
 		"Now this program starts without debugging.\n"
-		"(If you want to debug visually, please excute 'lldebug_frame.exe' first.)"
-		));
+		"(If you want to debug visually, please excute 'lldebug_frame(.exe)' first.)");
 	SetDebugEnable(false);
 	return -1;
 }
@@ -372,6 +370,17 @@ shared_ptr<Context> Context::Find(lua_State *L) {
 	}
 
 	return ms_manager->Find(L);
+}
+
+void Context::SetEncoding(lldebug_Encoding encoding) {
+	scoped_lock lock(m_mutex);
+
+	if (m_encoding == encoding) {
+		return;
+	}
+
+	m_encoding = encoding;
+	m_engine->SendSetEncoding(encoding);
 }
 
 /// Parse the lua error that forat is like 'FILENAME:LINE:str...'.

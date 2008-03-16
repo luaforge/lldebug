@@ -34,10 +34,6 @@
 #include <fstream>
 #include <sstream>
 
-#ifdef LLDEBUG_CONTEXT
-#include "context/codeconv.h"
-#endif
-
 namespace lldebug {
 
 Breakpoint::Breakpoint(const std::string &key, int line,
@@ -227,15 +223,14 @@ int SourceManager::AddSource(const Source &source, bool sendRemote) {
 	return 0;
 }
 
-#ifdef LLDEBUG_CONTEXT
 static string_array split(std::istream &stream) {
 	string_array array;
-	char buffer[2048];
+	char buffer[512];
 
 	// Split each line.
 	while (!stream.eof()) {
 		stream.getline(buffer, sizeof(buffer));
-		array.push_back(context::ConvToUTF8(buffer));
+		array.push_back(buffer);
 	}
 
 	return array;
@@ -305,11 +300,10 @@ int SourceManager::Save(const std::string &key, const string_array &source) {
 			fp << std::endl;
 		}
 
-		fp << context::ConvFromUTF8(line);
+		fp << line;
 	}
 
 	return 0;
 }
-#endif
 
 } // end of namespace lldebug

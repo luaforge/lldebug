@@ -350,25 +350,25 @@ public:
 
 	/// Initialize this object.
 	void Initialize(const Source &source) {
-		std::string str;
+		wxString str;
 		for (string_array::size_type i = 0; i < source.GetLineCount(); ++i) {
 			// The encoding is UTF8.
-			str += source.GetSourceLine(i);
+			str += wxConvFromCtxEnc(source.GetSourceLine(i));
 
 			// Don't insert line breaks at the last line.
 			if (i < source.GetLineCount()) {
-				str += "\n";
+				str += _T("\n");
 			}
 		}
 
 		// AddTextRaw accepts only the UTF8 string.
-		AddTextRaw(str.c_str());
+		AddText(str);
 
 		SetReadOnly(source.GetPath().empty());
 
 		// The title is converted to UTF8.
 		m_key = source.GetKey();
-		m_title = wxConvFromUTF8(source.GetTitle());
+		m_title = wxConvFromCtxEnc(source.GetTitle());
 		m_hasPath = (!source.GetPath().empty());
 		m_currentLine = -1;
 		m_initialized = true;

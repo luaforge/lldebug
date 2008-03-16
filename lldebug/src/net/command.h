@@ -27,6 +27,7 @@
 #ifndef __LLDEBUG_COMMAND_H__
 #define __LLDEBUG_COMMAND_H__
 
+#include "llencoding.h"
 #include "sysinfo.h"
 #include "luainfo.h"
 
@@ -43,9 +44,6 @@ typedef std::vector<char> container_type;
  * @brief Type of the command using TCP connection.
  */
 enum RemoteCommandType {
-	REMOTECOMMANDTYPE_SUCCESSED,
-	REMOTECOMMANDTYPE_FAILED,
-
 	REMOTECOMMANDTYPE_START_CONNECTION,
 	REMOTECOMMANDTYPE_END_CONNECTION,
 
@@ -68,6 +66,7 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_BREAK,
 	REMOTECOMMANDTYPE_RESUME,
 
+	REMOTECOMMANDTYPE_SET_ENCODING,
 	REMOTECOMMANDTYPE_OUTPUT_LOG,
 
 	REMOTECOMMANDTYPE_EVALS_TO_VARLIST,
@@ -82,6 +81,8 @@ enum RemoteCommandType {
 	REMOTECOMMANDTYPE_REQUEST_SOURCE,
 	REMOTECOMMANDTYPE_REQUEST_BACKTRACELIST,
 
+	REMOTECOMMANDTYPE_SUCCESSED,
+	REMOTECOMMANDTYPE_FAILED,
 	REMOTECOMMANDTYPE_VALUE_STRING,
 	REMOTECOMMANDTYPE_VALUE_SOURCE,
 	REMOTECOMMANDTYPE_VALUE_BREAKPOINTLIST,
@@ -165,6 +166,9 @@ public:
 
 	void Get_ChangedBreakpointList(BreakpointList &bps) const;
 	void Set_ChangedBreakpointList(const BreakpointList &bps);
+
+	void Get_SetEncoding(lldebug_Encoding &encoding) const;
+	void Set_SetEncoding(lldebug_Encoding encoding);
 
 	void Get_OutputLog(LogData &logData) const;
 	void Set_OutputLog(const LogData &logData);

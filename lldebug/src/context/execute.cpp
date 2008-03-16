@@ -27,7 +27,9 @@
 #include "precomp.h"
 #include "execute.h"
 
-/// Execute file with args.
+const char FRAME_NAME[] = "lldebug_frame";
+
+/// Execute file with port number.
 static int LLDebugExecuteFile(const std::string &filename,
 							  unsigned short port);
 
@@ -82,16 +84,78 @@ static int LLDebugExecuteFile(const std::string &filename,
 	return 0;
 }
 
-#else
+#elif defined(__linux__)
 #include <stdlib.h>
 
 static int LLDebugExecuteFile(const std::string &filename,
 							  unsigned short port) {
-	char commandline[256];
-	snprintf(commandline, sizeof(commandline), "%s %d",
+	char commandline[512];
+	snprintf(commandline, sizeof(commandline),
+		"%s %d > /dev/null &",
 		filename.c_str(), port);
 
-	system(commandline);
+	if ret = system(commandline);
+	if (ret == -1) {
+		return -1;
+	}
+	
+	return 0;
+}
+
+#else
+#include <unistd.h>
+
+static void catch_SIGCHLD(int signo) {
+	pid_t child_pid = 0;
+      
+	// Call 'wait' for all killed processes.
+	do {
+		int child_ret;
+
+		// If there is some exited child processes, 'waitpid' returns one's id.
+		// If not, it returns 0 because of WNOHANG option.
+		child_pid = waitpid(-1, &child_ret, WNOHANG);
+	} while (child_pid > 0);
+}
+
+/// Setup the signal handler called when a child process is exited.
+/** It's necessary to avoid a zombie process.
+ */
+static void setup_SIGCHLD() {
+	struct sigaction act;
+
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = catch_SIGCHLD;
+	act.sa_flags = SA_NOCLDSTOP | SA_RESTART;
+	sigemptyset(&act.sa_mask);  // No additional signal mask.
+
+	// Set a signal handler.
+	sigaction(SIGCHLD, &act, NULL);
+}
+
+static int exec_main(const std::string &filename,
+					 unsigned short port) {
+	char portstr[16];
+	snprintf(portstr, sizeof(portstr), "%d", port);
+	
+	return execlp(filename.c_str(), filename.c_str(), portstr, NULL);
+}
+
+static int LLDebugExecuteFile(const std::string &filename,
+							  unsigned short port) {
+	setup_SIGCHLD();
+
+	switch (fork()) {
+	case -1: // Failed
+		return -1;
+	case 0: // Child process
+		exit(exec_main(filename, port));
+		break;
+	default: // Parent process
+		break;
+	}
+	
+	return 0;
 }
 
 #endif
@@ -99,13 +163,9 @@ static int LLDebugExecuteFile(const std::string &filename,
 namespace lldebug {
 namespace context {
 
-int ExecuteFile(const std::string &filename, unsigned short port) {
-	if (filename.empty()) {
-		return -1;
-	}
-
+int ExecuteFrame(unsigned short port) {
 	// Execute the file with some arguments.
-	return LLDebugExecuteFile(filename, port);
+	return LLDebugExecuteFile(FRAME_NAME, port);
 }
 
 } // end of namespace context

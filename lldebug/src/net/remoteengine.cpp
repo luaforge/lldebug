@@ -409,6 +409,15 @@ void RemoteEngine::SendStepReturn() {
 		CommandData());
 }
 
+void RemoteEngine::SendSetEncoding(lldebug_Encoding encoding) {
+	CommandData data;
+
+	data.Set_SetEncoding(encoding);
+	SendCommand(
+		REMOTECOMMANDTYPE_SET_ENCODING,
+		data);
+}
+
 void RemoteEngine::SendOutputLog(const LogData &logData) {
 	LogData logData_ = logData;
 	logData_.SetRemote();

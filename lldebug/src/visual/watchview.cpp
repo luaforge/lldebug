@@ -261,7 +261,7 @@ public:
 				}
 				else {
 					std::string str = "return ";
-					str += wxConvToUTF8(label);
+					str += wxConvToCtxEnc(label);
 					labels.push_back(str);
 				}
 			}
@@ -347,7 +347,7 @@ private:
 			if (it == children.end()) { // No!
 				item = AppendItem(parent, wxEmptyString, -1, -1, new VariableWatchItemData(var));
 
-				wxString name = wxConvFromUTF8(var.GetName());
+				wxString name = wxConvFromCtxEnc(var.GetName());
 				SetItemText(item, 0, name);
 			}
 			else {
@@ -364,14 +364,14 @@ private:
 			}
 
 			// To avoid the useless refresh, check change of the title.
-			wxString value = wxConvFromUTF8(var.GetValue());
+			wxString value = wxConvFromCtxEnc(var.GetValue());
 			if (GetItemText(item, 1) != value) {
 				SetItemText(item, 1, value);
 			}
 
 			// Check whether it has the type column.
 			if (GetColumnCount() >= 3) {
-				wxString type = wxConvFromUTF8(var.GetValueTypeName());
+				wxString type = wxConvFromCtxEnc(var.GetValueTypeName());
 				if (GetItemText(item, 2) != type) {
 					SetItemText(item, 2, type);
 				}
@@ -584,7 +584,7 @@ struct OneVariableWatchView::VariableRequester {
 	explicit VariableRequester(VariableWatch **watch,
 							   const wxString &valName)
 		: m_watch(watch) {
-		m_valNameUTF8 = wxConvToUTF8(valName);
+		m_valNameUTF8 = wxConvToCtxEnc(valName);
 	}
 	void operator()(const LuaVarListCallback &callback) {
 		Mediator::Get()->GetEngine()->SendEvalToMultiVar(

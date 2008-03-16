@@ -214,6 +214,13 @@ void CommandData::Set_ChangedBreakpointList(const BreakpointList &bps) {
 	m_data = Serializer::ToData(bps);
 }
 
+void CommandData::Get_SetEncoding(lldebug_Encoding &encoding) const {
+	Serializer::ToValue(m_data, encoding);
+}
+void CommandData::Set_SetEncoding(lldebug_Encoding encoding) {
+	m_data = Serializer::ToData(encoding);
+}
+
 void CommandData::Get_OutputLog(LogData &logData) const {
 	Serializer::ToValue(m_data, logData);
 }

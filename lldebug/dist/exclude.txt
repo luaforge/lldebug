@@ -1,0 +1,10 @@
+.pdb
+.ncb
+.suo
+.user
+.cvsignore
+test.txt
+\CVS\
+\dist\
+\release\
+\debug\

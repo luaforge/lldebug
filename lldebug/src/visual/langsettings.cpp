@@ -26,6 +26,7 @@
 
 #include "precomp.h"
 #include "visual/langsettings.h"
+
 #include "wx/wxscintilla.h"
 
 namespace lldebug {

@@ -8,4 +8,3 @@ EXTRA_DIST = \
 	build-scripts/missing \
 	build-scripts/ltmain \
 	build-scripts/compile
-

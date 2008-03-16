@@ -46,7 +46,7 @@ struct LogWrapper {
 		m_logger(
 			ctx->GetLua(), m_data, logData.GetLog().c_str(),
 			logData.GetKey().c_str(), logData.GetLine(),
-			logData.IsRemote());
+			(logData.IsRemote() ? 1 : 0));
 	}
 	};
 
@@ -172,6 +172,25 @@ void lldebug_openlibs(lua_State *L) {
 	ctx->LuaOpenLibs(L);
 }
 
+int lldebug_setencoding(lua_State *L, lldebug_Encoding encoding) {
+	shared_ptr<Context> ctx = Context::Find(L);
+	if (ctx == NULL) {
+		return -1;
+	}
+
+	ctx->SetEncoding(encoding);
+	return 0;
+}
+
+lldebug_Encoding lldebug_getencoding(lua_State *L) {
+	shared_ptr<Context> ctx = Context::Find(L);
+	if (ctx == NULL) {
+		return LLDEBUG_ENCODING_UTF8;
+	}
+
+	return ctx->GetEncoding();
+}
+
 
 static std::string s_hostname = "localhost";
 static unsigned short s_port = 24752;
@@ -194,12 +213,4 @@ void lldebug_getremoteaddress(const char **hostname,
 	if (port != NULL) {
 		*port = s_port;
 	}
-}
-
-int lldebug_setencoding(lldebug_Encoding encoding) {
-	return lldebug::context::SetEncoding(encoding);
-}
-
-lldebug_Encoding lldebug_getencoding() {
-	return lldebug::context::GetEncoding();
 }

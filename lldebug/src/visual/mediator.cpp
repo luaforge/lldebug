@@ -25,6 +25,7 @@
  */
 
 #include "precomp.h"
+#include "llencoding.h"
 #include "net/netutils.h"
 #include "visual/mediator.h"
 #include "visual/mainframe.h"
@@ -88,7 +89,7 @@ void Mediator::FocusBacktraceLine(const LuaBacktrace &bt) {
 }
 
 void Mediator::OutputLog(LogType type, const wxString &msg) {
-	LogData logData(type, wxConvToUTF8(msg));
+	LogData logData(type, wxConvToCtxEnc(msg));
 	
 	OutputLogInternal(logData, true);
 }
@@ -105,7 +106,7 @@ void Mediator::OutputLogInternal(const LogData &logData, bool sendRemote) {
 	}
 
 	if (logData.GetType() == LOGTYPE_ERROR) {
-		wxMessageBox(wxConvFromUTF8(logData.GetLog()), _T("Error"), wxOK | wxICON_ERROR, GetFrame());
+		wxMessageBox(wxConvFromCtxEnc(logData.GetLog()), _T("Error"), wxOK | wxICON_ERROR, GetFrame());
 	}
 }
 
@@ -245,6 +246,14 @@ void Mediator::ProcessRemoteCommand(const Command &command) {
 				wxDebugEvent event(wxEVT_DEBUG_CHANGED_BREAKPOINTS, wxID_ANY);
 				frame->ProcessDebugEvent(event, frame, true);
 			}
+		}
+		break;
+
+	case REMOTECOMMANDTYPE_SET_ENCODING:
+		{
+			lldebug_Encoding encoding;
+			command.GetData().Get_SetEncoding(encoding);
+			wxSetEncoding(encoding);
 		}
 		break;
 

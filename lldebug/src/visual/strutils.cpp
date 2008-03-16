@@ -30,12 +30,41 @@
 namespace lldebug {
 namespace visual {
 
-std::string wxConvToUTF8(const wxString &str) {
-	return std::string(wxConvUTF8.cWX2MB(str.c_str()));
+static shared_ptr<wxMBConv> s_conv(new wxMBConvUTF8);
+
+int wxSetEncoding(lldebug_Encoding encoding) {
+	shared_ptr<wxMBConv> conv;
+
+	switch (encoding) {
+	case LLDEBUG_ENCODING_UTF8:
+		conv.reset(new wxMBConvUTF8);
+		break;
+	case LLDEBUG_ENCODING_SJIS:
+		conv.reset(new wxCSConv(wxFONTENCODING_CP932));
+		break;
+	case LLDEBUG_ENCODING_EUC:
+		conv.reset(new wxCSConv(wxFONTENCODING_EUC_JP));
+		break;
+	case LLDEBUG_ENCODING_ISO2022JP:
+		break;
+	default:
+		break;
+	}
+
+	if (conv == NULL) {
+		return -1;
+	}
+
+	s_conv = conv;
+	return 0;
 }
 
-wxString wxConvFromUTF8(const std::string &str) {
-	return wxString(wxConvUTF8.cMB2WX(str.c_str()));
+std::string wxConvToCtxEnc(const wxString &str) {
+	return std::string(s_conv->cWX2MB(str.c_str()));
+}
+
+wxString wxConvFromCtxEnc(const std::string &str) {
+	return wxString(s_conv->cMB2WX(str.c_str()));
 }
 
 std::string wxConvToCurrent(const wxString &str) {
@@ -44,6 +73,7 @@ std::string wxConvToCurrent(const wxString &str) {
 	if (conv == NULL) {
 		conv = &wxConvUTF8;
 	}
+
 	return std::string(conv->cWX2MB(str.c_str()));
 }
 
@@ -53,6 +83,7 @@ wxString wxConvFromCurrent(const std::string &str) {
 	if (conv == NULL) {
 		conv = &wxConvUTF8;
 	}
+
 	return wxString(conv->cMB2WX(str.c_str()));
 }
 

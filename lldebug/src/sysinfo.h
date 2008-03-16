@@ -300,13 +300,11 @@ public:
 	/// Add a source.
 	int AddSource(const Source &source, bool sendRemote);
 
-#ifdef LLDEBUG_CONTEXT
 	/// Add a source.
 	int Add(const std::string &key, const std::string &src);
 
 	/// Save a source.
 	int Save(const std::string &key, const string_array &source);
-#endif
 
 private:
 	weak_ptr<RemoteEngine> m_engine;

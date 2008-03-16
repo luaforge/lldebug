@@ -287,6 +287,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\include\llencoding.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\visual\mainframe.cpp"
 					>
 				</File>

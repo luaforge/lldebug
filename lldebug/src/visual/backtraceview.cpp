@@ -162,12 +162,12 @@ void BacktraceView::DoUpdate(const LuaBacktraceList &backtraces) {
 			SetItemText(item, 0, wxT("unknown"));
 		}
 		else {
-			SetItemText(item, 0, wxConvFromUTF8(backtrace.GetTitle()));
+			SetItemText(item, 0, wxConvFromCtxEnc(backtrace.GetTitle()));
 		}
 		SetItemText(item, 1,
 			wxString::Format(wxT("%d"), backtrace.GetLine()));
 		SetItemText(item, 2,
-			wxConvFromUTF8(backtrace.GetFuncName()));
+			wxConvFromCtxEnc(backtrace.GetFuncName()));
 		SetItemText(item, 3,
 			(backtrace.GetLine() >= 0 ? wxT("lua") : wxT("native")));
 	}

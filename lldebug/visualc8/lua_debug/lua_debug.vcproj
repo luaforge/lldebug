@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="babel"
-	ProjectGUID="{177CF20E-6D15-4962-81C4-7F222369061A}"
-	RootNamespace="babel"
+	Name="lua_debug"
+	ProjectGUID="{541D6A22-6105-4263-91D7-62C1633701A0}"
+	RootNamespace="lua_debug"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,8 +40,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\extralibs\babel"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
+				AdditionalIncludeDirectories="..\..\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				IgnoreStandardIncludePath="false"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -49,7 +50,6 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				DisableSpecificWarnings="4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -61,10 +61,18 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
+				Name="VCLinkerTool"
+				AdditionalDependencies="lua51d.lib $(TargetDir)boost_system.lib"
+				LinkIncremental="2"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -76,6 +84,12 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
@@ -83,7 +97,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -104,14 +118,13 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\extralibs\babel"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
+				AdditionalIncludeDirectories="..\..\include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4996"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -123,10 +136,20 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
+				Name="VCLinkerTool"
+				AdditionalDependencies="lua51.lib $(TargetDir)boost_system.lib"
+				LinkIncremental="1"
+				GenerateDebugInformation="true"
+				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -138,101 +161,25 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 	</Configurations>
 	<References>
+		<ProjectReference
+			ReferencedProjectIdentifier="{F2D7E8D4-62DC-4667-95E3-3E827F149356}"
+			RelativePathToProject=".\lldebug\lldebug.vcproj"
+		/>
 	</References>
 	<Files>
-		<Filter
-			Name="resource"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
-			>
-			<File
-				RelativePath="..\..\extralib\babel\apple.csv"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\c932-uni.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\cp932.csv"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\euc-scr.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\euc-sjis.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\euc-uni.csv"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\euc2-uni.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\euc3-uni.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\Makefile.am~"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\scoremap.csv"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\sjis-euc.csv"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\sjis-euc.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\sjis-scr.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\uni-c932.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\uni-euc.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\uni-scr.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\uni-utc.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\utc-uni.dat"
-				>
-			</File>
-			<File
-				RelativePath="..\..\extralib\babel\utc.csv"
-				>
-			</File>
-		</Filter>
 		<File
-			RelativePath="..\..\extralib\babel\babel.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\extralib\babel\babel.h"
+			RelativePath="..\..\src\lua_debug\lua_debug.c"
 			>
 		</File>
 	</Files>

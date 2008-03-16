@@ -32,7 +32,7 @@ namespace context {
 
 /// Execute file with program arguments.
 /// It is used when lldebug_frame starts.
-int ExecuteFile(const std::string &filename, unsigned short port);
+int ExecuteFrame(unsigned short port);
 
 } // end of namespace context
 } // end of namespace lldebug
