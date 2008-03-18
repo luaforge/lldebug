@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\extralib\treelistctrl\include;E:\programs\cpp\library\external\include\mswud"
+				AdditionalIncludeDirectories="..\..\extralib\treelistctrl\include;&quot;$(WXWIN)\lib\vc_lib\mswud&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -105,7 +105,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\extralib\treelistctrl\include;E:\programs\cpp\library\external\include\mswu"
+				AdditionalIncludeDirectories="..\..\extralib\treelistctrl\include;&quot;$(WXWIN)\lib\vc_lib\mswu&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"

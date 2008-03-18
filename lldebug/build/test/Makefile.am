@@ -15,5 +15,3 @@ test1_LDADD = $(libadd) \
 			-lboost_thread-mt \
 			-lboost_filesystem-mt \
 			-lboost_serialization-mt
-			
-

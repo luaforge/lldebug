@@ -7,15 +7,9 @@ INCLUDES =	-I../../include \
 noinst_LIBRARIES = liblldebug.a
 
 liblldebug_a_CPPFLAGS = -DLLDEBUG_CONTEXT \
-						-DLLDEBUG_USE_ICONV \
 						-Wall
 
 #liblldebug_a_LDFLAGS = $(LDFLAGS)
-
-#liblldebug_a_LIBADD = $(libadd) \
-#						-lboost_thread-mt \
-#						-lboost_filesystem-mt \
-#						-lboost_serialization-mt
 
 liblldebug_a_SOURCES = \
 	../../src/configfile.cpp \

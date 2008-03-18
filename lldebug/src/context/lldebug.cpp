@@ -27,7 +27,6 @@
 #include "precomp.h"
 #include "lldebug.h"
 #include "context/context.h"
-#include "context/codeconv.h"
 
 using namespace lldebug;
 using context::Context;

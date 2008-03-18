@@ -28,7 +28,6 @@
 #include "lldebug.h"
 #include "configfile.h"
 #include "net/remoteengine.h"
-#include "context/codeconv.h"
 #include "context/context.h"
 #include "context/execute.h"
 #include "context/luautils.h"
