@@ -1106,8 +1106,42 @@ void Context::LuaOpenLibs(lua_State *L) {
 	LuaImpl::override_baselib(L);
 }
 
+struct call_info {
+	int nargs;
+	int nresults;
+};
+
+int call_helper(lua_State *L) {
+	/*call_info *info = (call_info *)data;
+	int top = lua_gettop(L);
+
+	lua_call(L, info->nargs, info->nresults);
+	return (lua_gettop(L) - top);*/
+	return 0;
+}
+
 void Context::Call(lua_State *L, int nargs, int nresults) {
 	scoped_lock lock(m_mutex);
+	scoped_lua scoped(L);
+
+	call_info info;
+	info.nargs = nargs;
+	info.nresults = nresults;
+
+	m_isCallSuccess = false;
+	int ret = lua_cpcall(L, call_helper, &info);
+	if (ret == 0) {
+		m_isCallSuccess = true;
+		return;
+	}
+
+	if (m_isCallSuccess) {
+		lua_pop(L, 1);
+		return;
+	}
+
+	OutputLuaError(lua_tostring(L, -1));
+	return;
 }
 
 int Context::PCall(lua_State *L, int nargs, int nresults, int errfunc) {
@@ -1117,6 +1151,30 @@ int Context::PCall(lua_State *L, int nargs, int nresults, int errfunc) {
 	m_isCallSuccess = false;
 	int ret = lua_pcall(L, nargs, nresults, errfunc);
 	if (ret == 0) {
+		m_isCallSuccess = true;
+		return 0;
+	}
+
+	if (m_isCallSuccess) {
+		lua_pop(L, 1);
+		return 0;
+	}
+
+	OutputLuaError(lua_tostring(L, -1));
+	return ret;
+}
+
+int Context::Resume(lua_State *L, int nargs) {
+	scoped_lock lock(m_mutex);
+	scoped_lua scoped(L);
+
+	m_isCallSuccess = false;
+	int ret = lua_resume(L, nargs);
+	if (ret == 0
+#ifdef LUA_YIELD
+		|| ret == LUA_YIELD
+#endif
+		) {
 		m_isCallSuccess = true;
 		return 0;
 	}

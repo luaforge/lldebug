@@ -130,7 +130,10 @@ void lldebug_call(lua_State *L, int nargs, int nresults) {
 		return;
 	}
 
-//	ctx->Call();
+	// Sorry. lua_call can't use now.
+	// Please use 'lua_pcall' alternatively.
+	*(unsigned long *)NULL = 0xcdcdcdcd;
+	// ctx->Call(L, nargs, nresults);
 }
 
 int lldebug_pcall(lua_State *L, int nargs, int nresults, int errfunc) {
@@ -150,7 +153,7 @@ int lldebug_resume(lua_State *L, int nargs) {
 		return -1;
 	}
 
-	return 0;
+	return ctx->Resume(L, nargs);
 }
 
 int lldebug_openbase(lua_State *L) {

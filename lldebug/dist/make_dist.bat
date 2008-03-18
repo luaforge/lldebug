@@ -7,9 +7,9 @@ set MINOR_VER=2
 set UPDATE_VER=0
 
 set DIRNAME=lldebug_%MAJOR_VER%_%MINOR_VER%_%UPDATE_VER%
-set ARCNAME=%DIRNAME%.lzh
+set ARCNAME=%DIRNAME%.zip
 set OUTDIR=..\tags\%DIRNAME%
-rem set OUTARC=..\tags\%ARCNAME%
+set OUTARC=..\tags\%ARCNAME%
 
 cd ..
 rmdir /Q /S %OUTDIR%
@@ -37,7 +37,7 @@ rem ファイルをアーカイブします
 rem
 pushd ..\tags
 del %ARCNAME%
-rem e:\common\lha32\lha32.exe a -r -x %ARCNAME% %DIRNAME%\
+e:\common\lha32\lha32.exe a -r -x %ARCNAME% %DIRNAME%\
 popd
 
 pause

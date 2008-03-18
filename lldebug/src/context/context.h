@@ -87,6 +87,7 @@ public:
 
 	void Call(lua_State *L, int nargs, int nresults);
 	int PCall(lua_State *L, int nargs, int nresults, int errfunc);
+	int Resume(lua_State *L, int nargs);
 
 	LuaVarList LuaGetGlobals();
 	LuaVarList LuaGetRegistories();
