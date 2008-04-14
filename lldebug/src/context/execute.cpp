@@ -94,7 +94,7 @@ static int LLDebugExecuteFile(const std::string &filename,
 		"%s %d > /dev/null &",
 		filename.c_str(), port);
 
-	if ret = system(commandline);
+	int ret = system(commandline);
 	if (ret == -1) {
 		return -1;
 	}

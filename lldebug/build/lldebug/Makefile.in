@@ -52,7 +52,7 @@ am_liblldebug_a_OBJECTS = liblldebug_a-configfile.$(OBJEXT) \
 	liblldebug_a-echostream.$(OBJEXT) \
 	liblldebug_a-netutils.$(OBJEXT) \
 	liblldebug_a-remoteengine.$(OBJEXT) \
-	liblldebug_a-codeconv.$(OBJEXT) liblldebug_a-context.$(OBJEXT) \
+	liblldebug_a-context.$(OBJEXT) liblldebug_a-execute.$(OBJEXT) \
 	liblldebug_a-lldebug.$(OBJEXT) \
 	liblldebug_a-luaiterate.$(OBJEXT) \
 	liblldebug_a-luautils.$(OBJEXT)
@@ -192,16 +192,10 @@ INCLUDES = -I../../include \
 
 noinst_LIBRARIES = liblldebug.a
 liblldebug_a_CPPFLAGS = -DLLDEBUG_CONTEXT \
-						-DLLDEBUG_USE_ICONV \
 						-Wall
 
 
 #liblldebug_a_LDFLAGS = $(LDFLAGS)
-
-#liblldebug_a_LIBADD = $(libadd) \
-#						-lboost_thread-mt \
-#						-lboost_filesystem-mt \
-#						-lboost_serialization-mt
 liblldebug_a_SOURCES = \
 	../../src/configfile.cpp \
 	../../src/sysinfo.cpp \
@@ -212,8 +206,8 @@ liblldebug_a_SOURCES = \
 	../../src/net/echostream.cpp \
 	../../src/net/netutils.cpp \
 	../../src/net/remoteengine.cpp \
-	../../src/context/codeconv.cpp \
 	../../src/context/context.cpp \
+	../../src/context/execute.cpp \
 	../../src/context/lldebug.cpp \
 	../../src/context/luaiterate.cpp \
 	../../src/context/luautils.cpp
@@ -265,12 +259,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-codeconv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-command.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-configfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-connection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-context.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-echostream.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-execute.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-lldebug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-luainfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/liblldebug_a-luaiterate.Po@am__quote@
@@ -427,20 +421,6 @@ liblldebug_a-remoteengine.obj: ../../src/net/remoteengine.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-remoteengine.obj `if test -f '../../src/net/remoteengine.cpp'; then $(CYGPATH_W) '../../src/net/remoteengine.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/net/remoteengine.cpp'; fi`
 
-liblldebug_a-codeconv.o: ../../src/context/codeconv.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-codeconv.o -MD -MP -MF $(DEPDIR)/liblldebug_a-codeconv.Tpo -c -o liblldebug_a-codeconv.o `test -f '../../src/context/codeconv.cpp' || echo '$(srcdir)/'`../../src/context/codeconv.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-codeconv.Tpo $(DEPDIR)/liblldebug_a-codeconv.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/context/codeconv.cpp' object='liblldebug_a-codeconv.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-codeconv.o `test -f '../../src/context/codeconv.cpp' || echo '$(srcdir)/'`../../src/context/codeconv.cpp
-
-liblldebug_a-codeconv.obj: ../../src/context/codeconv.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-codeconv.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-codeconv.Tpo -c -o liblldebug_a-codeconv.obj `if test -f '../../src/context/codeconv.cpp'; then $(CYGPATH_W) '../../src/context/codeconv.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/context/codeconv.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-codeconv.Tpo $(DEPDIR)/liblldebug_a-codeconv.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/context/codeconv.cpp' object='liblldebug_a-codeconv.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-codeconv.obj `if test -f '../../src/context/codeconv.cpp'; then $(CYGPATH_W) '../../src/context/codeconv.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/context/codeconv.cpp'; fi`
-
 liblldebug_a-context.o: ../../src/context/context.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-context.o -MD -MP -MF $(DEPDIR)/liblldebug_a-context.Tpo -c -o liblldebug_a-context.o `test -f '../../src/context/context.cpp' || echo '$(srcdir)/'`../../src/context/context.cpp
 @am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-context.Tpo $(DEPDIR)/liblldebug_a-context.Po
@@ -454,6 +434,20 @@ liblldebug_a-context.obj: ../../src/context/context.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/context/context.cpp' object='liblldebug_a-context.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-context.obj `if test -f '../../src/context/context.cpp'; then $(CYGPATH_W) '../../src/context/context.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/context/context.cpp'; fi`
+
+liblldebug_a-execute.o: ../../src/context/execute.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-execute.o -MD -MP -MF $(DEPDIR)/liblldebug_a-execute.Tpo -c -o liblldebug_a-execute.o `test -f '../../src/context/execute.cpp' || echo '$(srcdir)/'`../../src/context/execute.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-execute.Tpo $(DEPDIR)/liblldebug_a-execute.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/context/execute.cpp' object='liblldebug_a-execute.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-execute.o `test -f '../../src/context/execute.cpp' || echo '$(srcdir)/'`../../src/context/execute.cpp
+
+liblldebug_a-execute.obj: ../../src/context/execute.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-execute.obj -MD -MP -MF $(DEPDIR)/liblldebug_a-execute.Tpo -c -o liblldebug_a-execute.obj `if test -f '../../src/context/execute.cpp'; then $(CYGPATH_W) '../../src/context/execute.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/context/execute.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/liblldebug_a-execute.Tpo $(DEPDIR)/liblldebug_a-execute.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../src/context/execute.cpp' object='liblldebug_a-execute.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o liblldebug_a-execute.obj `if test -f '../../src/context/execute.cpp'; then $(CYGPATH_W) '../../src/context/execute.cpp'; else $(CYGPATH_W) '$(srcdir)/../../src/context/execute.cpp'; fi`
 
 liblldebug_a-lldebug.o: ../../src/context/lldebug.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(liblldebug_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT liblldebug_a-lldebug.o -MD -MP -MF $(DEPDIR)/liblldebug_a-lldebug.Tpo -c -o liblldebug_a-lldebug.o `test -f '../../src/context/lldebug.cpp' || echo '$(srcdir)/'`../../src/context/lldebug.cpp

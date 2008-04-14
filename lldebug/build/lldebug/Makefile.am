@@ -21,8 +21,8 @@ liblldebug_a_SOURCES = \
 	../../src/net/echostream.cpp \
 	../../src/net/netutils.cpp \
 	../../src/net/remoteengine.cpp \
-	../../src/context/codeconv.cpp \
 	../../src/context/context.cpp \
+	../../src/context/execute.cpp \
 	../../src/context/lldebug.cpp \
 	../../src/context/luaiterate.cpp \
 	../../src/context/luautils.cpp

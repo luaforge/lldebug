@@ -20,19 +20,19 @@ int main(int argc, char **argv) {
 		lldebug_setremoteaddress(NULL, atoi(argv[3]));
 	}
 
-	// Set encoding type. (default is utf8)
-#if 1 //defined(WIN32) || defined(_WIN32) || defined(__WIN32)
-	lldebug_setencoding(LLDEBUG_ENCODING_SJIS);
-#else
-	lldebug_setencoding(LLDEBUG_ENCODING_EUC);
-#endif
-
 	printf("TRACE: begin lldebug_open...\n");
 	lua_State *L = lldebug_open();
 	if (L == NULL) {
 		printf("Couldn't open the lua_State.\n");
 		return -1;
 	}
+
+	// Set encoding type. (default is utf8)
+#if 1 //defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+	lldebug_setencoding(L, LLDEBUG_ENCODING_SJIS);
+#else
+	lldebug_setencoding(LLDEBUG_ENCODING_EUC);
+#endif
 
 	// Open standard libs.
 	printf("TRACE: begin lldebug_openlibs...\n");

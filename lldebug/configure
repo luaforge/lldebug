@@ -730,7 +730,7 @@ PACKAGE_VERSION='0.1.0'
 PACKAGE_STRING='lldebug 0.1.0'
 PACKAGE_BUGREPORT=''
 
-ac_unique_file="src/lldebug.cpp"
+ac_unique_file="src/precomp.cpp"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>

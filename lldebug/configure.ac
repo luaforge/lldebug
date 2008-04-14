@@ -1,11 +1,11 @@
 dnl 
-dnl $Id: configure.ac,v 1.4 2008-03-11 11:23:48 cielacanth Exp $
+dnl $Id: configure.ac,v 1.5 2008-04-14 10:51:22 cielacanth Exp $
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
 AC_INIT([lldebug], [0.1.0])
 AC_CONFIG_AUX_DIR([build/build-scripts])
-AC_CONFIG_SRCDIR([src/lldebug.cpp])
+AC_CONFIG_SRCDIR([src/precomp.cpp])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
 
