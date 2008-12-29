@@ -1,0 +1,23 @@
+- error message and log message
+- normal watch view
+- eval that can handle local variable
+- interactive view
+- modify 'LuaGetValueLocal' function
+- consider 'lldebug_serialization.h'
+- need to refactor RemoteEngine class
+- file refactoring
+- input history (interactive view)
+- variable watch (source editor)
+- encoding problem
+- backtrace
+- made the frame reusable
+- save and load input history (interactive view)
+- log system
+- error support
+
+/ GC view
+/ auto complete (interactive view)
+/ status bar
+/ popup menu
+/ lldebug_startfile, lldebug_startstring
+/ break, restart, and exit

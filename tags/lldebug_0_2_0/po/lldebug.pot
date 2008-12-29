@@ -1,0 +1,157 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-03-09 18:46+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: application.cpp:69
+msgid "lldebug logger"
+msgstr ""
+
+#: backtraceview.cpp:79
+msgid "File"
+msgstr ""
+
+#: backtraceview.cpp:80
+msgid "Line"
+msgstr ""
+
+#: backtraceview.cpp:81
+msgid "Function"
+msgstr ""
+
+#: backtraceview.cpp:82 watchview.cpp:125
+msgid "Type"
+msgstr ""
+
+#: interactiveview.cpp:45
+msgid "Run"
+msgstr ""
+
+#: mainframe.cpp:121
+msgid "&Exit\tShift+F5"
+msgstr ""
+
+#: mainframe.cpp:124
+msgid "&LocalWatch"
+msgstr ""
+
+#: mainframe.cpp:125
+msgid "&GlobalWatch"
+msgstr ""
+
+#: mainframe.cpp:126
+msgid "&RegistryWatch"
+msgstr ""
+
+#: mainframe.cpp:127
+msgid "&EnvironWatch"
+msgstr ""
+
+#: mainframe.cpp:128
+msgid "&Watch"
+msgstr ""
+
+#: mainframe.cpp:129
+msgid "&StackWatch"
+msgstr ""
+
+#: mainframe.cpp:130
+msgid "&BacktraceView"
+msgstr ""
+
+#: mainframe.cpp:131
+msgid "&InteractiveView"
+msgstr ""
+
+#: mainframe.cpp:134
+msgid "&Break\tShift+Pause"
+msgstr ""
+
+#: mainframe.cpp:135
+msgid "&Restart\tF5"
+msgstr ""
+
+#: mainframe.cpp:137
+msgid "Step &Into\tF7"
+msgstr ""
+
+#: mainframe.cpp:138
+msgid "Step &Over\tF6"
+msgstr ""
+
+#: mainframe.cpp:139
+msgid "Step Return\tF8"
+msgstr ""
+
+#: mainframe.cpp:141
+msgid "&Toggle Breakpoint\tF9"
+msgstr ""
+
+#: mainframe.cpp:144
+msgid "&File"
+msgstr ""
+
+#: mainframe.cpp:145
+msgid "&View"
+msgstr ""
+
+#: mainframe.cpp:146
+msgid "&Debug"
+msgstr ""
+
+#: mainframe.cpp:226
+msgid "InteractiveView"
+msgstr ""
+
+#: mainframe.cpp:231
+msgid "OutputView"
+msgstr ""
+
+#: mainframe.cpp:236
+msgid "LocalWatch"
+msgstr ""
+
+#: mainframe.cpp:241
+msgid "EnvironWatch"
+msgstr ""
+
+#: mainframe.cpp:246
+msgid "GlobalWatch"
+msgstr ""
+
+#: mainframe.cpp:251
+msgid "RegistryWatch"
+msgstr ""
+
+#: mainframe.cpp:256
+msgid "StackWatch"
+msgstr ""
+
+#: mainframe.cpp:261
+msgid "Watch"
+msgstr ""
+
+#: mainframe.cpp:266
+msgid "Backtrace"
+msgstr ""
+
+#: watchview.cpp:122
+msgid "Name"
+msgstr ""
+
+#: watchview.cpp:123
+msgid "Value"
+msgstr ""
