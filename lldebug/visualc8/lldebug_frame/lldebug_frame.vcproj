@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\treelistctrl\include;..\..\extralib\wxscintilla\include;..\..\extralib\boost_asio_0_3_9;&quot;$(WXWIN)\lib\vc_lib\mswud&quot;"
+				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\treelistctrl\include;..\..\extralib\wxscintilla\include;&quot;$(WXWIN)\lib\vc_lib\mswud&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;LLDEBUG_VISUAL"
 				IgnoreStandardIncludePath="false"
 				MinimalRebuild="true"
@@ -64,7 +64,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxbase28ud.lib wxmsw28ud_core.lib wxmsw28ud_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_system.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
+				AdditionalDependencies="wxbase28ud.lib wxmsw28ud_core.lib wxmsw28ud_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -120,7 +120,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\treelistctrl\include;..\..\extralib\wxscintilla\include;..\..\extralib\boost_asio_0_3_9;&quot;$(WXWIN)\lib\vc_lib\mswu&quot;"
+				AdditionalIncludeDirectories="..\..\include;..\..\src;..\..\extralib\treelistctrl\include;..\..\extralib\wxscintilla\include;&quot;$(WXWIN)\lib\vc_lib\mswu&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;LLDEBUG_VISUAL"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="2"
@@ -141,7 +141,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxbase28u.lib wxmsw28u_core.lib wxmsw28u_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)boost_system.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
+				AdditionalDependencies="wxbase28u.lib wxmsw28u_core.lib wxmsw28u_aui.lib comctl32.lib rpcrt4.lib $(TargetDir)wxscintilla.lib $(TargetDir)wxtreelistctrl.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"

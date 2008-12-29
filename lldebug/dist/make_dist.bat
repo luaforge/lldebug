@@ -3,7 +3,7 @@ rem リリースファイルを作るためのバッチファイルです。
 rem 
 
 set MAJOR_VER=0
-set MINOR_VER=2
+set MINOR_VER=3
 set UPDATE_VER=0
 
 set DIRNAME=lldebug_%MAJOR_VER%_%MINOR_VER%_%UPDATE_VER%

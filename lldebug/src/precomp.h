@@ -27,6 +27,21 @@
 #ifndef __LLDEBUG_PRECOMP_H__
 #define __LLDEBUG_PRECOMP_H__
 
+#include <boost/config.hpp>
+#include <boost/version.hpp>
+
+#ifdef BOOST_WINDOWS
+	#define NOMINMAX
+	#ifndef _WIN32_WINDOWS
+		#define _WIN32_WINDOWS 0x400
+	#endif
+#endif
+
+#if defined(BOOST_WINDOWS) && (BOOST_VERSION < 103600)
+	#define BOOST_SYSTEM_NO_LIB
+	#pragma comment(lib, "boost_system.lib")
+#endif
+
 #include <string>
 #include <vector>
 #include <list>
@@ -34,28 +49,21 @@
 #include <set>
 #include <queue>
 
+#include <boost/asio/io_service.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/serialization/serialization.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/condition.hpp>
 #include <boost/functional.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/serialization/serialization.hpp>
-
-#define BOOST_SYSTEM_NO_LIB
-#ifdef BOOST_WINDOWS
-	#define NOMINMAX
-	#ifndef _WIN32_WINDOWS
-		#define _WIN32_WINDOWS 0x400
-	#endif
-#endif
-#include <boost/asio/io_service.hpp>
 
 #if defined(LLDEBUG_CONTEXT)
 	extern "C" {
-	#include "lua.h"
-	#include "lualib.h"
-	#include "lauxlib.h"
+	#include "lua/lua.h"
+	#include "lua/lualib.h"
+	#include "lua/lauxlib.h"
 	}
 #endif
 #if defined(LLDEBUG_VISUAL)

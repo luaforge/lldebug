@@ -31,9 +31,9 @@
 extern "C" {
 #endif
 
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+#include "lua/lua.h"
+#include "lua/lualib.h"
+#include "lua/lauxlib.h"
 #include "llencoding.h"
 
 #ifdef LLDEBUG_BUILD_DLL

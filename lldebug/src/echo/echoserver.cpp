@@ -25,8 +25,11 @@
  */
 
 #include <boost/config.hpp>
+#include <boost/version.hpp>
 
-#define BOOST_SYSTEM_NO_LIB
+#if BOOST_VERSION < 10360
+	#define BOOST_SYSTEM_NO_LIB
+#endif
 #ifdef BOOST_WINDOWS
 	#define NOMINMAX
 	#define _WIN32_WINDOWS 0x400

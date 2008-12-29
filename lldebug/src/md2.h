@@ -100,4 +100,16 @@ std::string GenerateMD2(const Ty &obj) {
 	}
 }
 
+/// Generate MD2 message-digest from a container object.
+static std::string GenerateMD2(const char *obj) {
+	if (obj == NULL) {
+		MD2Generator md2;
+		md2.Final();
+		return md2.GetDigestString();
+	}
+	else {
+		return GenerateMD2(&obj[0], &obj[strlen(obj)]);
+	}
+}
+
 } // end of namespace lldebug
