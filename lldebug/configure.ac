@@ -1,5 +1,5 @@
 dnl 
-dnl $Id: configure.ac,v 1.5 2008-04-14 10:51:22 cielacanth Exp $
+dnl $Id: configure.ac,v 1.6 2009-01-25 22:16:05 cielacanth Exp $
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
@@ -45,7 +45,7 @@ AC_ARG_ENABLE(debug,
 if [ test x$debug = xtrue ]; then
 	wxoption="--unicode=yes --debug=yes"
 else
-	wxoption="--unicode=yes --debug=yes"
+	wxoption="--unicode=yes --debug=no"
 fi
 
 WXCPPFLAGS=`$WXCONFIG $wxoption --cppflags`
