@@ -107,8 +107,6 @@ static int ServerMain(unsigned short port) {
 		std::cerr << ex.what() << std::endl;
 		return -1;
 	}
-
-	return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -118,5 +116,6 @@ int main(int argc, char *argv[]) {
 		serviceName = argv[1];
 	}
 
-	return ServerMain(atoi(serviceName.c_str()));
+	unsigned short port = (unsigned short)atoi(serviceName.c_str());
+	return ServerMain(port);
 }

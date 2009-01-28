@@ -212,6 +212,8 @@ const Source *SourceManager::GetString(const std::string &key) {
 int SourceManager::AddSource(const Source &source, bool sendRemote) {
 	m_sourceMap.insert(std::make_pair(source.GetKey(), source));
 
+	(void)sendRemote;
+
 #ifdef LLDEBUG_CONTEXT
 	if (sendRemote) {
 		shared_ptr<RemoteEngine> p = m_engine.lock();

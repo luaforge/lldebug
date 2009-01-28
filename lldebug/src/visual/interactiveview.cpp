@@ -262,7 +262,7 @@ struct EvalResponseHandler {
 		: m_view(view), m_isVar(isVar) {
 	}
 
-	int operator()(const net::Command &command, const LuaVarList &vars) {
+	int operator()(const net::Command &/*command*/, const LuaVarList &vars) {
 		bool successed = false;
 
 		if (vars.empty()) {

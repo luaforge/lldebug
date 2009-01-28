@@ -171,7 +171,7 @@ private:
 
 		/// This method may be called from the other thread.
 		/// @param vars    result of the request
-		int operator()(const lldebug::Command &command, const LuaVarList &vars) {
+		int operator()(const lldebug::Command &/*command*/, const LuaVarList &vars) {
 			// If update count was changed, new request might be sent.
 			if (m_updateCount != Mediator::Get()->GetUpdateCount()) {
 				return -1;
@@ -601,7 +601,7 @@ OneVariableWatchView::OneVariableWatchView(wxWindow *parent,
 										   const wxString &valName,
 										   const wxPoint &pos,
 										   const wxSize &size)
-	: wxFrame(parent, wxID_ANY, _T(""), pos, wxSize(800, 800)
+	: wxFrame(parent, wxID_ANY, _T(""), pos, size
 		, wxFRAME_TOOL_WINDOW | wxRESIZE_BORDER
 		/*| wxFRAME_NO_TASKBAR*/ | wxFRAME_FLOAT_ON_PARENT)
 	, m_wasInMouse(false) {

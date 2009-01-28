@@ -1,5 +1,5 @@
 dnl 
-dnl $Id: configure.ac,v 1.6 2009-01-25 22:16:05 cielacanth Exp $
+dnl $Id: configure.ac,v 1.7 2009-01-28 11:51:25 cielacanth Exp $
 dnl Process this file with autoconf to produce a configure script.
 dnl
 
@@ -65,9 +65,9 @@ AC_CONFIG_FILES([
 	build/boost_system/Makefile
 	build/lldebug/Makefile
 	build/lldebug_frame/Makefile
+	build/lua_debug/Makefile
 	build/echo_server/Makefile
 	build/echo_client/Makefile
-	build/test/Makefile
 	])
 
 AC_OUTPUT

@@ -218,6 +218,7 @@ int LuaVar::RegisterTable(lua_State *L, int valueIdx) {
 
 	lua_pop(L, 1);
 	assert(top == lua_gettop(L));
+	(void)top;
 	return n;
 }
 

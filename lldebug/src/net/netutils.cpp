@@ -34,6 +34,8 @@ namespace lldebug {
 namespace net {
 
 void EchoCommand(const Command &command) {
+	(void)command;
+
 #ifndef NDEBUG
 	echo_ostream echo("localhost");
 

@@ -108,7 +108,7 @@ struct BacktraceView::UpdateHandler {
 	explicit UpdateHandler(BacktraceView *view)
 		: m_view(view) {
 	}
-	int operator()(const lldebug::net::Command &command,
+	int operator()(const lldebug::net::Command &/*command*/,
 				   const LuaBacktraceList &bts) {
 		m_view->DoUpdate(bts);
 		return 0;

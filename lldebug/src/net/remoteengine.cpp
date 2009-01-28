@@ -183,7 +183,7 @@ bool RemoteEngine::OnConnectionConnected(shared_ptr<Connection> connection) {
 }
 
 void RemoteEngine::OnConnectionClosed(shared_ptr<Connection> connection,
-									 const boost::system::error_code &error) {
+									 const boost::system::error_code &/*error*/) {
 	scoped_lock lock(m_mutex);
 
 	if (m_connection == connection) {

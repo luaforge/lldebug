@@ -77,7 +77,7 @@ public:
 
 	void SetEncoding(lldebug_Encoding encoding);
 
-	int DebugFile(const char *filename);
+	//int DebugFile(const char *filename);
 
 	int LoadFile(lua_State *L, const char *filename);
 	int LoadString(lua_State *L, const char *str);
@@ -85,7 +85,7 @@ public:
 	int LuaOpenBase(lua_State *L);
 	void LuaOpenLibs(lua_State *L);
 
-	void Call(lua_State *L, int nargs, int nresults);
+	//void Call(lua_State *L, int nargs, int nresults);
 	int PCall(lua_State *L, int nargs, int nresults, int errfunc);
 	int Resume(lua_State *L, int nargs);
 

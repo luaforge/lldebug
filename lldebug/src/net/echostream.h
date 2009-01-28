@@ -135,14 +135,16 @@ public:
 	}
 
 protected:
-	virtual std::streampos seekoff(std::streamoff off,
-								   std::ios::seek_dir dir, 
+	virtual std::streampos seekoff(std::streamoff /*off*/,
+								   std::ios::seek_dir /*dir*/, 
 								   int mode = std::ios::in | std::ios::out) {
+		(void)mode;
 		return Tr::eof();
 	}
 
-	virtual std::streampos seekpos(std::streampos pos,
+	virtual std::streampos seekpos(std::streampos /*pos*/,
 								   int mode = std::ios::in | std::ios::out) {
+		(void)mode;
 		return Tr::eof();
 	}
 

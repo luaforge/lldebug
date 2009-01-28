@@ -188,7 +188,7 @@ OutputView::OutputView(wxWindow *parent)
 OutputView::~OutputView() {
 }
 
-void OutputView::OnSize(wxSizeEvent &event) {
+void OutputView::OnSize(wxSizeEvent &/*event*/) {
 	m_text->SetSize(GetClientSize());
 }
 

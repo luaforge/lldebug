@@ -1,10 +1,17 @@
 /*
- * Test program.
+ * Simple client program.
  */
 
 #include "lldebug.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+/**
+ * @file
+ * 
+ * Simple lua client to begin the debug session.
+ * This program should be started after the execution of 'lldebug_frame'.
+ */
 
 int main(int argc, char **argv) {
 	lua_State *L;
@@ -19,7 +26,7 @@ int main(int argc, char **argv) {
 		lldebug_setremoteaddress(argv[2], 0);
 	}
 	if (argc > 3) {
-		lldebug_setremoteaddress(NULL, atoi(argv[3]));
+		lldebug_setremoteaddress(NULL, (unsigned short)atoi(argv[3]));
 	}
 
 	printf("TRACE: begin lldebug_open...\n");
@@ -57,7 +64,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Call the lua program without protection.
-	//lua_call(L, 0, 0);
+	//lldebug_call(L, 0, 0);
 
 	lldebug_close(L);
 	return 0;

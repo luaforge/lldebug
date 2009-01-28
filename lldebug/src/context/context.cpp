@@ -388,7 +388,7 @@ Context::LuaErrorData Context::ParseLuaError(const std::string &str) {
 
 	// FILENAME:LINE:str...
 	bool found = false;
-	int line;
+	int line = -1;
 	std::string::size_type pos = 0, prevPos = 0;
 	while ((prevPos = str.find(':', prevPos)) != str.npos) {
 		pos = prevPos;
@@ -757,7 +757,7 @@ struct UpdateResponseWaiter {
 		: m_count(count) {
 		++*count;
 	}
-	int operator()(const Command &command) {
+	int operator()(const Command &/*command*/) {
 		--*m_count;
 		return 0;
 	}
@@ -1010,11 +1010,11 @@ int Context::LuaInitialize(lua_State *L) {
 	return 0;
 }
 
-int Context::DebugFile(const char *filename) {
+/*int Context::DebugFile(const char *filename) {
 	scoped_lock lock(m_mutex);
 
 	return 0;
-}
+}*/
 
 int Context::LoadFile(lua_State *L, const char *filename) {
 	scoped_lock lock(m_mutex);
@@ -1043,10 +1043,10 @@ int Context::LoadFile(lua_State *L, const char *filename) {
 int Context::LoadString(lua_State *L, const char *str) {
 	scoped_lock lock(m_mutex);
 	
-	int ret = luaL_loadbuffer(m_lua, str, strlen(str), str);
+	int ret = luaL_loadbuffer(L, str, strlen(str), str);
 	if (ret != 0) {
 		m_sourceManager.Add(str, str);
-		OutputLuaError(lua_tostring(m_lua, -1));
+		OutputLuaError(lua_tostring(L, -1));
 		return ret;
 	}
 
@@ -1112,16 +1112,15 @@ struct call_info {
 	int nresults;
 };
 
-int call_helper(lua_State *L) {
-	/*call_info *info = (call_info *)data;
+/*static int call_helper(lua_State *L) {
+	call_info *info = (call_info *)lua_touserdata(L, 1);
 	int top = lua_gettop(L);
 
 	lua_call(L, info->nargs, info->nresults);
-	return (lua_gettop(L) - top);*/
-	return 0;
-}
+	return (lua_gettop(L) - top);
+}*/
 
-void Context::Call(lua_State *L, int nargs, int nresults) {
+/*void Context::Call(lua_State *L, int nargs, int nresults) {
 	scoped_lock lock(m_mutex);
 	scoped_lua scoped(L);
 
@@ -1143,7 +1142,7 @@ void Context::Call(lua_State *L, int nargs, int nresults) {
 
 	OutputLuaError(lua_tostring(L, -1));
 	return;
-}
+}*/
 
 int Context::PCall(lua_State *L, int nargs, int nresults, int errfunc) {
 	scoped_lock lock(m_mutex);
@@ -1398,7 +1397,7 @@ struct eval_string_reader {
 		: str(str_), beginning(beginning_), ending(ending_), state(0) {
 	}
 
-	static const char *exec(lua_State *L, void *data, size_t *size) {
+	static const char *exec(lua_State * /*L*/, void *data, size_t *size) {
 		eval_string_reader *reader = (eval_string_reader *)data;
 		
 		switch (reader->state) {

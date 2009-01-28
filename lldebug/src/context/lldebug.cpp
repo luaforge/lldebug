@@ -86,7 +86,7 @@ enum lldebug_Start {
 	LLDEBUG_START_WITHOUT_DEBUG,
 };
 
-int lldebug_startfile(lua_State *L, const char *filename, lldebug_Start start) {
+int lldebug_startfile(lua_State *L, const char * /*filename*/, lldebug_Start /*start*/) {
 	shared_ptr<Context> ctx = Context::Find(L);
 	if (ctx == NULL || ctx->GetMainLua() != L) {
 		return -1;
@@ -100,7 +100,7 @@ int lldebug_startfile(lua_State *L, const char *filename, lldebug_Start start) {
 	// on_error:;
 	//   while (isIdling) {
 	//   }
-	return 0;
+	return -1;
 }
 
 int lldebug_loadfile(lua_State *L, const char *filename) {

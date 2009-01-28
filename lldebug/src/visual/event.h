@@ -83,7 +83,7 @@ public:
 						  const std::string &key, int line,
 						  int updateCount, bool isRefreshOnly)
 		: wxEvent(winid, type), m_key(key), m_line(line)
-		, m_updateCount(m_updateCount), m_isRefreshOnly(isRefreshOnly) {
+		, m_updateCount(updateCount), m_isRefreshOnly(isRefreshOnly) {
 		wxASSERT(type == wxEVT_DEBUG_UPDATE_SOURCE);
 	}
 

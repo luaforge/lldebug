@@ -327,7 +327,7 @@ private:
 	}
 
 	/// Refresh the breakpoint marks.
-	void OnChangedBreakpoints(wxDebugEvent &event) {
+	void OnChangedBreakpoints(wxDebugEvent &/*event*/) {
 		MarkerDeleteAll(MARKNUM_BREAKPOINT);
 
 		BreakpointList &bps = Mediator::Get()->GetBreakpoints();
@@ -577,7 +577,7 @@ void SourceView::CreatePage(const Source &source) {
 	AddPage(page, page->GetTitle(), true);
 }
 
-void SourceView::OnEndDebug(wxDebugEvent &event) {
+void SourceView::OnEndDebug(wxDebugEvent &/*event*/) {
 	size_t count;
 	while ((count = GetPageCount()) > 0) {
 		DeletePage(count - 1);
@@ -607,7 +607,7 @@ struct RequestSourceHandler {
 		: m_view(view), m_event(event) {
 	}
 
-	int operator()(const Command &command, const Source &source) {
+	int operator()(const Command &/*command*/, const Source &source) {
 		if (source.GetKey().empty()) {
 			return -1;
 		}
@@ -632,7 +632,7 @@ void SourceView::OnUpdateSource(wxDebugEvent &event) {
 			page->FocusCurrentLine(event.GetLine());
 
 			// GetSelection is to avoid moving the focus carelessly.
-			if (i != GetSelection()) {
+			if (i != (size_t)GetSelection()) {
 				SetSelection(i);
 			}
 

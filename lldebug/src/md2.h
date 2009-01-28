@@ -88,20 +88,19 @@ std::string GenerateMD2(It begin, It end) {
 }
 
 /// Generate MD2 message-digest from a container object.
-template<class Ty>
-std::string GenerateMD2(const Ty &obj) {
-	if (boost::empty(obj)) {
+inline std::string GenerateMD2(const std::string &obj) {
+	if (obj.empty()) {
 		MD2Generator md2;
 		md2.Final();
 		return md2.GetDigestString();
 	}
 	else {
-		return GenerateMD2(boost::begin(obj), boost::end(obj));
+		return GenerateMD2(obj.begin(), obj.end());
 	}
 }
 
 /// Generate MD2 message-digest from a container object.
-static std::string GenerateMD2(const char *obj) {
+inline std::string GenerateMD2(const char *obj) {
 	if (obj == NULL) {
 		MD2Generator md2;
 		md2.Final();

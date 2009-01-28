@@ -167,11 +167,11 @@ void MainFrame::ProcessDebugEvent(wxEvent &event, wxWindow *parent, bool sendAlw
 	parent->ProcessEvent(event);
 }
 
-void MainFrame::OnUpdateSource(wxDebugEvent &event) {
+void MainFrame::OnUpdateSource(wxDebugEvent &/*event*/) {
 	Raise();
 }
 
-void MainFrame::OnIdle(wxIdleEvent &event) {
+void MainFrame::OnIdle(wxIdleEvent &/*event*/) {
 	Mediator::Get()->ProcessAllRemoteCommands();
 }
 

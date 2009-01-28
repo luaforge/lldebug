@@ -1,4 +1,4 @@
-SUBDIRS = treelistctrl wxscintilla boost_system lldebug lldebug_frame echo_server echo_client test
+SUBDIRS = treelistctrl wxscintilla boost_system lldebug lldebug_frame lua_debug echo_server echo_client
 
 EXTRA_DIST = \
 	build-scripts/config.guess \

@@ -63,6 +63,10 @@ protected:
 	void Failed();
 
 private:
+	Connector(const Connector &);
+	Connector &operator =(const Connector &);
+
+private:
 	RemoteEngine &m_engine;
 	shared_ptr<Connection> m_connection;
 	int m_handleCommandCount;
