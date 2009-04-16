@@ -934,15 +934,18 @@ public:
 	}
 
 	static int cocreate(lua_State *L) {
-		lua_State *NL = lua_newthread(L);
+		shared_ptr<Context> ctx = Context::Find(L);
+		if (ctx == NULL) {
+			luaL_error(L, "The context isn't registered.");
+			return 0;
+		}
+
+		lua_State *NL = ctx->NewThread(L);
 		luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1), 1,
 			"Lua function expected");
 		lua_pushvalue(L, 1);  /* move function to top */
 		lua_xmove(L, NL, 1);  /* move function from L to NL */
-
 		lua_atpanic(NL, atpanic);
-		Context::SetHook(NL);
-		Context::ms_manager->Add(Context::Find(L), NL);
 		return 1;
 	}
 
@@ -1105,6 +1108,23 @@ void Context::LuaOpenLibs(lua_State *L) {
 	}
 
 	LuaImpl::override_baselib(L);
+}
+
+lua_State *Context::NewThread(lua_State *L) {
+	shared_ptr<Context> ctx = Context::Find(L);
+	if (ctx == NULL) {
+		luaL_error(L, "The context isn't registered.");
+		return NULL;
+	}
+
+	lua_State *NL = lua_newthread(L);
+
+	// Set the hook function to NL.
+	Context::SetHook(NL);
+
+	// Connect the context of L with NL.
+	Context::ms_manager->Add(ctx, NL);
+	return NL;
 }
 
 struct call_info {

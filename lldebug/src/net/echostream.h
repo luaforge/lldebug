@@ -45,8 +45,12 @@ public:
 	~echo_thread();
 
 	/// Get the io_service object.
-	static echo_thread *get_instance() {
-		return &ms_instance;
+	static shared_ptr<echo_thread> get_instance() {
+		if (ms_instance == NULL) {
+			ms_instance.reset(new echo_thread);
+		}
+
+		return ms_instance;
 	}
 
 	/// Get the io_service object.
@@ -69,7 +73,7 @@ private:
 	shared_ptr<request> get_request();
 
 private:
-	static echo_thread ms_instance;
+	static shared_ptr<echo_thread> ms_instance;
 	shared_ptr<boost::thread> m_thread;
 	boost::asio::io_service m_service;
 	boost::asio::ip::udp::socket m_socket;
@@ -101,7 +105,7 @@ public:
 	bool open(const std::string &hostname, const std::string &servicename) {
 		try {
 			using namespace boost::asio::ip;
-			echo_thread *instance = echo_thread::get_instance();
+			shared_ptr<echo_thread> instance = echo_thread::get_instance();
 			if (instance == NULL) {
 				return false;
 			}
@@ -194,7 +198,7 @@ protected:
 		}
 
 		// Do echo.
-		echo_thread *instance = echo_thread::get_instance();
+		shared_ptr<echo_thread> instance = echo_thread::get_instance();
 		if (instance != NULL) {
 			instance->add_request(m_endpoint, m_buffer);
 		}

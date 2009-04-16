@@ -130,6 +130,9 @@ void lldebug_call(lua_State *L, int nargs, int nresults) {
 		return;
 	}
 
+	(void)nargs;
+	(void)nresults;
+
 	// Sorry. lua_call can't use now.
 	// Please use 'lua_pcall' alternatively.
 	*(unsigned long *)NULL = 0xcdcdcdcd;
@@ -154,6 +157,16 @@ int lldebug_resume(lua_State *L, int nargs) {
 	}
 
 	return ctx->Resume(L, nargs);
+}
+
+lua_State *lldebug_newthread(lua_State *L) {
+	shared_ptr<Context> ctx = Context::Find(L);
+	if (ctx == NULL) {
+		lua_pushliteral(L, "Conldn't find the Context object.");
+		return NULL;
+	}
+
+	return ctx->NewThread(L);
 }
 
 int lldebug_openbase(lua_State *L) {

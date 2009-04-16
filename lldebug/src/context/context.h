@@ -85,6 +85,8 @@ public:
 	int LuaOpenBase(lua_State *L);
 	void LuaOpenLibs(lua_State *L);
 
+	lua_State *NewThread(lua_State *L);
+
 	//void Call(lua_State *L, int nargs, int nresults);
 	int PCall(lua_State *L, int nargs, int nresults, int errfunc);
 	int Resume(lua_State *L, int nargs);
